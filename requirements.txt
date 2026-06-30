@@ -1,0 +1,16 @@
+# runtime dependencies for naruto-auto-daily Phase 1-5
+# Python 3.11+
+loguru>=0.7.3
+pydantic>=2.7
+PyYAML>=6.0
+numpy>=2.0
+Pillow>=10.0
+mss>=9.0
+psutil>=5.9
+pywin32>=306 ; sys_platform == "win32"
+opencv-python-headless>=4.9
+
+# Phase 5: GUI
+PySide6>=6.5
+# Phase 5: GUI tests
+pytest-qt>=4.0

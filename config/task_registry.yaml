@@ -1,0 +1,128 @@
+# ============================================================
+# naruto-auto-daily · 任务注册表
+#
+# V2 修正: 删除 schedule_order。
+# 唯一排序来源是每个任务的 ``display_order`` 字段。
+# Scheduler._instantiate_tasks 按 display_order 升序排列所有
+# enabled=true 的任务;``enabled=false`` 的任务被跳过。
+#
+# 字段说明(按 task_id 为 key):
+#   task_class         : Python 类路径,格式 "module.ClassName"
+#   enabled            : bool, 是否默认启用
+#   display_order      : int, 排序键(Scheduler 按此升序执行)
+#   category           : 分类字符串(daily / weekly / pvp / shop / mail ...)
+#   description        : 一句话说明
+#   estimated_time_sec : 预估耗时(仅展示用)
+#   retry_on_failure   : bool, 失败是否重试
+#   max_retries        : int, 最大重试次数
+#   config_options     : dict, 任务级参数
+# ============================================================
+
+# Phase 6 业务扩展(2026-06-24):
+#   新增 mail / liveness / group_signin 三个真实业务任务。
+#   daily_signin 保持 Phase 3 已接入状态。
+#   执行顺序(display_order): mail(2) → liveness(3) → group_signin(4) → daily_signin(5)
+#   ⚠ mail / group_signin 当前模板缺失,任务以"尽力回主页"模式运行(SUCCESS 但不实际领奖)。
+#     liveness 复用现有 liveness/* 模板,理论上可立即实跑。
+#
+# Phase 7+ 业务补全(2026-06-24):
+#   按 docs/operation_flows.md 规格补全 recruit 任务。
+#   shop 任务已废弃(用户决定不维护商城流程),保留代码注释见 git log。
+#   执行顺序追加: recruit(6)
+#   ⚠ recruit 模板大量缺失(详见 tasks/recruit_task.py 的 MISSING_TEMPLATES),
+#     任务以"尽力回主页"模式运行(SUCCESS 但不实际招募)。
+
+tasks:
+  daily_signin:
+    task_class: "tasks.daily_signin_task.DailySigninTask"
+    enabled: true
+    display_order: 5
+    category: "daily"
+    description: "每日签到(Phase 6 真实接入,已在 MuMu 模拟器 PASS,5.66s)"
+    estimated_time_sec: 30
+    retry_on_failure: true
+    max_retries: 2
+    config_options: {}
+
+  mail:
+    task_class: "tasks.mail_task.MailTask"
+    enabled: true
+    display_order: 2
+    category: "daily"
+    description: "邮件领取(Phase 6 新增,需采集 mail_entry.png / one_key_claim.png / confirm_claim.png)"
+    estimated_time_sec: 20
+    retry_on_failure: true
+    max_retries: 1
+    config_options: {}
+
+  liveness:
+    task_class: "tasks.liveness_task.LivenessTask"
+    enabled: true
+    display_order: 3
+    category: "daily"
+    description: "活跃奖励(Phase 6 新增,复用 16 个 liveness/* 模板,需采集 liveness_tab.png)"
+    estimated_time_sec: 25
+    retry_on_failure: true
+    max_retries: 2
+    config_options: {}
+
+  group_signin:
+    task_class: "tasks.group_signin_task.GroupSigninTask"
+    enabled: true
+    display_order: 4
+    category: "daily"
+    description: "组织签到(Phase 6 新增,需采集 group_entry / group_signin / group_donate / dialog_close / confirm_donate)"
+    estimated_time_sec: 25
+    retry_on_failure: true
+    max_retries: 1
+    config_options: {}
+
+  recruit:
+    task_class: "tasks.recruit_task.RecruitTask"
+    enabled: true
+    display_order: 6
+    category: "daily"
+    description: "招募(Phase 7+ 补全,需采集 recruit/free_recruit / recruit/discount_recruit / recruit/confirm_recruit / recruit/recruit_done)"
+    estimated_time_sec: 25
+    retry_on_failure: true
+    max_retries: 1
+    config_options: {}
+
+  # Phase 7+ 业务补全(2026-06-29):
+  #   weekly_signin / activity / monthly_signin 三个任务加入注册表。
+  #   weekly_signin: 原 weekly_sign.png 已被误裁,当前无有效模板,best-effort 跳过。
+  #   activity: 一乐外卖活动页签到,需要活动页内菜盒模板(部分已采)。
+  #   monthly_signin: 活动页"每月签到" tab,需要 OCR 引导。
+  #   执行顺序追加: weekly_signin(7) → activity(8) → monthly_signin(9)
+  weekly_signin:
+    task_class: "tasks.weekly_signin_task.WeeklySigninTask"
+    enabled: true
+    display_order: 7
+    category: "weekly"
+    description: "每周签到(P0-1 2026-06-29 模板 weekly_sign.png 移入 deprecated,当前 best-effort 跳过,需补采)"
+    estimated_time_sec: 20
+    retry_on_failure: false
+    max_retries: 0
+    config_options: {}
+
+  activity:
+    task_class: "tasks.activity_task.ActivityTask"
+    enabled: true
+    display_order: 8
+    category: "weekly"
+    description: "一乐外卖活动签到(需采集 activity/ramen.png 等内部模板,部分已采)"
+    estimated_time_sec: 30
+    retry_on_failure: true
+    max_retries: 1
+    config_options: {}
+
+  monthly_signin:
+    task_class: "tasks.monthly_signin_task.MonthlySigninTask"
+    enabled: true
+    display_order: 9
+    category: "monthly"
+    description: "每月签到(活动页左侧菜单'每月签到' tab,通过 OCR 引导)"
+    estimated_time_sec: 25
+    retry_on_failure: true
+    max_retries: 1
+    config_options: {}

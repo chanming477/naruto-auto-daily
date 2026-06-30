@@ -1,0 +1,114 @@
+# ============================================================
+# naruto-auto-daily · 全局应用配置
+# 第一次运行 python main.py --init-config 会自动生成本文件
+# ============================================================
+
+app:
+  name: "naruto-auto-daily"
+  version: "0.6.0"
+  phase: 6
+  # 是否以调试模式启动（影响日志详细程度）
+  debug: false
+
+# 日志系统
+logger:
+  # 控制台日志级别（TRACE / DEBUG / INFO / SUCCESS / WARNING / ERROR / CRITICAL）
+  console_level: "INFO"
+  # 文件日志级别
+  file_level: "DEBUG"
+  # 日志目录（相对项目根目录）
+  log_dir: "logs"
+  # 单个日志文件最大字节数（默认 50MB）
+  rotation_mb: 50
+  # 历史日志保留天数
+  retention_days: 30
+  # 是否启用压缩归档
+  compression: true
+  # 错误时是否自动截图（依赖 ScreenshotManager）
+  auto_screenshot_on_error: true
+
+# 调度器
+scheduler:
+  # 是否在第一个任务失败后中止整个流水线
+  stop_on_failure: false
+  # 任务之间的间隔秒数（让屏幕稳定 / 动画结束）
+  inter_task_delay_sec: 1.0
+  # 启动前等待秒数（手动模式给用户切窗口的时间）
+  startup_warmup_sec: 3.0
+  # 每个任务的最长执行时间（秒），0 表示不限制
+  task_timeout_sec: 300
+  # 调度器心跳间隔（秒）
+  heartbeat_interval_sec: 30
+
+# 状态机
+state_machine:
+  # 启动时的初始状态
+  initial_state: "IDLE"
+  # 任务失败时的目标状态
+  failure_state: "FAILED"
+  # 任务全部成功时的目标状态
+  success_state: "COMPLETED"
+  # 是否在状态转换时打印日志
+  log_transitions: true
+
+# 截图
+screenshot:
+  # 截图目录（相对项目根目录）
+  output_dir: "screenshots"
+  # 截图后端: win32_print_window / mss_full_screen
+  backend: "win32_print_window"
+  # 是否将截图转灰度（节省内存与磁盘）
+  to_grayscale: false
+  # 截图为空的容错重试次数
+  max_empty_retries: 3
+  # 重试间隔（毫秒）
+  retry_delay_ms: 200
+
+# ============ Phase 2 新增 ============
+
+# ADB 客户端
+adb:
+  # ADB 可执行路径,空字符串 = 从 PATH 自动找 adb
+  # Phase 6 真实接入建议: MuMu 模拟器自带 ADB 一般在
+  #   C:\tmp\android-sdk\platform-tools\adb.exe
+  # 若 PATH 中已有 adb,保持空即可。
+  adb_path: "C:\\tmp\\android-sdk\\platform-tools\\adb.exe"
+  # 默认设备序列号(如 "127.0.0.1:7555" 或 "emulator-5554"),空 = 不指定
+  # Phase 6 真实接入建议: MuMu 模拟器使用 "127.0.0.1:7555"
+  #   雷电/Nox/BlueStacks 通常为 "emulator-5554" 或其自定端口
+  # 留空时,ADBClient.connect() 会执行 `adb devices` 自动选第一个 device
+  default_serial: "127.0.0.1:7555"
+  # 单条 adb 命令的超时(秒)
+  command_timeout_sec: 10
+  # 失败重试次数(>=1)
+  retry_count: 2
+
+# 优先级说明(P6 真实接入):
+#   ADBClient 解析 adb_path 的优先级:
+#     1) 构造参数 adb_path= 显式覆盖(最高)
+#     2) config.app.adb.adb_path(本文件,常用于 MuMu 等非 PATH 路径)
+#     3) shutil.which('adb')(从系统 PATH 找)
+#     4) 都没找到 → 抛 ADBUnavailableError
+#   设备连接优先级:
+#     1) 构造参数 serial= 显式覆盖
+#     2) config.app.adb.default_serial
+#     3) adb connect <serial> 直接连
+#     4) 默认 → 执行 `adb devices` 选第一个 device 行
+
+# 模板匹配
+template_matching:
+  # 默认匹配阈值,范围 [0.0, 1.0]
+  default_threshold: 0.85
+  # 是否启用多尺度匹配(Phase 2 占位,未实现)
+  multi_scale: false
+  # 多尺度缩放范围(占位)
+  multi_scale_range: [0.95, 1.0, 1.05]
+
+# 游戏状态
+game_state:
+  # 启动时初始 GameState:HOME / POPUP / LOADING / UNKNOWN
+  initial_state: "UNKNOWN"
+  # 模板根目录(相对 project_root)
+  templates_dir: "resources/templates"
+  # recover() 调用 probe 的最大次数
+  recovery_probe_max: 3

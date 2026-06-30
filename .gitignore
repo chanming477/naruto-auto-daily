@@ -1,0 +1,68 @@
+# ============================================================
+# naruto-auto-daily · .gitignore
+# 2026-06-30 — Mavis
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+.installed.cfg
+*.egg
+
+# Virtual env
+.venv/
+venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# pytest / 测试缓存
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 日志
+logs/
+*.log
+!logs/.gitkeep
+
+# 运行时截图存档
+screenshots/
+!screenshots/.gitkeep
+# 例外:failures/ 子目录保留(节点失败截图,排查用)
+!screenshots/failures/.gitkeep
+
+# 配置中的本地路径(每台机器不同,不要 commit)
+config/*.local.yaml
+config/*.local.yml
+
+# 凭据 / 私密
+*.pem
+*.key
+secrets.yaml
+
+# 临时文件
+*.tmp
+*.bak
+*.orig
+~$*
+
+# 项目数据
+data/
+*.csv
+*.db
+*.sqlite3
