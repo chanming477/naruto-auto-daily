@@ -1,31 +1,37 @@
 """tasks.group_signin_task — 组织签到(组织祈福)任务(2026-06-29 14:23 user 强求补建)。
 
 设计目标:
-    主页 → 奖励中心 → 4 任务卡找"组织祈福" → 立刻前往 → 焚香祈福界面 → 焚香祈福 → 回主页。
+    主页 → 奖励中心(award_center_entry)→ "组织玩法/祈福"任务卡 → 前往 → 焚香祈福 → 回主页。
 
-实测 ROI (1920x1080):
-    - 奖励按钮: x=1760, y=460, w=200, h=180 (shared/award_button_v5_real.png)
-        2026-06-29 12:47 真机 conf=0.997 @ (1810, 498) tap (1842, 536)
-    - 组织祈福任务卡: x=0, y=700, w=1920, h=380 (奖励中心任务卡,横排)
-    - 立刻前往按钮: x=1700, y=950, w=200, h=100 (任务卡底部,带手指标)
-    - 焚香祈福按钮: x=1300, y=700, w=600, h=200 (center)
-    - 关闭按钮: x=1820, y=60, w=80, h=80
-    - 主页按钮: x=30, y=700, w=100, h=80
+ROI 直接照抄 narutomobile-main Group.json(权威源):
+    - 奖励中心入口: award_center_entry.png ROI (1174, 302, 99, 105) → 点 (1222, 354)
+        我之前 ROI_AWARD_BUTTON (1760, 460, 200, 180) tap (1842, 536) 是错的。
+    - 奖励中心 → 组织玩法任务卡: group_gameplay_undone.png ROI (44, 382, 177, 118)
+        narutomobile 做法:点卡片 tab 进入(卡片 ROI 是 (12, 116, -40, -114) offset)
+    - 组织玩法页 → "前往": OCR ROI (239, 533, 178, 144) → 进祈福界面
+    - 焚香祈福: copper_pray.png ROI (476, 542, 200, 80) 中心 (576, 582)
+        user 14:23 裁的 burn_incense_pray_btn.png = "6000 焚香祈福" 同义
+    - 确认: confirm_group_pray.png / confirm_copper_pray_done.png
 
-Pipeline (8 节点):
-    1. ensure_home              Noop
-    2. find_award_button        主页找奖励 → 点击
-    3. find_group_pray_card     奖励中心找"组织祈福"任务卡 → 点击
-    4. find_go_button           找"立刻前往" → 点击
-    5. find_burn_incense_pray   找"焚香祈福"按钮 → 点击
-    6. confirm_pray             找"确认祈福"对话框 → 点击
-    7. back_to_home             主页按钮
-    8. verify_done              终点
+Pipeline (8 节点,严格按 narutomobile):
+    1. ensure_home                 Noop
+    2. award_center_enter          进奖励中心 → 点 (1222, 354)
+    3. swipe_for_award_center_find 横向滑动找"组织祈福"卡片(可选)
+    4. group_gameplay_undone       找到 → 选中(DoNothing 验证)
+    5. goto_group_pray             OCR "前往" → 点击进祈福界面
+    6. copper_group_pray           copper_pray.png / burn_incense_pray_btn → 点 (576, 582)
+    7. confirm_copper_group_pray   确认对话框 → 点击
+    8. back_main_screen            main_green_masked.png → 验证回主页
+    9. verify_done                 Noop
 
-重要: 永不调用 KeyAction(key="BACK")! 否则触发"是否退出游戏"弹窗。
-user 一直都在组织里(2026-06-29 14:09 user 明确纠正)。
 依赖: tasks.navigator, tasks.pipeline_runner
 """
+
+# === Task 元数据 (2026-06-30 工程治理) ===
+# 来源    : MaaAutoNaruto-win-x86_64-v1.3.35 (v1.3.35 merged.json)
+# 生成器  : tools/gen_11_tasks.py (统一模板,不得手改)
+# 维护    : 修改 ROI/流程请改 gen_11_tasks.py 重生成
+# === End 元数据 ===
 
 from __future__ import annotations
 
@@ -43,6 +49,7 @@ from tasks.navigator import (
     Node,
     NoopAction,
     Pipeline,
+    SwipeAction,
 )
 from tasks.common_actions import make_recovery_chain
 from tasks.pipeline_runner import (
@@ -54,196 +61,222 @@ from tasks.pipeline_runner import (
 if TYPE_CHECKING:
     from core.base_task import ExecutionContext
 
-__all__ = ["GroupSigninTask", "MISSING_TEMPLATES"]
+__all__ = ["GroupSigninTask"]
 
 
-# 待采集模板清单 (path, description, roi) — Phase 2 简化后只跑主线
-# 2026-06-29 user 强求精简: 去掉 check_no_group + 4 子链路 (铜币祈福/追击晓子),
-# 只保留焚香祈福主流程。已采到的模板不再列入。
-MISSING_TEMPLATES: list[tuple[str, str, tuple[int, int, int, int]]] = [
-    # 历史模板 (代码已改用通用 shared/get.png / shared/x.png 兜底, 不再依赖):
-    # - group/group_pray_card_undone.png  已在,user 裁
-    # - group/group_pray_go_btn.png       已在,user 裁
-    # - group/burn_incense_pray_btn.png   已在,user 裁
-    # - group/confirm_group_pray.png      已在,真机确认
-    #
-    # 当前无未采集模板;保留 4 行 placeholder 以兼容 test_phase6_business_tasks.py
-    # 的 `len(GROUP_MISSING) >= 4` 校验。
-    ("group/_placeholder_1.png", "deprecated: 旧 4 子链路模板位", (0, 0, 1, 1)),
-    ("group/_placeholder_2.png", "deprecated: 旧 铜币祈福", (0, 0, 1, 1)),
-    ("group/_placeholder_3.png", "deprecated: 旧 追击晓子", (0, 0, 1, 1)),
-    ("group/_placeholder_4.png", "deprecated: 旧 check_no_group", (0, 0, 1, 1)),
-]
+# narutomobile ROI(奖励中心 / 组织玩法 / 前往 / 焚香祈福)
+ROI_AWARD_CENTER_ENTRY = (1174, 302, 99, 105)       # narutomobile SharedNode.json award_center_enter
+# tap (1222, 354)(narutomobile 直接 action Click 默认 tap match 中心,实际试 (1222, 354))
+AWARD_TAP_X_OFFSET = 3                              # match_x ≈ 1219 → 1222
+AWARD_TAP_Y_OFFSET = -51                            # match_y ≈ 354→ 304(narutomobile center is y=354 but real button top is 302)
 
+# 奖励中心内"组织玩法"卡片(左侧任务卡列表)
+ROI_GROUP_GAMEPLAY_UNDONE = (44, 382, 177, 118)     # narutomobile group_gameplay_undone
 
-# 实测 ROI (1920x1080)
-ROI_AWARD_BUTTON = (1760, 460, 200, 180)            # 主页"奖励"礼物盒(v5_real 真机 conf=0.997)
-ROI_GROUP_PRAY_CARD = (0, 700, 1920, 380)          # 任务卡区域(奖励中心内)
-ROI_GO_BUTTON = (1700, 950, 200, 100)              # "立刻前往"按钮
-ROI_BURN_INCENSE_PRAY = (1300, 700, 600, 200)      # "焚香祈福"按钮
-ROI_CONFIRM = (1200, 700, 600, 200)                # "确认祈福"对话框
-ROI_CLOSE_X = (1820, 60, 80, 80)                   # X 关闭
-ROI_HOME_BUTTON = (30, 700, 100, 80)               # 主页按钮(FILE_MISSING best-effort)
+# 横向滑动找组织祈福卡片(narutomobile swipe_for_award_center_find)
+SWIPE_AWARD_BEGIN = (1133, 169, 56, 61)
+SWIPE_AWARD_END = (542, 169, 56, 61)
+
+# "前往"按钮 OCR ROI
+ROI_GOTO_GROUP_PRAY = (239, 533, 178, 144)
+
+# 焚香祈福按钮 ROI
+ROI_COPPER_PRAY = (476, 542, 200, 80)               # 中心 (576, 582)
+
+# 主页验证 ROI(全屏绿通道)
+ROI_HOME_MAIN = (0, 0, 1920, 1080)
 
 
 def _build_group_signin_pipeline(nav: Navigator) -> Pipeline:
-    """构造"组织签到(组织祈福)" pipeline。"""
+    """构造"组织签到(组织祈福)" pipeline (narutomobile ROI)。"""
     tpls = nav.templates
     pipe = Pipeline(entry="ensure_home")
 
     # ---- 1. 主页基线 ----
     pipe.add(Node(
         name="ensure_home",
-        templates=[],
         action=NoopAction(),
-        next=["find_award_button"],
-        focus="ensure home (pre_check)",
+        next=["award_center_enter"],
+        focus="主页基线",
     ))
 
-    # ---- 2. 主页找"奖励" → 点击 ----
+    # ---- 2. 找奖励中心入口(award_center_entry.png)→ 点 (1222, 354) ----
     pipe.add(Node(
-        name="find_award_button",
+        name="award_center_enter",
         templates=tpls(
-            "shared/award_button_v5_real.png",   # 2026-06-29 12:47 真机 conf=0.997 @ (1810, 498) tap (1842, 536)
+            "shared/award_center_entry.png",           # narutomobile 模板
+            "shared/award_button_v5_real.png",         # 2026-06-29 v5_real 真机 conf=0.997
             "shared/award_button_v4_real.png",
-            "shared/award_center_entry.png",
             "shared/award_center_entry_v2.png",
         ),
-        roi=ROI_AWARD_BUTTON,
-        threshold=0.55,
-        action=ClickAction(),
-        next=["find_group_pray_card"],
-        on_error=["verify_done"],
-        post_delay_ms=1500,
-        focus="点击主页'奖励'按钮",
-    ))
-
-    # ---- 3. 奖励中心找"组织祈福"任务卡 → 点击 ----
-    pipe.add(Node(
-        name="find_group_pray_card",
-        templates=tpls(
-            "group/group_pray_card_undone.png",   # user 已裁 (340x505)
-            "group/group_pray_undone.png",
-            "group/group_pray_text.png",
-            "group/pray_undone.png",
-        ),
-        roi=ROI_GROUP_PRAY_CARD,
-        threshold=0.55,
-        action=ClickAction(),
-        next=["find_go_button"],
-        on_error=["close_award_center"],  # 找不到任务卡 → 关奖励中心
+        roi=ROI_AWARD_CENTER_ENTRY,
+        threshold=0.6,
+        action=ClickAction(x_offset=AWARD_TAP_X_OFFSET, y_offset=AWARD_TAP_Y_OFFSET),
+        next=["check_in_award_center"],
+        on_error=["back_main_screen"],
         max_hit=3,
         post_delay_ms=1500,
-        focus="点击'组织祈福'任务卡",
+        focus="点奖励中心 (1222, 354)",
     ))
 
-    # ---- 4. 找"立刻前往" → 点击 ----
+    # ---- 3. 验证已在奖励中心(检测 check_in_daily_award)----
     pipe.add(Node(
-        name="find_go_button",
+        name="check_in_award_center",
         templates=tpls(
-            "group/group_pray_go_btn.png",         # user 已裁 (230x42)
-            "group/dawn_organization_entry_group_button.png",
+            "shared/check_in_daily_award.png",         # narutomobile 已签到/未签到 状态标志
+            "shared/check_not_in_daily_award.png",
         ),
-        roi=ROI_GO_BUTTON,
-        threshold=0.55,
+        roi=(37, 172, 130, 47),                        # narutomobile 直接给
+        threshold=0.6,
+        action=NoopAction(),
+        next=["find_group_gameplay_undone"],
+        on_error=["back_main_screen"],
+        max_hit=5,
+        post_delay_ms=500,
+        focus="确认在奖励中心",
+    ))
+
+    # ---- 4. 找"组织祈福/组织玩法"任务卡(group_gameplay_undone)----
+    # narutomobile:在 ROI (44, 382, 177, 118) 找 → target_offset (12, 116, -40, -114)
+    pipe.add(Node(
+        name="find_group_gameplay_undone",
+        templates=tpls(
+            "group/group_gameplay_undone.png",         # narutomobile "组织玩法"(可能叫"组织祈福"在新版 UI)
+            "group/group_pray_card_undone.png",        # user 14:23 裁的"组织祈福"任务卡
+            "group/group_pray_undone.png",
+            "group/group_ac_undone.png",
+        ),
+        roi=ROI_GROUP_GAMEPLAY_UNDONE,
+        threshold=0.7,
+        action=ClickAction(),                          # 点击 match 中心 → 卡片本体
+        next=["check_selected_group_gameplay"],
+        on_error=["swipe_for_award_center_find"],
+        max_hit=3,
+        post_delay_ms=1000,
+        focus="找组织玩法任务卡",
+    ))
+
+    # ---- 4b. 横向滑动找组织祈福卡片(若左侧列表不可见)----
+    pipe.add(Node(
+        name="swipe_for_award_center_find",
+        templates=[],
+        action=SwipeAction(
+            x1=SWIPE_AWARD_BEGIN[0], y1=SWIPE_AWARD_BEGIN[1],
+            x2=SWIPE_AWARD_END[0], y2=SWIPE_AWARD_END[1],
+            duration_ms=200,
+        ),
+        next=["find_group_gameplay_undone_retry"],
+        on_error=["back_main_screen"],
+        max_hit=3,
+        post_delay_ms=500,
+        focus="横向滑动奖励中心找组织祈福",
+    ))
+
+    pipe.add(Node(
+        name="find_group_gameplay_undone_retry",
+        templates=tpls(
+            "group/group_gameplay_undone.png",
+            "group/group_pray_card_undone.png",
+            "group/group_pray_undone.png",
+            "group/group_ac_undone.png",
+        ),
+        roi=ROI_GROUP_GAMEPLAY_UNDONE,
+        threshold=0.7,
         action=ClickAction(),
-        next=["find_burn_incense_pray"],
-        on_error=["close_award_center"],
+        next=["check_selected_group_gameplay"],
+        on_error=["back_main_screen"],
+        max_hit=2,
+        post_delay_ms=1000,
+        focus="滑动后找组织玩法任务卡",
+    ))
+
+    # ---- 5. 验证选中(DoNothing)----
+    pipe.add(Node(
+        name="check_selected_group_gameplay",
+        templates=tpls(
+            "group/selected_group_gameplay.png",
+        ),
+        roi=ROI_GROUP_GAMEPLAY_UNDONE,
+        threshold=0.7,
+        action=NoopAction(),
+        next=["goto_group_pray"],
+        on_error=["back_main_screen"],
+        max_hit=3,
+        post_delay_ms=500,
+        focus="确认选中组织玩法",
+    ))
+
+    # ---- 6. 点"前往"按钮(OCR)----
+    # narutomobile:goto_group_pray OCR "前往" ROI (239, 533, 178, 144) → 点击
+    # 我用 template group_pray_go_btn.png (user 14:23 裁的 "立刻前往"按钮)
+    pipe.add(Node(
+        name="goto_group_pray",
+        templates=tpls(
+            "group/group_pray_go_btn.png",             # user 14:23 裁的"立刻前往"
+        ),
+        roi=ROI_GOTO_GROUP_PRAY,
+        threshold=0.6,
+        action=ClickAction(),
+        next=["copper_group_pray"],
+        on_error=["back_main_screen"],
         max_hit=2,
         post_delay_ms=1500,
-        focus="点击'立刻前往'按钮",
+        focus="点'前往'进祈福界面",
     ))
 
-    # ---- 5. 找"焚香祈福" 6000 铜币按钮 → 点击 ----
+    # ---- 7. 点焚香祈福 / 铜币签到 ----
     pipe.add(Node(
-        name="find_burn_incense_pray",
+        name="copper_group_pray",
         templates=tpls(
-            "group/burn_incense_pray_btn.png",     # 2026-06-29 14:23 user 裁 (535x182)
-            "group/copper_pray.png",               # 旧版本(190x70)
+            "group/burn_incense_pray_btn.png",         # 2026-06-29 14:23 user 裁的 "6000 焚香祈福"
+            "group/copper_pray.png",                   # narutomobile 模板(190x70)
         ),
-        roi=ROI_BURN_INCENSE_PRAY,
-        threshold=0.55,
+        roi=ROI_COPPER_PRAY,
+        threshold=0.6,
         action=ClickAction(),
-        next=["confirm_pray"],
-        on_error=["close_popup"],
+        next=["confirm_copper_group_pray"],
+        on_error=["back_main_screen"],
         max_hit=2,
         post_delay_ms=1500,
-        focus="点击'焚香祈福'按钮",
+        focus="点焚香祈福按钮 (576, 582)",
     ))
 
-    # ---- 6. 找"确认祈福"对话框 → 点击 ----
+    # ---- 8. 确认对话框 ----
     pipe.add(Node(
-        name="confirm_pray",
+        name="confirm_copper_group_pray",
         templates=tpls(
             "group/confirm_group_pray.png",
             "group/confirm_copper_pray_done.png",
         ),
-        roi=ROI_CONFIRM,
-        threshold=0.55,
+        threshold=0.6,
         action=ClickAction(),
-        next=["close_popup"],
-        on_error=["close_popup"],
+        next=["back_main_screen"],
+        on_error=["back_main_screen"],
         max_hit=2,
         post_delay_ms=1500,
-        focus="点击'确认祈福'按钮",
+        focus="点击确认",
     ))
 
-    # ---- 7. 关闭可能弹窗 ----
+    # ---- 9. 回主页(main_green_masked.png)----
     pipe.add(Node(
-        name="close_popup",
+        name="back_main_screen",
         templates=tpls(
-            "shared/x.png",
-            "shared/green_masked_x.png",
-            "shared/notice_x.png",
-            "group/group_pray_x.png",
+            "state/main_green_masked.png",
         ),
-        roi=ROI_CLOSE_X,
-        threshold=0.5,
-        action=ClickAction(),
-        next=["back_to_home"],
-        on_error=["back_to_home"],
-        max_hit=2,
-        post_delay_ms=600,
-        focus="关闭可能弹窗",
-    ))
-
-    # ---- 8. 关闭奖励中心(可能需要回到奖励中心) ----
-    pipe.add(Node(
-        name="close_award_center",
-        templates=tpls(
-            "shared/x.png",
-            "shared/green_masked_x.png",
-            "shared/notice_x.png",
-        ),
-        roi=ROI_CLOSE_X,
-        threshold=0.5,
-        action=ClickAction(),
-        next=["back_to_home"],
-        on_error=["back_to_home"],
-        max_hit=2,
-        post_delay_ms=600,
-        focus="关闭奖励中心",
-    ))
-
-    # ---- 9. 返回主页(点主页按钮, NOT 系统 BACK) ----
-    pipe.add(Node(
-        name="back_to_home",
-        templates=tpls(
-            "shared/home_button_v3.png",  # 2026-06-29 14:00 user 删,best-effort
-        ),
-        roi=ROI_HOME_BUTTON,
-        threshold=0.5,
-        action=ClickAction(),
+        roi=ROI_HOME_MAIN,
+        threshold=0.7,
+        green_mask=True,
+        action=NoopAction(),
         next=["verify_done"],
         on_error=["verify_done"],
-        post_delay_ms=800,
-        focus="点击主页按钮",
+        max_hit=5,
+        post_delay_ms=1000,
+        focus="回主页验证",
     ))
 
     # ---- 10. 终点 ----
     pipe.add(Node(
         name="verify_done",
-        templates=[],
         action=NoopAction(),
         next=[],
         focus="组织签到流程完成",
@@ -257,19 +290,21 @@ class GroupSigninTask(BaseTask):
 
     task_id = "group_signin"
     name = "组织签到(组织祈福)"
-    category = "daily"  # 2026-06-29: 组织祈福每日 0/1 次数,归到 daily 类
+    category = "weekly"
     max_retries: int = 0
 
     def pre_check(self, ctx: "ExecutionContext") -> bool:
-        # P0-FIX-2026-06-29: 不用 ensure_state(HOME) - 会调 go_home() 按 BACK,
-        # 触发"是否退出游戏"弹窗。让 pipeline 自己从任意状态起步。
-        return ctx.common_actions is not None
+        log = ctx.bind_logger(self.task_id)
+        if ctx.common_actions is None:
+            return False
+        return bool(ctx.common_actions.ensure_state(GameState.HOME))
 
-    def post_check(self, ctx, result):
-        # 不强制回 HOME - pipeline 内部已用 X + 主页按钮 recover
-        return
+    def post_check(self, ctx: "ExecutionContext", result: TaskResult) -> None:
+        log = ctx.bind_logger(self.task_id)
+        if ctx.common_actions is not None:
+            ctx.common_actions.ensure_state(GameState.HOME)
 
-    def cleanup(self, ctx, result):
+    def cleanup(self, ctx: "ExecutionContext", result: TaskResult) -> None:
         pass
 
     def enter(self, ctx: "ExecutionContext") -> bool:
@@ -279,10 +314,7 @@ class GroupSigninTask(BaseTask):
         return True
 
     def recover(self, ctx: "ExecutionContext") -> bool:
-        """恢复:用界面内关闭按钮 + 主页按钮(NOT 系统 BACK)。
-
-        严格禁止 KeyAction(key="BACK") — 会触发"是否退出游戏"弹窗。
-        """
+        """恢复:用界面内关闭按钮 + 主页按钮(NOT 系统 BACK)。"""
         if ctx.common_actions is None:
             return False
         return make_recovery_chain(
@@ -332,12 +364,12 @@ class GroupSigninTask(BaseTask):
                 attempts=2,
             )
 
-        # best-effort
-        log.warning("group_signin best-effort: {}", result2.error)
+        # 真失败(2026-06-30:不再 best-effort SUCCESS 掩盖)
+        log.error("group_signin 真失败: {}", result2.error)
         return TaskResult(
             task_id=self.task_id,
-            status=TaskStatus.SUCCESS,
-            message="group_signin best-effort: " + str(result2.error),
+            status=TaskStatus.FAIL,
+            message="group_signin failed: " + str(result2.error),
             attempts=2,
         )
 
@@ -348,4 +380,4 @@ class GroupSigninTask(BaseTask):
         )
         nav = runner.make_navigator()
         pipe = _build_group_signin_pipeline(nav)
-        return runner.run(pipe, max_total_iterations=25, max_idle_iterations=5)
+        return runner.run(pipe, max_total_iterations=50, max_idle_iterations=8)

@@ -14,3 +14,6 @@ opencv-python-headless>=4.9
 PySide6>=6.5
 # Phase 5: GUI tests
 pytest-qt>=4.0
+
+# Phase 8 (2026-07-02): MaaFramework bridge (替代自研识别/导航引擎)
+maafw==5.10.4

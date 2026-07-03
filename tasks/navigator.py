@@ -371,6 +371,30 @@ class Navigator:
             src_w, src_h, dst_w, dst_h, self._scale_x, self._scale_y,
         )
 
+    # ----- 公共只读属性(P3 修复 2026-07-02)-------------------------
+    # 之前 ``PipelineRunner`` 通过 ``nav._scale_x`` / ``nav._scale_y`` 访问私有
+    # 属性。私有 API 重构时可能改名,会静默破坏。改用公共 @property 暴露。
+
+    @property
+    def scale_x(self) -> float:
+        """参考 → 实际屏幕的 X 缩放比例(默认 1.0)。"""
+        return self._scale_x
+
+    @property
+    def scale_y(self) -> float:
+        """参考 → 实际屏幕的 Y 缩放比例(默认 1.0)。"""
+        return self._scale_y
+
+    @property
+    def ref_width(self) -> int:
+        """参考分辨率宽(模板基于此大小)。"""
+        return self._ref_width
+
+    @property
+    def ref_height(self) -> int:
+        """参考分辨率高(模板基于此大小)。"""
+        return self._ref_height
+
     def set_offset(self, x: int, y: int) -> None:
         """设置 ROI 偏移(模拟器窗口不是从 0,0 开始时用)。"""
         self._offset_x = x
@@ -541,10 +565,10 @@ class Navigator:
                     self._save_failure_screenshot(node, screen)
         # 优先 on_error
         if node.on_error:
-            return node.on_error[0]
+            return self._strip_jumpback_log(node, node.on_error[0], kind="on_error")
         # 否则跳到第一个 next
         if node.next:
-            return node.next[0]
+            return self._strip_jumpback_log(node, node.next[0], kind="next")
         return None  # 终点
 
     def _save_failure_screenshot(self, node: Node, screen: np.ndarray | None) -> None:
@@ -594,8 +618,34 @@ class Navigator:
     def _next_or_finish(self, node: Node, *, recognized: bool) -> str | None:
         """决定下一个节点:有 next 走第一个 next,没 next 返 None(终点)。"""
         if node.next:
-            return node.next[0]
+            return self._strip_jumpback_log(node, node.next[0], kind="next")
         return None
+
+    def _strip_jumpback_log(self, node: Node, target: str, *, kind: str) -> str:
+        """如果 target 带 ``[JumpBack]`` 前缀,strip 后返回 + 打 debug 日志。
+
+        P1 修复(2026-07-02): 之前 Navigator 直接把 ``[JumpBack]xxx`` 当字面
+        节点名传给 ``Pipeline.get``,导致"节点未找到"错误;本函数把
+        ``[JumpBack]xxx`` 还原为 ``xxx``。这是最简实现 — 没有实现"失败时
+        回退到原 next 链"的完整 JumpBack 语义(Node.jumpback_targets 字段
+        尚未定义);当前 task pipeline 也不依赖完整 JumpBack,所以最简版够用。
+
+        Args:
+            node: 当前节点(只用于日志)
+            target: 跳转目标(可能带 [JumpBack] 前缀)
+            kind: "next" 或 "on_error"(用于日志区分)
+
+        Returns:
+            去掉 [JumpBack] 前缀的目标名
+        """
+        if target.startswith("[JumpBack]"):
+            stripped = strip_jumpback(target)
+            self._logger.bind(node=node.name).debug(
+                "JumpBack strip: {} target '{}' -> '{}'",
+                kind, target, stripped,
+            )
+            return stripped
+        return target
 
     def _match_in_roi(self, node: Node, screen: np.ndarray) -> MatchResult | OCRMatch | None:
         """在 ROI 内做模板匹配 或 OCR 识别。

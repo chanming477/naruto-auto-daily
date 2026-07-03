@@ -428,32 +428,130 @@ class CommonActions:
             log.warning("ensure_game_in_foreground raised: {}", exc)
             return False
 
-    def close_popup(self, popup_close_template: Path | None = None) -> bool:
+    def close_popup(
+        self,
+        popup_close_template: Path | None = None,
+        *,
+        popup_close_templates_dir: Path | None = None,
+    ) -> bool:
         """检测 POPUP 状态并尝试关闭。
 
-        Phase 3 demo: ``popup_close_template`` 为 None 时,只做 detect_state。
-        若识别到 POPUP 状态,log warning 并返回 False(无法自动关闭)。
-        接入真实 POPUP 关闭按钮模板后,实现 tap(template 匹配位置)。
+        流程:
+            1. 若当前不是 POPUP → return True(no-op)
+            2. 若传了 ``popup_close_template``(单文件)→ 模板匹配 + tap
+            3. 若传了 ``popup_close_templates_dir``(目录)→ 目录里所有 PNG 任一命中即 tap
+                (fallback chain — UI 漂移时多模板兜底)
+            4. 都没传 → 警告并 return False
 
         Args:
-            popup_close_template: 可选,POPUP 关闭按钮模板路径。
+            popup_close_template: 单个关闭按钮模板路径。
+            popup_close_templates_dir: 关闭按钮模板目录,目录下所有 PNG 都会尝试。
 
         Returns:
-            True 表示当前没有 POPUP,或已成功关闭。False 表示检测到 POPUP 但无法关闭。
+            True 表示当前没 POPUP,或已成功关闭;False 表示检测到 POPUP 但无法关闭。
         """
         log = self._logger
         try:
             current = self._game_sm.current_state
             if current != GameState.POPUP:
                 return True  # no popup, no-op success
-            if popup_close_template is None:
-                log.warning("close_popup: POPUP detected but no close_template provided")
+            if popup_close_template is None and popup_close_templates_dir is None:
+                log.warning("close_popup: POPUP detected but no template/dir provided")
                 return False
-            # Phase 4+ 接入模板匹配 + tap
-            log.info("close_popup: template-based dismiss not yet implemented (Phase 4+)")
+
+            # 单文件模式
+            if popup_close_template is not None:
+                return self.tap_template(
+                    popup_close_template, name=popup_close_template.stem,
+                )
+
+            # 目录模式:遍历 PNG,任一命中即 tap
+            assert popup_close_templates_dir is not None
+            tpl_dir = Path(popup_close_templates_dir)
+            if not tpl_dir.is_dir():
+                log.warning("close_popup: template dir not found: {}", tpl_dir)
+                return False
+            for tpl in sorted(tpl_dir.glob("*.png")):
+                if self.tap_template(tpl, name=tpl.stem):
+                    log.info("close_popup: dismissed via {}", tpl.stem)
+                    return True
+                # 单个不命中,继续试下一个(fallback chain)
+            log.warning(
+                "close_popup: no template in {} matched", tpl_dir,
+            )
             return False
         except Exception as exc:
             log.warning("close_popup raised: {}", exc)
+            return False
+
+    # ----- v1.3 新增:15-JumpBack recovery 链(本项目版) -----------------
+    # narutomobile merged.json back_main_screen 链有 15 个 recovery action。
+    # 本项目原版只有通用 close_popup,没有专门方法。这里把"实际有模板的"
+    # 几个补上,模板缺失的标 TODO 等 user 裁模板。
+    # 模板默认在 ``resources/templates/actions/SharedNode/`` 下。
+
+    def _shared_template(self, name: str) -> Path:
+        """SharedNode 下的模板默认路径。"""
+        return self._project_root / "resources" / "templates" / "actions" / "SharedNode" / f"{name}.png"
+
+    def close_chat(self) -> bool:
+        """关闭聊天框 — 模板 ``chat_close_button.png``。"""
+        return self.tap_template(
+            self._shared_template("chat_close_button"), name="close_chat",
+        )
+
+    def weekly_sign(self) -> bool:
+        """每周签到弹窗关闭 — 模板 ``weekly_sign.png``(注意:user 2026-06-30 说每周签到当前无入口)。"""
+        return self.tap_template(
+            self._shared_template("weekly_sign"), name="weekly_sign",
+        )
+
+    def close_friend_rank(self) -> bool:
+        """关闭好友排行榜弹窗 — TODO 模板缺失,需 user 裁。"""
+        self._logger.warning("close_friend_rank: 模板缺失,需 user 裁 (TODO)")
+        return False
+
+    def im_come_back(self) -> bool:
+        """IM 重连弹窗 — 关闭 "我回来了" 按钮。TODO 模板缺失。"""
+        self._logger.warning("im_come_back: 模板缺失,需 user 裁 (TODO)")
+        return False
+
+    def im_come_back_award(self) -> bool:
+        """IM 重连奖励弹窗 — 领奖后关闭。TODO 模板缺失。"""
+        self._logger.warning("im_come_back_award: 模板缺失,需 user 裁 (TODO)")
+        return False
+
+    def level_up(self) -> bool:
+        """升级弹窗 — 关闭 "升级" 提示。TODO 模板缺失。"""
+        self._logger.warning("level_up: 模板缺失,需 user 裁 (TODO)")
+        return False
+
+    def direct_hit_quit(self) -> bool:
+        """直接退出对局 — 关闭 "中途退出" 确认弹窗。TODO 模板缺失。"""
+        self._logger.warning("direct_hit_quit: 模板缺失,需 user 裁 (TODO)")
+        return False
+
+    def shut_social_media(self, package: str = "com.tencent.mobileqq") -> bool:
+        """杀 QQ/微信进程 — 等价于 narutomobile ``shut_social_media`` StopApp。
+
+        实现:``adb shell am force-stop <package>``。
+        ADBClient 当前没暴露 ``stop_app`` 公共方法,这里走 ``_shell_action``(内部统一入口,
+        含重试 + 日志)。如果将来 ADBClient 加公共 ``stop_app`` 方法,改一行即可。
+        """
+        log = self._logger
+        try:
+            # _shell_action 是 ADBClient 内部统一 shell 入口
+            shell_action = getattr(self._adb, "_shell_action", None)
+            if shell_action is None:
+                log.warning("shut_social_media: ADBClient has no _shell_action")
+                return False
+            r = shell_action(
+                ["am", "force-stop", package],
+                description=f"force-stop {package}",
+            )
+            return bool(r.success)
+        except Exception as exc:
+            log.warning("shut_social_media raised: {}", exc)
             return False
 
     def wait_loading(

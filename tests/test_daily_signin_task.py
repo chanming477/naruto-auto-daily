@@ -155,18 +155,23 @@ def test_pre_check_returns_false_when_no_common_actions(task, ctx):
 
 
 def test_daily_signin_pipeline_has_all_required_nodes(tmp_path):
-    """Pipeline 包含完整的 7 个关键节点。"""
+    """Pipeline 包含完整的 8 个关键节点(2026-07-01 改写:委托 MonthlySigninTask)。
+
+    A 计划(2026-06-30)验证:游戏里的"每日签到" = 活动页 → 每月签到 tab → 签到,
+    pipeline 节点序列从 monthly 路径复用。
+    """
     adb = MagicMock()
     nav = Navigator(adb, Path(r"D:\火影自动日常"))
     pipe = _build_daily_signin_pipeline(nav)
 
     required = [
         "ensure_home",
-        "find_award_button",
-        "find_daily_signin_btn",
-        "close_popup",
-        "close_award_center",
-        "back_to_home",
+        "find_activity",
+        "swipes_for_monthly_sign",
+        "find_monthly_sign_tab",
+        "find_sign_button",
+        "verify_signed",
+        "back_main_screen",
         "verify_done",
     ]
     for name in required:
@@ -183,7 +188,7 @@ def test_pipeline_entry_node_no_recognition_just_action():
     node = pipe.get("ensure_home")
     assert node is not None
     assert node.templates == []
-    assert node.next == ["find_award_button"]
+    assert node.next == ["find_activity"]
 
 
 # ============================================================
@@ -219,7 +224,7 @@ def test_navigator_pipeline_with_real_template_success(tmp_path):
     pipe = _build_daily_signin_pipeline(nav)
     result = nav.run(pipe, max_total_iterations=8, max_idle_iterations=3)
 
-    # V4: 空屏幕 → find_award_button 不匹配 → on_error → verify_done(终节点)
+    # V4: 空屏幕 → find_activity 不匹配 → on_error → back_main_screen 也不匹配 → verify_done
     # pipeline graceful exit, success=True
     assert result.success is True
     assert result.last_node == "verify_done"
@@ -229,23 +234,27 @@ def test_navigator_pipeline_with_real_template_success(tmp_path):
 
 
 def test_navigator_with_real_template_matched_in_screen(tmp_path):
-    """P7-REAL: 在屏幕里贴上真实的 award_center_entry 模板位置,验证识别+点击。"""
+    """P7-REAL: 在屏幕里贴上真实的 headhunt.png 模板位置,验证识别+点击。
+
+    2026-07-01 改写: 活动入口模板改用 narutomobile 的 headhunt.png(活动卷轴入口)
+    ROI (1920x1080) = (1194, 132, 50, 42)。
+    """
     from PIL import Image
     from device.types import ActionResult
 
-    # 加载真实的 award_center_entry 模板(用 PIL,某些 narutomobile 模板 cv2.imread 会失败)
-    tpl_path = Path(r"D:\火影自动日常\resources\templates\actions\shared\award_center_entry.png")
+    # 加载真实的 headhunt 模板(活动入口,narutomobile ROI)
+    tpl_path = Path(r"D:\火影自动日常\resources\templates\actions\shared\headhunt.png")
     assert tpl_path.exists(), f"template missing: {tpl_path}"
     pil = Image.open(tpl_path).convert("RGB")
     tpl = cv2.cvtColor(np.array(pil, dtype=np.uint8), cv2.COLOR_RGB2BGR)
     assert tpl is not None and tpl.size > 0
     th, tw = tpl.shape[:2]
 
-    # 构造屏幕: 把模板贴在 ROI 位置
-    # V1.2 §1.2.2 真机校准 ROI (1920x1080) = (1760, 460, 200, 180)
-    # 缩放 0.833 → (1600x900) = (1466, 383, 166, 150)
+    # 构造屏幕: 把 headhunt 模板贴在 narutomobile ROI 位置
+    # narutomobile ROI (1920x1080) = (1194, 132, 50, 42)
+    # 缩放 0.833 → (1600x900) = (994, 110, 41, 35)
     scale = 1600 / 1920
-    rx, ry, rw, rh = int(1760 * scale), int(460 * scale), int(200 * scale), int(180 * scale)
+    rx, ry, rw, rh = int(1194 * scale), int(132 * scale), int(50 * scale), int(42 * scale)
     # 模板也要缩放
     tpl_small = cv2.resize(tpl, (int(tw * scale), int(th * scale)))
     sh, sw = tpl_small.shape[:2]
@@ -257,15 +266,16 @@ def test_navigator_with_real_template_matched_in_screen(tmp_path):
     adb.screenshot.return_value = ActionResult(True, "ok", None, payload=screen.copy())
     adb.tap.return_value = ActionResult(True, "ok", None)
     adb.keyevent.return_value = ActionResult(True, "ok", None)
+    adb.swipe.return_value = ActionResult(True, "ok", None)
 
     nav = Navigator(adb, Path(r"D:\火影自动日常"))
     nav.set_resolution_scale(DEFAULT_REF_WIDTH, DEFAULT_REF_HEIGHT, 1600, 900)
     pipe = _build_daily_signin_pipeline(nav)
-    result = nav.run(pipe, max_total_iterations=10, max_idle_iterations=4)
+    result = nav.run(pipe, max_total_iterations=15, max_idle_iterations=5)
 
-    # 关键: 至少在 find_award_center 节点识别到模板并点击
-    # 后面的节点因为屏幕不变,会失败,但 find_award_center 应该被命中
-    assert adb.tap.call_count >= 1, "tap should be called at least once (find_award_center)"
+    # 关键: 至少在 find_activity 节点识别到 headhunt 模板并点击
+    # 后面的节点因为屏幕不变,会失败,但 find_activity 应该被命中
+    assert adb.tap.call_count >= 1, "tap should be called at least once (find_activity)"
     print(f"Pipeline result: success={result.success} last={result.last_node} "
           f"iters={result.total_iterations} history={result.history}")
 

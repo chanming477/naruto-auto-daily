@@ -1,8 +1,17 @@
-"""recognition.template_matcher — OpenCV 模板匹配封装。
+"""recognition.template_matcher — **[主视觉识别]** OpenCV 模板匹配封装。
 
 职责:
     在给定截图(``numpy.ndarray``, BGR uint8)上按 ROI 区域搜索模板,
     返回最佳/全部匹配,或判断是否存在。
+
+⚠️ 模块辨识警告(2026-06-30 工程治理):
+    本模块与同级目录 ``recognition/`` 和 ``recognizer/`` 命名近似但语义不同:
+        - ``recognition.template_matcher`` (本模块):**单图 → 单模板匹配**(ROI 区域,Node)
+        - ``recognizer.page_recognizer``:**单图 → 多个 GameState 模板循环**(页面级)
+    调用者请明确选哪个模块,不要 import 错了:
+        任务/task 用 ``recognition.template_matcher``(节点级匹配)。
+        状态识别/页面级用 ``recognizer.page_recognizer``(整体页面)。
+    未来改名计划(Phase 10): ``recognizer/`` → ``page_detector/``。
 
 公开 API:
     TemplateMatcher

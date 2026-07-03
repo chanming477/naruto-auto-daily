@@ -1,11 +1,17 @@
-"""recognizer.page_recognizer — 页面识别入口。
+"""recognizer.page_recognizer — **[页面识别入口]** 遍历 GameState 模板。
 
 职责:
     给定一张截图,遍历每个 GameState 对应的模板目录,取最佳匹配,
     把最佳匹配的 GameState + confidence + 模板来源打包成 ``RecognitionResult`` 返回。
 
-模板目录约定:
-    <project_root>/resources/templates/<game_state_value>/<template>.png
+⚠️ 模块辨识警告(2026-06-30 工程治理):
+    本模块与同级目录 ``recognition/`` 和 ``recognizer/`` 命名近似但语义不同:
+        - ``recognition.template_matcher``:**单图 → 单模板匹配**(ROI 区域,Node)
+        - ``recognizer.page_recognizer`` (本模块):**单图 → 多个 GameState 模板循环**(页面级)
+    调用者请明确选哪个模块,不要 import 错了:
+        状态识别/页面级用 ``recognizer.page_recognizer``(本模块,整体页面级)。
+        任务/task 节点级用 ``recognition.template_matcher``(ROI 区域级)。
+    未来改名计划(Phase 10): ``recognizer/`` → ``page_detector/``。
 
     例如:
         resources/templates/HOME/main_hall_button.png

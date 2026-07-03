@@ -141,3 +141,79 @@ def test_result_recorded_in_context(ctx):
     t.execute(ctx)
     assert len(ctx.task_results) == 1
     assert ctx.task_results[0].task_id == t.task_id
+
+
+# ============================================================
+# BEST_EFFORT 测试(P0 修复 2026-07-02)
+# 防止"两次 pipeline 失败后返 SUCCESS 掩盖故障"问题回归
+# ============================================================
+
+
+class _BestEffortTask(BaseTask):
+    """第一次返回 FAIL,重试后返回 BEST_EFFORT(模拟 best-effort task 实际行为)。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.call_count = 0
+
+    def run(self, ctx: ExecutionContext) -> TaskResult:
+        self.call_count += 1
+        if self.call_count == 1:
+            return TaskResult(task_id=self.task_id, status=TaskStatus.FAIL,
+                              message="first attempt failed")
+        return TaskResult(task_id=self.task_id, status=TaskStatus.BEST_EFFORT,
+                          message="best-effort: accept degraded success")
+
+
+class _DirectBestEffortTask(BaseTask):
+    """直接返回 BEST_EFFORT(不重试)。"""
+
+    def run(self, ctx: ExecutionContext) -> TaskResult:
+        return TaskResult(task_id=self.task_id, status=TaskStatus.BEST_EFFORT,
+                          message="direct best-effort")
+
+
+def test_best_effort_status_is_distinct_from_success(ctx):
+    """BEST_EFFORT 必须有独立 status 字符串,不能和 SUCCESS 混用。"""
+    t = _DirectBestEffortTask()
+    result = t.execute(ctx)
+    assert result.status == TaskStatus.BEST_EFFORT
+    assert result.status != TaskStatus.SUCCESS
+    assert result.status != TaskStatus.FAIL
+    # 监控语义:is_best_effort 标志位打开
+    assert result.is_best_effort is True
+    # 向后兼容:is_success 仍为 True(Scheduler 继续跑下一个 task)
+    assert result.is_success is True
+    # 不算失败
+    assert result.is_failure is False
+
+
+def test_best_effort_after_retry(ctx):
+    """第一次 FAIL → 重试 → BEST_EFFORT。attempts=2,status=BEST_EFFORT。"""
+    t = _BestEffortTask()
+    result = t.execute(ctx)
+    assert result.status == TaskStatus.BEST_EFFORT
+    assert result.attempts == 2
+    assert t.call_count == 2
+    assert "best-effort" in result.message
+
+
+def test_run_report_best_effort_count():
+    """RunReport.best_effort_count 必须能区分"完美成功"和"降级成功"。"""
+    from core.scheduler import RunReport
+    results = [
+        TaskResult(task_id="a", status=TaskStatus.SUCCESS, message="ok"),
+        TaskResult(task_id="b", status=TaskStatus.BEST_EFFORT, message="degraded"),
+        TaskResult(task_id="c", status=TaskStatus.FAIL, message="failed"),
+        TaskResult(task_id="d", status=TaskStatus.BEST_EFFORT, message="degraded2"),
+    ]
+    report = RunReport(started_at=datetime.now(), task_results=results)
+    # success_count = SUCCESS + BEST_EFFORT(向后兼容:调度链不再阻塞)
+    assert report.success_count == 3      # a (SUCCESS) + b + d (BEST_EFFORT)
+    assert report.best_effort_count == 2  # b + d 是降级成功
+    assert report.fail_count == 1         # c
+    assert report.has_best_effort is True
+    # is_success property 应该把 SUCCESS + BEST_EFFORT 都算"成功"
+    assert results[0].is_success is True
+    assert results[1].is_success is True
+    assert results[2].is_success is False

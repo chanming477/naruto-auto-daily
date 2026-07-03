@@ -1,5 +1,9 @@
 """main.py — naruto-auto-daily 的 CLI 入口。
 
+Phase 7 (2026-06-30):
+    28 个真实日常业务 task(narutomobile v1.3.35 merged.json 全抄)
+    + 工程治理(目录 / 文档 / 命名统一 / LICENSE / CONTRIBUTING / CHANGELOG)
+
 Phase 1 命令（保留）：
     --init-config    生成默认 YAML（已存在不覆盖）
     --smoke-test     无目标窗口也能跑：初始化所有 Manager + 调度器空跑
@@ -25,8 +29,21 @@ Phase 4 命令（新增）：
                     演示: GameStateMachine.recover(recovery_manager) 新签名。
     --phase4-smoke   不连真 ADB,MagicMock fallback(同 --phase4 但 use_real_adb=False)
 
+Phase 6/7 命令（28 个真实 task 跑批）：
+    --mail-real / --daily-signin-real / --liveness-real / --recruit-real / --activity-real
+    --weekly-signin-real / --group-signin-real / --monthly-signin-real
+    --rich-room-real / --team-dash-real / --secret-realm-real
+    --survival-challenge-real / --shugyou-no-michi-real / --stronghold-real / --mission-office-real
+    --advanture-real / --elite-instance-real / --point-race-real / --rebel-ninja-real
+    --use-energy-real / --give-energy-real / --leaderboard-real / --more-gameplay-real
+    --ninja-book-real / --weekly-win-real / --sky-ground-real
+    --easy-helper-real / --hundred-ninja-real
+    --daily-all  顺序跑 schemes/daily.json 全部 task
+
 默认行为（无任何参数）：
     等价 ``--phase2-smoke``:在没有 ADB / 模拟器 / 模板图的情况下也跑完整流程并正常退出。
+
+详见 README.md / CONTRIBUTING.md / docs/standards/
 """
 
 from __future__ import annotations
@@ -39,10 +56,15 @@ from datetime import datetime
 from pathlib import Path
 
 # 让 ``python main.py`` 和 ``python -m main`` 都能正常 import core.*
-PROJECT_ROOT = Path(__file__).resolve().parent
+# 资源根:frozen 模式在 _MEIPASS(PyInstaller 解压目录),源码模式在 main.py 同级
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys._MEIPASS)
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from core.app_paths import get_resource_root, get_user_data_dir
 from loguru import logger
 
 # Phase 2 依赖:numpy / OpenCV 用于 demo 截图生成与可选落盘
@@ -160,6 +182,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # ---- P1-7 自检命令 ----
     parser.add_argument("--check", action="store_true",
                         help="P1-7 自检: ADB 连通性 / Pydantic 配置校验 / 模板完整性 / 任务注册表")
+    # ---- Phase 8 MaaFramework 桥接命令(2026-07-02,跟旧 --xxx-real 平行,不破坏旧)----
+    parser.add_argument("--daily-maafw", action="store_true",
+                        help="Phase 8: 跑 schemes/daily.json 全部 task(走 MaaFramework + narutomobile 模板,需要模拟器)")
     return parser.parse_args(argv)
 
 
@@ -171,12 +196,12 @@ def build_context(project_root: Path,
     顺序很关键：先 ConfigManager（其他模块要读配置）→ Logger（用配置级别）→
     WindowManager → ScreenshotManager → StateMachine → ExecutionContext。
     """
-    cfg_mgr = ConfigManager(project_root, auto_load=True)
+    cfg_mgr = ConfigManager(get_user_data_dir(), auto_load=True)
 
     # 1. 日志（必须用配置里的级别；如果 CLI 指定了 console_level，会覆盖）
     if console_level is not None:
         cfg_mgr.app.logger.console_level = console_level
-    configure_logger(cfg_mgr.app.logger, project_root)
+    configure_logger(cfg_mgr.app.logger, get_user_data_dir())
     logger.info("logger initialized (level={})", cfg_mgr.app.logger.console_level)
 
     # 2. 窗口管理器（用 device profile）
@@ -184,7 +209,7 @@ def build_context(project_root: Path,
     win_mgr = WindowManager(profile)
 
     # 3. 截图管理器
-    shot_mgr = ScreenshotManager(win_mgr, cfg_mgr.app.screenshot, project_root)
+    shot_mgr = ScreenshotManager(win_mgr, cfg_mgr.app.screenshot, get_user_data_dir())
 
     # 4. 状态机：所有转换规则 + 日志回调由 state_machine.build_default_state_machine
     #    内聚提供，main 不再硬编码状态机表。
@@ -209,7 +234,7 @@ def build_context(project_root: Path,
 
 
 def cmd_init_config(project_root: Path) -> int:
-    cfg = ConfigManager(project_root, auto_load=False)
+    cfg = ConfigManager(get_user_data_dir(), auto_load=False)
     created = cfg.save_default_configs()
     if not created:
         print("[init-config] 所有配置文件已存在，未做任何修改。")
@@ -381,10 +406,10 @@ def run_phase2_demo(
     print("=" * 60)
 
     # 1) 初始化 config + logger
-    cfg = ConfigManager(project_root, auto_load=True)
+    cfg = ConfigManager(get_user_data_dir(), auto_load=True)
     if console_level is not None:
         cfg.app.logger.console_level = console_level
-    configure_logger(cfg.app.logger, project_root)
+    configure_logger(cfg.app.logger, get_user_data_dir())
     logger.info("logger initialized (level={})", cfg.app.logger.console_level)
     logger.info("Phase 2 demo: use_real_adb={}", use_real_adb)
 
@@ -429,7 +454,7 @@ def run_phase2_demo(
         if shot.success and isinstance(shot.payload, np.ndarray):
             screenshot_arr = shot.payload
             # 可选落盘
-            screenshots_dir = project_root / cfg.app.screenshot.output_dir
+            screenshots_dir = get_user_data_dir() / cfg.app.screenshot.output_dir
             screenshots_dir.mkdir(parents=True, exist_ok=True)
             screenshot_path = screenshots_dir / f"phase2_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
             try:
@@ -450,7 +475,7 @@ def run_phase2_demo(
 
     # 5) 创建 TemplateMatcher + PageRecognizer
     matcher = TemplateMatcher(cfg)
-    templates_root = project_root / cfg.app.game_state.templates_dir
+    templates_root = get_resource_root() / cfg.app.game_state.templates_dir
     recognizer = PageRecognizer(templates_root, matcher=matcher)
 
     # 6) 模板匹配 + 状态识别
@@ -754,10 +779,10 @@ def _assemble_real_runner(
         成功: (cfg, ctx, engine, (width, height))
         失败: int 退出码(2=ADB init / 3=ADB connect / 4=screenshot)
     """
-    cfg = ConfigManager(project_root, auto_load=True)
+    cfg = ConfigManager(get_user_data_dir(), auto_load=True)
     if console_level is not None:
         cfg.app.logger.console_level = console_level
-    configure_logger(cfg.app.logger, project_root)
+    configure_logger(cfg.app.logger, get_user_data_dir())
 
     # 1) ADB 连接
     from device.adb_client import ADBError
@@ -797,7 +822,7 @@ def _assemble_real_runner(
     from recognizer.page_recognizer import PageRecognizer
 
     matcher = TemplateMatcher(cfg)
-    templates_root = project_root / cfg.app.game_state.templates_dir
+    templates_root = get_resource_root() / cfg.app.game_state.templates_dir
     recognizer = PageRecognizer(templates_root, matcher=matcher)
     game_sm = GameStateMachine(initial=GameState.UNKNOWN)
     common = CommonActions(
@@ -1009,7 +1034,7 @@ def cmd_daily_all(
 
     # 加载 scheme
     import json
-    scheme_path = project_root / "schemes" / "daily.json"
+    scheme_path = get_resource_root() / "schemes" / "daily.json"
     if not scheme_path.exists():
         logger.error("schemes/daily.json not found: {}", scheme_path)
         return 6
@@ -1038,7 +1063,80 @@ def cmd_daily_all(
 
 # ============================================================
 # P1-7: --check 自检命令
+    """--maafw-list: 打印 task_id ↔ entry 映射,不连 ADB。
+
+    用于快速核对映射表是否符合预期(改 task_mapping.py 后必跑这个)。
+    """
+    from maafw_bridge import (
+        TASK_MAPPING,
+        REVERSE_MAPPING,
+        list_supported_tasks,
+        list_supported_entries,
+        verify_resource_path,
+    )
+
+    print("=" * 60)
+    print("Phase 8 maafw 任务映射表")
+    print("=" * 60)
+    print()
+    print("我们 task_id → narutomobile entry:")
+    for tid, entry in TASK_MAPPING.items():
+        print(f"  {tid:<20s} → {entry}")
+    print()
+    print(f"支持的 task_id 共 {len(list_supported_tasks())} 个")
+    print(f"用得到的 entry  共 {len(list_supported_entries())} 个")
+    print()
+
+    print("narutomobile entry → 我们 task_id (反向):")
+    for entry, tid in REVERSE_MAPPING.items():
+        print(f"  {entry:<20s} → {tid}")
+    print()
+
+    ok, msg = verify_resource_path()
+    if ok:
+        print(f"✓ resource 路径合法: {msg}")
+        rc = 0
+    else:
+        print(f"✗ resource 路径异常: {msg}")
+        rc = 1
+    return rc
+
+
+
 # ============================================================
+# Phase 8 (2026-07-02) — MaaFramework 杂接: --daily-maafw
+# 设计: 不删任何旧代码,只新增平行命令。
+# ============================================================
+
+
+def cmd_daily_maafw(project_root: Path, console_level: str | None = None) -> int:
+    """``--daily-maafw``: 跑 daily schedule(走 MaaFramework + narutomobile 模板)。
+
+    跟 ``--daily-all`` 平行 — 后者走旧自研 task_engine,本命令走 maafw 引擎。
+    """
+    from core.config_manager import ConfigManager
+    from tasks.task_engine_maafw import MaaTaskEngine
+
+    print("=" * 70)
+    print("Phase 8 MaaFramework daily runner")
+    print("=" * 70)
+
+    cfg = ConfigManager(get_user_data_dir(), auto_load=True)
+    print(f"project_root: {get_user_data_dir()}")
+    print(f"maafw resource: {cfg.app.maafw.narutomobile_resource_path or '(default: resources/narutomobile)'}")
+
+    try:
+        engine = MaaTaskEngine(cfg)
+    except Exception as exc:
+        print(f"\n✗ MaaTaskEngine init failed: {exc}")
+        logger.error("MaaTaskEngine init failed: {}", exc)
+        return 1
+
+    report = engine.run_daily()
+    MaaTaskEngine.print_report(report)
+
+    rc = 0 if (report.fail_count == 0 and not report.aborted) else 1
+    return rc
 
 
 def cmd_check(project_root: Path, console_level: str | None = None) -> int:
@@ -1067,7 +1165,7 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
     try:
         from core.config_manager import ConfigManager, ConfigurationError
 
-        cfg = ConfigManager(project_root, auto_load=True)
+        cfg = ConfigManager(get_user_data_dir(), auto_load=True)
         # 触发 _load
         _ = cfg.app
         print(f"   PASS  app_config.yaml 校验通过 (phase={cfg.app.app.phase})")
@@ -1081,7 +1179,7 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
     # ---- 2. 模板目录结构 ----
     print()
     print("[2/5] 模板目录结构…")
-    templates_root = project_root / "resources" / "templates" / "actions"
+    templates_root = get_resource_root() / "resources" / "templates" / "actions"
     if not templates_root.exists():
         print(f"   FAIL  模板根目录不存在: {templates_root}")
         issues.append("templates_root missing")
@@ -1099,7 +1197,7 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
     try:
         import yaml as _yaml
 
-        registry_path = project_root / "config" / "task_registry.yaml"
+        registry_path = get_user_data_dir() / "config" / "task_registry.yaml"
         if not registry_path.exists():
             print(f"   FAIL  task_registry.yaml 不存在: {registry_path}")
             issues.append("task_registry.yaml missing")
@@ -1131,7 +1229,7 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
         import re
         from pathlib import Path as _Path
 
-        tasks_dir = project_root / "tasks"
+        tasks_dir = get_resource_root() / "tasks"
         tpl_pattern = re.compile(r'"([a-z_]+/[a-z0-9_]+\.png)"')
         missing_count = 0
         total_refs = 0
@@ -1239,7 +1337,9 @@ def main(argv: list[str] | None = None) -> int:
     # Phase 5 桌面客户端
     if args.gui:
         from ui.main_window import main as gui_main
-        return gui_main()
+        # 支持 `--gui --maafw` 切到 MaaFramework 引擎
+        gui_argv = sys.argv[1:sys.argv.index("--gui")] if "--gui" in sys.argv else []
+        return gui_main(gui_argv)
 
     # Phase 6 真实接入: 每日签到真实流程(P7-REAL)
     if args.daily_signin_real:
@@ -1258,12 +1358,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.daily_all:
         return cmd_daily_all(PROJECT_ROOT, console_level=console_level)
 
+    # Phase 8 MaaFramework 桥接(2026-07-02,跟旧 --daily-all 平行)
+    if args.daily_maafw:
+        return cmd_daily_maafw(PROJECT_ROOT, console_level=console_level)
+
     # 其他 Phase 1 命令需要完整的 ExecutionContext
     no_action = not any([
         args.smoke_test, args.list_windows,
         args.run, args.activate_window, args.capture_test,
     ])
     if no_action:
+        # 桌面应用(.exe 双击)默认启 GUI;源码调试维持 Phase 2 demo
+        if getattr(sys, "frozen", False):
+            from ui.main_window import main as gui_main
+            return gui_main([])
         # 默认行为(Phase 2 验收入口):跑 Phase 2 demo
         return cmd_phase2_smoke(PROJECT_ROOT, console_level=console_level)
 

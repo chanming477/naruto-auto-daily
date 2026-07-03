@@ -38,6 +38,12 @@ Pipeline 设计 (8 节点):
     - recover() 也只使用界面内关闭按钮
 """
 
+# === Task 元数据 (2026-06-30 工程治理) ===
+# 来源    : MaaAutoNaruto-win-x86_64-v1.3.35 (v1.3.35 merged.json)
+# 生成器  : tools/gen_11_tasks.py (统一模板,不得手改)
+# 维护    : 修改 ROI/流程请改 gen_11_tasks.py 重生成
+# === End 元数据 ===
+
 from __future__ import annotations
 
 import time
@@ -308,11 +314,12 @@ class LivenessTask(BaseTask):
                 attempts=2,
             )
 
-        # best-effort: 即使失败也返回 SUCCESS (活跃度宝箱经常无可领奖励)
+        # best-effort: 活跃度宝箱经常无可领奖励,接受降级成功
+        # P0 修复(2026-07-02): 用 BEST_EFFORT 而非 SUCCESS 避免掩盖故障
         log.warning("liveness best-effort: {}", result2.error)
         return TaskResult(
             task_id=self.task_id,
-            status=TaskStatus.SUCCESS,
+            status=TaskStatus.BEST_EFFORT,
             message="liveness best-effort: " + str(result2.error),
             attempts=2,
         )

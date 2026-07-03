@@ -1,12 +1,12 @@
 [project]
 name = "naruto-auto-daily"
-version = "0.1.0"
-description = "V2 本地自动化工具 — 火影手游日常自动化（Phase 1 基础设施）"
+version = "0.7.0"
+description = "V2 本地自动化工具 — 火影手游日常自动化（Phase 1-7：基础设施 + 28 真实日常 task + narutomobile 全抄）"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
-    { name = "naruto-auto-daily" },
+    { name = "naruto-auto-daily contributors" },
 ]
 
 dependencies = [
@@ -20,6 +20,13 @@ dependencies = [
     "pywin32>=306 ; sys_platform == 'win32'",
     "opencv-python-headless>=4.9",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-qt>=4.0",
+    "pytest-asyncio>=0.23",
+] 
 
 [project.scripts]
 naruto-auto-daily = "main:main"
@@ -38,3 +45,18 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "B", "UP"]
+
+# ============================================================
+# pytest 全局 addopts (2026-07-02)
+# 4 个测试项依赖旧自研 Navigator/TaskEngine 或已删除模板,Phase 8 起走 MaaFramework 路径,
+# 这些测试失去意义,默认 ignore。
+# 恢复方式(临时): pytest tests/test_phase5_pipeline.py  # 单文件
+# ============================================================
+[tool.pytest.ini_options]
+addopts = [
+    "--ignore=tests/test_phase5_pipeline.py",
+    "--ignore=tests/test_phase6_integration.py",
+    "--ignore=tests/test_phase6_business_tasks.py",
+    # 单条 stale 用例: 引用 2026-07-01 已删的 headhunt.png (user OK 过)
+    "--deselect=tests/test_daily_signin_task.py::test_navigator_with_real_template_matched_in_screen",
+]

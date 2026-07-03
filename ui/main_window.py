@@ -43,21 +43,34 @@ from ui.log_panel import LogPanel
 from ui.qt_log_handler import QtLogHandler, install as install_log_handler
 from ui.resource_status_panel import ResourceStatusPanel
 from ui.run_worker import RunWorker
+from ui.run_worker_maafw import MaaRunWorker
 from ui.scheme_manager import SchemeManager
 from ui.status_panel import StatusPanel
 from ui.task_panel import TaskPanel
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    """Phase 5 主窗口。"""
+    """Phase 5 主窗口。
+
+    Args:
+        project_root: 项目根目录。
+        use_maafw: True = 用 MaaFramework 引擎(MaaTaskEngine + MaaRunWorker);
+                    False = 用旧自研引擎(TaskEngine + RunWorker)。
+                    启动 GUI 时选定,不能中途切换(避免中途状态污染)。
+        parent: Qt parent。
+    """
 
     def __init__(
         self,
         project_root: Path | None = None,
+        use_maafw: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._project_root = Path(project_root).resolve() if project_root else Path.cwd()
+        self._use_maafw = use_maafw
+        # maafw 引擎(_on_start 时 lazy 创建,避免 GUI 启动就卡 ADB)
+        self._maafw_engine = None
         # 配置
         from core.config_manager import ConfigManager
 
@@ -127,30 +140,23 @@ class MainWindow(QtWidgets.QMainWindow):
     # ----- public ----------------------------------------------------
 
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt convention)
-        """关窗时清理 worker thread + log handler。
-
-        P1-STABLE-02 修复: 旧版 2 秒超时过短,subprocess 线程可能没退出,
-        留下僵尸线程(QThread + loguru sink)。改为:
-            1. engine.stop()  触发 abort flag
-            2. thread.quit()  通知退出事件循环
-            3. wait(5000)     给足 5 秒
-            4. 仍未结束 → loguru warning + 继续(不让用户卡住)
-        """
+        """关窗时清理 worker thread + log handler。"""
         from loguru import logger
         try:
             if self._thread is not None and self._thread.isRunning():
-                # 1) 通知 engine 停止(转发到 Scheduler.is_aborted)
+                # 通知 engine 停止(MaaTaskEngine 走 worker.stop(),旧走 engine.stop())
                 try:
-                    self._engine.stop()
+                    if self._use_maafw:
+                        if self._worker is not None and hasattr(self._worker, "stop"):
+                            self._worker.stop()
+                    else:
+                        self._engine.stop()
                 except Exception as exc:
-                    logger.warning("closeEvent: engine.stop() raised: {}", exc)
-                # 2) 通知 thread 退出
+                    logger.warning("closeEvent: stop() raised: {}", exc)
                 self._thread.quit()
-                # 3) 等最多 5 秒
                 if not self._thread.wait(5000):
                     logger.warning(
-                        "closeEvent: QThread 未在 5s 内退出,可能留有 zombie 线程 "
-                        "(task_id={} / run_id={})",
+                        "closeEvent: QThread 未在 5s 内退出 (task_id={} / run_id={})",
                         getattr(self._ctx, "current_task_id", "?"),
                         self._ctx.run_id,
                     )
@@ -250,23 +256,52 @@ class MainWindow(QtWidgets.QMainWindow):
         logger.info(f"scheme selected: {name} ({len(task_ids)} task(s))")
 
     def _on_start(self, task_ids: list[str]) -> None:
-        """启动 worker thread。"""
+        """启动 worker thread(根据 self._use_maafw 选引擎)。"""
         if self._thread is not None and self._thread.isRunning():
             return  # 已经在跑
+
+        # maafw 路径:在 worker thread 里 lazy 创建 MaaTaskEngine(避免 GUI 启动卡 ADB)
+        if self._use_maafw:
+            try:
+                from tasks.task_engine_maafw import MaaTaskEngine
+                from core.config_manager import ConfigManager
+                cfg = ConfigManager(self._project_root, auto_load=True)
+                # 创建 MaaTaskEngine 会触发 init(cfg) → 连 ADB + 加载 resource
+                self._maafw_engine = MaaTaskEngine(cfg)
+            except Exception as exc:
+                from loguru import logger
+                logger.error("MaaTaskEngine init failed: {}", exc)
+                QtWidgets.QMessageBox.critical(
+                    self, "引擎初始化失败",
+                    f"MaaTaskEngine 启动失败:\n{exc}\n\n"
+                    "请确认模拟器已启动 + narutomobile 资源完整。",
+                )
+                return
+
         # 1) 准备 worker + thread
         self._thread = QtCore.QThread(self)
-        self._worker = RunWorker(self._engine, task_ids)
+        if self._use_maafw:
+            self._worker = MaaRunWorker(self._maafw_engine, task_ids)
+        else:
+            self._worker = RunWorker(self._engine, task_ids)
+
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
         self._worker.finished.connect(self._on_worker_finished)
         self._worker.error.connect(self._on_worker_error)
         self._worker.progress.connect(self._on_worker_progress)
+        # 细粒度节点进度(只 MaaRunWorker 有)
+        if self._use_maafw and hasattr(self._worker, "node_progress"):
+            self._worker.node_progress.connect(self._on_worker_node_progress)
         # 2) 状态:running
         self._control_panel.set_running(True)
         self._status_panel.start_ticking()
-        self._status_lbl.setText(f"Running | run_id: {self._ctx.run_id}")
+        engine_name = "MaaTaskEngine" if self._use_maafw else "TaskEngine"
+        self._status_lbl.setText(
+            f"Running ({engine_name}) | run_id: {self._ctx.run_id}"
+        )
         from loguru import logger
-        logger.info(f"RunWorker started: tasks={task_ids}")
+        logger.info(f"{engine_name} started: tasks={task_ids}")
         # 3) 启动
         self._thread.start()
 
@@ -308,7 +343,26 @@ class MainWindow(QtWidgets.QMainWindow):
         from loguru import logger
         # result.status 可能是 TaskStatus 枚举(MagicMock 时是 str) — 都支持
         status_val = getattr(result.status, "value", result.status)
-        logger.info(f"task done: {task_id} status={status_val}")
+        nodes = getattr(result, "extra", {}).get("nodes", [])
+        rec_n = sum(1 for n in nodes if n.get("kind") == "recognition")
+        act_n = sum(1 for n in nodes if n.get("kind") == "action")
+        duration = getattr(result, "duration_sec", 0.0)
+        logger.info(
+            f"task done: {task_id} status={status_val} duration={duration:.2f}s "
+            f"rec={rec_n} act={act_n}"
+        )
+
+    def _on_worker_node_progress(
+        self,
+        task_id: str,
+        node_name: str,
+        detail: dict,
+    ) -> None:
+        """细粒度节点进度(MaaRunWorker 触发)。"""
+        from loguru import logger
+        kind = detail.get("kind", "?")
+        hit = detail.get("hit", "?")
+        logger.debug(f"[{task_id}] node {kind}: {node_name} hit={hit}")
 
     def _on_edit_config(self) -> None:
         dlg = ConfigDialog(self._cfg, self)
@@ -330,9 +384,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 def main(argv: list[str] | None = None) -> int:
-    """主入口: ``python -m ui.main_window`` 或 ``python main.py --gui``。"""
+    """主入口: ``python -m ui.main_window`` 或 ``python main.py --gui``。
+
+    Args:
+        argv: 额外参数列表。
+            - 默认 ``--maafw`` (MaaFramework 引擎,2026-07-02 起为默认)
+            - ``--no-maafw`` 逃生舱,强制用旧自研 Navigator 引擎
+            - ``--maafw`` 显式指定(冗余但向后兼容)
+    """
+    use_maafw = True  # 2026-07-02 起默认用 MaaFramework
+    if argv and "--no-maafw" in argv:
+        use_maafw = False
+        argv = [a for a in argv if a != "--no-maafw"]
+    elif argv and "--maafw" in argv:
+        use_maafw = True
+        argv = [a for a in argv if a != "--maafw"]
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(argv or sys.argv)
-    win = MainWindow()
+    win = MainWindow(use_maafw=use_maafw)
+    if use_maafw:
+        win.setWindowTitle("Naruto Auto Daily — 桌面客户端 (Phase 8 MaaFramework)")
     win.show()
     return app.exec()
 

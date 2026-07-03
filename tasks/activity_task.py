@@ -19,6 +19,12 @@ Pipeline (6 节点):
 重要: 永不调用 KeyAction(key="BACK")!
 """
 
+# === Task 元数据 (2026-06-30 工程治理) ===
+# 来源    : MaaAutoNaruto-win-x86_64-v1.3.35 (v1.3.35 merged.json)
+# 生成器  : tools/gen_11_tasks.py (统一模板,不得手改)
+# 维护    : 修改 ROI/流程请改 gen_11_tasks.py 重生成
+# === End 元数据 ===
+
 from __future__ import annotations
 
 import time
@@ -239,9 +245,10 @@ class ActivityTask(BaseTask):
             )
 
         log.warning("activity best-effort: {}", result2.error)
+        # P0 修复(2026-07-02): 用 BEST_EFFORT 而非 SUCCESS 避免掩盖故障
         return TaskResult(
             task_id=self.task_id,
-            status=TaskStatus.SUCCESS,
+            status=TaskStatus.BEST_EFFORT,
             message="activity best-effort: " + str(result2.error),
             attempts=2,
         )

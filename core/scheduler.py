@@ -52,7 +52,11 @@ class RunReport:
 
     @property
     def success_count(self) -> int:
-        return sum(1 for r in self.task_results if r.status == TaskStatus.SUCCESS)
+        # SUCCESS + BEST_EFFORT 都算"调度链成功"(向后兼容)
+        return sum(
+            1 for r in self.task_results
+            if r.status in (TaskStatus.SUCCESS, TaskStatus.BEST_EFFORT)
+        )
 
     @property
     def fail_count(self) -> int:
@@ -67,6 +71,22 @@ class RunReport:
         return sum(1 for r in self.task_results if r.status == TaskStatus.RETRY)
 
     @property
+    def best_effort_count(self) -> int:
+        """P0 增量(2026-07-02): best-effort task 数量(mail/liveness/recruit/activity/
+        daily_signin/weekly_signin 等"接受降级"的 task)。
+
+        **监控关键指标**:
+            - ``best_effort_count == 0`` → 所有 task 完美成功
+            - ``best_effort_count > 0`` → 有 task 失败被掩盖,需要人工审查 message 字段
+        """
+        return sum(1 for r in self.task_results if r.is_best_effort)
+
+    @property
+    def has_best_effort(self) -> bool:
+        """快速判断有没有"降级成功"task。GUI/调度器/邮件警报可订阅此属性。"""
+        return self.best_effort_count > 0
+
+    @property
     def total_count(self) -> int:
         return len(self.task_results)
 
@@ -79,7 +99,8 @@ class RunReport:
     def summary(self) -> str:
         return (
             f"RunReport(tasks={self.total_count} success={self.success_count} "
-            f"fail={self.fail_count} skip={self.skip_count} retry={self.retry_count} "
+            f"[best_effort={self.best_effort_count}] fail={self.fail_count} "
+            f"skip={self.skip_count} retry={self.retry_count} "
             f"aborted={self.aborted} duration={self.duration_sec:.2f}s)"
         )
 
@@ -93,9 +114,11 @@ class RunReport:
             "totals": {
                 "total": self.total_count,
                 "success": self.success_count,
+                "best_effort": self.best_effort_count,
                 "fail": self.fail_count,
                 "skip": self.skip_count,
                 "retry": self.retry_count,
+                "has_best_effort": self.has_best_effort,
             },
             "tasks": [r.to_dict() for r in self.task_results],
         }

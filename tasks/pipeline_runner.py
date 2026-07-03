@@ -131,10 +131,12 @@ class PipelineRunner:
             if screen.success and screen.payload is not None:
                 h, w = screen.payload.shape[:2]
                 nav.set_resolution_scale(self._ref_width, self._ref_height, w, h)
+                # P3 修复(2026-07-02): 改用公共属性 scale_x / scale_y
+                # 之前直接读 ``nav._scale_x`` 是私有属性访问,违反封装。
                 self._log.info(
                     "Navigator: ref {}x{} -> screen {}x{} (scale={:.3f} x {:.3f})",
                     self._ref_width, self._ref_height, w, h,
-                    nav._scale_x, nav._scale_y,
+                    nav.scale_x, nav.scale_y,
                 )
         except Exception as exc:
             self._log.warning("resolution scale detection failed: {}", exc)

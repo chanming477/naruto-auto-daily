@@ -226,6 +226,24 @@ class AppConfig(BaseModel):
     retry: RetryConfig = Field(default_factory=RetryConfig)
     recovery: RecoveryConfig = Field(default_factory=RecoveryConfig)
     logging_ext: LoggingConfig = Field(default_factory=LoggingConfig)
+    # ---- Phase 8 增量 (2026-07-02) — MaaFramework 桥接配置 ----
+    maafw: "MaaConfig" = Field(default_factory=lambda: MaaConfig())
+
+
+class MaaConfig(BaseModel):
+    """MaaFramework 桥接配置 (Phase 8)。
+
+    Attributes:
+        narutomobile_resource_path: narutomobile resource/base 路径。
+            留空 = 用 ``{project_root}/resources/narutomobile/`` 默认值。
+            填绝对路径覆盖(如指向外部 narutomobile 安装目录)。
+        data_dir: maafw Toolkit 初始化目录(log + cache 落盘位置),
+            相对 project_root。留空 = 默认 ``logs/maafw_data``。
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    narutomobile_resource_path: str = Field(default="")
+    data_dir: str = Field(default="logs/maafw_data")
 
 
 class WindowProfile(BaseModel):

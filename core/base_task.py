@@ -54,6 +54,18 @@ class TaskStatus:
     FAIL = "FAIL"
     RETRY = "RETRY"
     SKIP = "SKIP"
+    #: P0 增量(2026-07-02): task 主流程失败但选择"接受失败,返 SUCCESS 以避免阻塞
+    #: 调度"(mail / liveness / recruit / activity / daily_signin / weekly_signin
+    #: 等 best-effort 任务)。**新监控语义**:
+    #:   - ``is_success`` 仍 = True(向后兼容,scheduler 继续跑下一个 task)
+    #:   - ``is_best_effort`` = True(给监控/GUI/RunReport 一个"降级成功"信号)
+    #:   - ``is_failure`` = False(不算 FAIL,不算 RETRY)
+    #: RunReport 新增 ``best_effort_count`` 让"完美成功"vs"降级成功"可见。
+    #:
+    #: 原"两次 pipeline 失败后返 status=TaskStatus.SUCCESS 掩盖故障"问题已修复
+    #: — 6 个 best-effort task 文件(mail/liveness/recruit/activity/daily_signin/
+    #: weekly_signin)从 SUCCESS 改为 BEST_EFFORT。
+    BEST_EFFORT = "BEST_EFFORT"
 
 
 @dataclass
@@ -69,7 +81,8 @@ class TaskResult:
 
     @property
     def is_success(self) -> bool:
-        return self.status == TaskStatus.SUCCESS
+        # SUCCESS 与 BEST_EFFORT 都算"成功"(从调度链看都进入下一 task)
+        return self.status in (TaskStatus.SUCCESS, TaskStatus.BEST_EFFORT)
 
     @property
     def is_failure(self) -> bool:
@@ -78,6 +91,11 @@ class TaskResult:
     @property
     def is_skip(self) -> bool:
         return self.status == TaskStatus.SKIP
+
+    @property
+    def is_best_effort(self) -> bool:
+        """True 表示 task 失败但选择"接受降级"(原 SUCCESS 掩盖故障问题修复)。"""
+        return self.status == TaskStatus.BEST_EFFORT
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -287,7 +305,10 @@ class BaseTask(abc.ABC):
                 res.extra.setdefault("post_check_warnings", []).append(str(exc))
 
             final = res
-            if res.status == TaskStatus.SUCCESS or res.status == TaskStatus.SKIP:
+            # P0 修复(2026-07-02): BEST_EFFORT 也算"成功终止",不再重试
+            # 之前 execute 只把 SUCCESS / SKIP 视作终止条件,导致 BEST_EFFORT 会被
+            # 继续重试 max_retries 次 — 与"接受降级成功"语义相悖。
+            if res.status in (TaskStatus.SUCCESS, TaskStatus.BEST_EFFORT, TaskStatus.SKIP):
                 log.success("[{}] {} in {:.2f}s", self.task_id, res.status, res.duration_sec)
                 break
             if not self.retryable or attempt > attempts_allowed:

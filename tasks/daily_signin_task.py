@@ -1,28 +1,29 @@
-"""tasks.daily_signin_task — 每日签到任务(Phase 6 B V2 真实接入)。
+"""tasks.daily_signin_task — 每日签到任务(2026-07-01 改写)。
 
-设计目标:
-    主页 → 进入奖励中心 → 点击每日签到 → 关闭弹窗 → 返回主页。
+A 计划(2026-06-30 23:00~23:19,30 张 `D:\\tmp\\A*_thumb.png` 截图)结论:
+    游戏里的"每日签到"实际机制 = **活动页 → 左侧菜单下滑 → 每月签到 tab → 签到**,
+    不是奖励中心里的"每日签到"任务卡(`check_not_in_daily_award.png` 在游戏里不是真正的每日签到入口)。
 
-实测 ROI (1920x1080):
-    - 奖励按钮: x=1170, y=290, w=130, h=100  (shared/award_button_v3.png)
-    - 每日签到入口(奖励中心内): x=37, y=172, w=130, h=47 (narutomobile 原始 ROI)
-        对应模板: shared/check_in_daily_award.png 或 check_not_in_daily_award.png
-    - 关闭按钮: x=1820, y=60, w=80, h=80 (shared/x.png)
-    - 主页按钮: x=30, y=700, w=100, h=80 (shared/home_button_v3.png)
+改写决策(2026-07-01):
+    1. 委托 MonthlySigninTask 复用 8 节点 pipeline + monthly 路径 — 代码一致
+    2. 保留 `task_id="daily_signin"` / `name="每日签到"` / `category="daily"`
+       兼容 `main.py:876/1021` 注册 + 整套测试契约(`test_daily_signin_task.py` / phase[3-6]_pipeline 等)
+    3. pre_check 保留 daily 独有策略(**不强制** `ensure_state(HOME)`,避免系统 BACK
+       触发退出弹窗 — P0-FIX-2026-06-29) — 与 MonthlySigninTask 的强制 HOME 策略不同
+    4. run() 保留 daily 独有策略:**best-effort SUCCESS**(掩盖失败) — 与 MonthlySigninTask
+       的 FAIL 策略不同(daily 历史决策)
+    5. recover / enter / verify 行为一致(继承 MonthlySigninTask)
 
-Pipeline (8 节点):
-    1. ensure_home              Noop
-    2. find_award_button        主页找奖励 → 点击
-    3. find_daily_signin_btn    奖励中心找"每日签到"按钮 → 点击
-    4. check_done_or_claim      检测签到状态 (check_in vs check_not_in)
-    5. close_popup              关闭签到弹窗 (界面 X, NOT BACK)
-    6. close_award_center       关闭奖励中心 (X)
-    7. back_to_home             主页按钮
-    8. verify_done              终点
+正确路径(1920x1080 真机已验证):
+    主页 → 右下"忍界指引"(1580, 940)
+        → 活动页(活动卷轴 → headhunt.png @ tap 1222, 54)
+        → 左侧菜单下滑 (80, 600)→(80, 300) max_hit=10
+        → tap "每月签到" tab(**注意**:(95, 510) 才安全,(95, 360-450) 落入"送羁绊之券" hitbox)
+        → 点 sign.png (1189, 577)
+        → 验证 monthly_sign_done.png
+        → 回主页
 
-重要: 永不调用 KeyAction(key="BACK")! 否则触发"是否退出游戏"弹窗。
-
-依赖: tasks.navigator, tasks.pipeline_runner
+依赖: tasks.monthly_signin_task(继承 MonthlySigninTask)
 """
 
 from __future__ import annotations
@@ -31,195 +32,49 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
-from core.base_task import BaseTask, TaskResult, TaskStatus
-from state.game_state import GameState
-from tasks.navigator import (
-    ClickAction,
-    Navigator,
-    Node,
-    NoopAction,
-    Pipeline,
+from tasks.monthly_signin_task import (
+    MonthlySigninTask,
+    _build_monthly_signin_pipeline as _build_daily_signin_pipeline,
 )
-from tasks.common_actions import make_recovery_chain
 from tasks.pipeline_runner import (
     DEFAULT_REF_HEIGHT,
     DEFAULT_REF_WIDTH,
-    PipelineRunner,
 )
 
 if TYPE_CHECKING:
-    from core.base_task import ExecutionContext
+    from core.base_task import ExecutionContext, TaskResult
 
 __all__ = ["DailySigninTask"]
 
 
-# 实测 ROI (1920x1080)
-ROI_AWARD_BUTTON = (1760, 460, 200, 180)        # 主页"奖励"礼物盒(V1.2 §1.2.2 真机校准: conf=0.965 @ (1760, 470))
-ROI_DAILY_SIGNIN_BTN = (37, 172, 130, 47)  # narutomobile 原始 ROI
-ROI_CLOSE_X = (1820, 60, 80, 80)
-ROI_HOME_BUTTON = (30, 700, 100, 80)
+class DailySigninTask(MonthlySigninTask):
+    """每日签到任务。
 
+    2026-07-01 改写: 游戏里的"每日签到"实际机制是活动页 → 左侧菜单 → 每月签到 tab,
+    委托 MonthlySigninTask 复用其 8 节点 pipeline。
+    保留 task_id/name/category 以兼容 main.py 注册和测试契约。
+    """
 
-def _build_daily_signin_pipeline(nav: Navigator) -> Pipeline:
-    """构造"每日签到" pipeline。"""
-    tpls = nav.templates
-    pipe = Pipeline(entry="ensure_home")
-
-    # ---- 1. 主页基线 ----
-    pipe.add(Node(
-        name="ensure_home",
-        templates=[],
-        action=NoopAction(),
-        next=["find_award_button"],
-        focus="ensure home (pre_check)",
-    ))
-
-    # ---- 2. 主页找"奖励"按钮 → 点击 ----
-    pipe.add(Node(
-        name="find_award_button",
-        templates=tpls(
-            "shared/award_button_v5_real.png",   # 2026-06-29 Q1 补采(新账号漩涡鸣人主页 conf=1.000 @ (1865, 537))
-            "shared/award_button_v4_real.png",   # V1.2 §1.2.2 真机裁切(右下深蓝礼物盒,旧账号)
-            "shared/award_center_entry.png",
-            "shared/award_center_entry_v2.png",
-        ),
-        roi=ROI_AWARD_BUTTON,
-        threshold=0.55,
-        action=ClickAction(),
-        next=["find_daily_signin_btn"],
-        on_error=["verify_done"],  # 找不到奖励 → 直接结束
-        post_delay_ms=1500,
-        focus="点击主页'奖励'按钮",
-    ))
-
-    # ---- 3. 找"每日签到"按钮 (在奖励中心内) ----
-    # check_not_in_daily_award.png 表示"未签到可签"
-    pipe.add(Node(
-        name="find_daily_signin_btn",
-        templates=tpls(
-            "shared/check_not_in_daily_award.png",
-            "shared/check_in_daily_award.png",
-        ),
-        roi=ROI_DAILY_SIGNIN_BTN,
-        threshold=0.55,
-        action=ClickAction(),
-        next=["close_popup"],
-        on_error=["close_award_center"],  # 不在每日签到页 → 关掉
-        post_delay_ms=1000,
-        focus="点击每日签到入口",
-    ))
-
-    # ---- 4. 关闭签到弹窗 (用界面 X 按钮) ----
-    pipe.add(Node(
-        name="close_popup",
-        templates=tpls(
-            "shared/x.png",
-            "shared/x_right_top.png",
-            "shared/green_masked_x.png",
-            "shared/notice_x.png",
-        ),
-        roi=ROI_CLOSE_X,
-        threshold=0.5,
-        action=ClickAction(),
-        next=["close_award_center"],
-        on_error=["close_award_center"],
-        max_hit=3,
-        post_delay_ms=600,
-        focus="关闭签到弹窗",
-    ))
-
-    # ---- 5. 关闭奖励中心 (X) ----
-    pipe.add(Node(
-        name="close_award_center",
-        templates=tpls(
-            "shared/x.png",
-            "shared/green_masked_x.png",
-            "shared/notice_x.png",
-        ),
-        roi=ROI_CLOSE_X,
-        threshold=0.5,
-        action=ClickAction(),
-        next=["back_to_home"],
-        on_error=["back_to_home"],
-        max_hit=2,
-        post_delay_ms=600,
-        focus="关闭奖励中心",
-    ))
-
-    # ---- 6. 返回主页(点主页按钮, NOT 系统 BACK) ----
-    pipe.add(Node(
-        name="back_to_home",
-        templates=tpls(
-            "shared/home_button_v3.png",
-        ),
-        roi=ROI_HOME_BUTTON,
-        threshold=0.5,
-        action=ClickAction(),
-        next=["verify_done"],
-        on_error=["verify_done"],
-        post_delay_ms=800,
-        focus="点击主页按钮",
-    ))
-
-    # ---- 7. 终点 ----
-    pipe.add(Node(
-        name="verify_done",
-        templates=[],
-        action=NoopAction(),
-        next=[],
-        focus="每日签到流程完成",
-    ))
-
-    return pipe
-
-
-class DailySigninTask(BaseTask):
-    """每日签到任务。"""
-
+    # ===== 与 MonthlySigninTask 不同的接口 =====
     task_id = "daily_signin"
     name = "每日签到"
     category = "daily"
-    max_retries: int = 0
 
+    # ===== pre_check:daily 独有策略(P0-FIX-2026-06-29)=====
+    # 不强制 ensure_state(HOME) — 内部会调 BACK,触发"是否退出游戏"弹窗。
+    # 与 MonthlySigninTask 的强制 ensure_state(HOME) 策略不同(daily 历史决策)。
     def pre_check(self, ctx: "ExecutionContext") -> bool:
-        # P0-FIX-2026-06-29: 不用 ensure_state(HOME) — 会调 go_home() 按 BACK,
-        # 触发"是否退出游戏"弹窗。让 pipeline 自己从任意状态起步。
-        log = ctx.bind_logger(self.task_id)
+        """仅检查 common_actions 不为 None,不强制回主页。"""
         return ctx.common_actions is not None
 
-    def post_check(self, ctx: "ExecutionContext", result: TaskResult) -> None:
-        # 不强制回 HOME — pipeline 内部已用 X + 主页按钮 recover
-        return
-
-    def cleanup(self, ctx: "ExecutionContext", result: TaskResult) -> None:
-        pass
-
-    def enter(self, ctx: "ExecutionContext") -> bool:
-        return True
-
-    def verify(self, ctx: "ExecutionContext") -> bool:
-        return True
-
-    def recover(self, ctx: "ExecutionContext") -> bool:
-        """恢复:用界面内关闭按钮 + 主页按钮(NOT 系统 BACK)。
-
-        严格禁止 KeyAction(key="BACK") — 会触发"是否退出游戏"弹窗。
-        v1.2 P1 #3: 委托给 tasks.common_actions.make_recovery_chain(double_x=False)。
-        """
-        if ctx.common_actions is None:
-            return False
-        return make_recovery_chain(
-            ctx.common_actions,
-            double_x=False,
-            log=ctx.bind_logger(self.task_id),
-        )
-
-    def run(self, ctx: "ExecutionContext") -> TaskResult:
+    # ===== run:显式 override 以满足 P1-ARCH-01 =====
+    # `DailySigninTask.run.__qualname__ == "DailySigninTask.run"`
+    # daily 独有 best-effort SUCCESS 策略(掩盖失败) — 与 MonthlySigninTask 的 FAIL 策略不同。
+    def run(self, ctx: "ExecutionContext") -> "TaskResult":
         log = ctx.bind_logger(self.task_id)
 
         if ctx.common_actions is None:
+            from core.base_task import TaskResult, TaskStatus
             return TaskResult(
                 task_id=self.task_id,
                 status=TaskStatus.FAIL,
@@ -235,6 +90,7 @@ class DailySigninTask(BaseTask):
         result = self._run_pipeline(adb, project_root, templates_root, log)
         if result.success:
             log.success("[daily_signin] completed")
+            from core.base_task import TaskResult, TaskStatus
             return TaskResult(
                 task_id=self.task_id,
                 status=TaskStatus.SUCCESS,
@@ -250,6 +106,7 @@ class DailySigninTask(BaseTask):
         result2 = self._run_pipeline(adb, project_root, templates_root, log)
         if result2.success:
             log.success("[daily_signin] completed (after retry)")
+            from core.base_task import TaskResult, TaskStatus
             return TaskResult(
                 task_id=self.task_id,
                 status=TaskStatus.SUCCESS,
@@ -257,20 +114,13 @@ class DailySigninTask(BaseTask):
                 attempts=2,
             )
 
-        # best-effort
+        # best-effort(daily 独有策略:接受降级成功)
+        # P0 修复(2026-07-02): 用 BEST_EFFORT 而非 SUCCESS 避免掩盖故障
         log.warning("daily_signin best-effort: {}", result2.error)
+        from core.base_task import TaskResult, TaskStatus
         return TaskResult(
             task_id=self.task_id,
-            status=TaskStatus.SUCCESS,
+            status=TaskStatus.BEST_EFFORT,
             message="daily_signin best-effort: " + str(result2.error),
             attempts=2,
         )
-
-    def _run_pipeline(self, adb, project_root, templates_root, log):
-        runner = PipelineRunner(
-            adb, project_root, templates_root, log,
-            ref_width=DEFAULT_REF_WIDTH, ref_height=DEFAULT_REF_HEIGHT,
-        )
-        nav = runner.make_navigator()
-        pipe = _build_daily_signin_pipeline(nav)
-        return runner.run(pipe, max_total_iterations=20, max_idle_iterations=4)

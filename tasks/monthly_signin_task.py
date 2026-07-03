@@ -1,29 +1,36 @@
 """tasks.monthly_signin_task — 每月签到任务(2026-06-29 14:23 user 强求补建)。
 
 设计目标:
-    主页 → 活动卷轴 → 活动页 → 左侧菜单下滑找"每月签到" → 点签到 → 关活动页 → 回主页。
+    主页 → 活动页(activity_button_v4.png,右上角"活动"钱袋)→ 下滑左侧菜单找"每月签到" → 点签到 → 回主页。
 
-实测 ROI (1920x1080):
-    - 活动卷轴: x=1770, y=30, w=100, h=110 (shared/activity_button_v3.png)
-        2026-06-29 14:23 user 裁的"活动"钱袋特写 → shared/activity_button_v4.png
-    - 左侧菜单: x=0, y=100, w=250, h=980 (活动页左侧导航栏全高,需下滑找"每月签到")
-    - 签到按钮: x=1700, y=870, w=200, h=130 (活动页右下角橙色按钮)
-    - 关闭按钮: x=1820, y=60, w=80, h=80 (shared/x.png; 实际真位置 1860, 60 user 14:00 验证)
-    - 主页按钮: x=30, y=700, w=100, h=80 (shared/home_button_v3.png; FILE_MISSING best-effort)
+ROI 2026-07-01 修正:
+    - 活动入口: activity_button_v4.png ROI (1760, 30, 160, 130), tap = ROI 中心 (1840, 95)。
+      narutomobile 原文 ROI (1194, 132, 50, 42) + tap (1222, 54) 在当前主页 (1920x1080)
+      对应的位置完全是天空背景,从没匹配过 — 旧版本 best-effort SUCCESS 掩盖。
+      headhunt.png 名字误导(实际是招募按钮残留),已移至 deprecated/。
+    - 下滑左侧菜单: begin (80, 600, 50, 50) → end (80, 300, 50, 50), duration 200, max_hit=10
+    - 每月签到 tab: template monthly_sign_undone.png @ ROI (19, 130, 143, 572) → 扩到 (0, 100, 220, 700)
+    - 签到按钮: sign.png @ ROI (1107, 547, 164, 61) 中心 (1189, 577)
+    - 验证签到: monthly_sign_done.png @ ROI (1104, 532, 158, 98)
 
-Pipeline (8 节点):
-    1. ensure_home              Noop
-    2. find_activity            主页找"活动"钱袋 → 点击
-    3. find_monthly_sign_tab    活动页左侧菜单找"每月签到" → 点击
-    4. find_sign_button         找右下"签到"橙色按钮 → 点击
-    5. close_sign_popup         关闭签到后的弹窗(如有)
-    6. close_activity_page      关闭活动页 (X (1860, 60))
-    7. back_to_home             主页按钮
-    8. verify_done              终点
+Pipeline (8 节点,严格按 narutomobile + 2026-07-01 ROI 修正):
+    1. ensure_home                 Noop
+    2. find_activity               activity_button_v4.png → 点 (1840, 95) 进活动页
+    3. swipes_for_monthly_sign     下滑左侧菜单 max_hit=10(找每月签到 tab)
+    4. find_monthly_sign_tab       template 匹配 → 点击
+    5. find_sign_button            sign.png → 点签到
+    6. verify_signed               monthly_sign_done.png → 已签到验证
+    7. back_main_screen            main_green_masked.png → 验证回主页
+    8. verify_done                 Noop
 
-重要: 永不调用 KeyAction(key="BACK")! 否则触发"是否退出游戏"弹窗。
 依赖: tasks.navigator, tasks.pipeline_runner
 """
+
+# === Task 元数据 (2026-06-30 工程治理) ===
+# 来源    : MaaAutoNaruto-win-x86_64-v1.3.35 (v1.3.35 merged.json)
+# 生成器  : tools/gen_11_tasks.py (统一模板,不得手改)
+# 维护    : 修改 ROI/流程请改 gen_11_tasks.py 重生成
+# === End 元数据 ===
 
 from __future__ import annotations
 
@@ -56,190 +63,149 @@ if TYPE_CHECKING:
 __all__ = ["MonthlySigninTask"]
 
 
-# 实测 ROI (1920x1080)
-ROI_ACTIVITY_BUTTON = (1770, 30, 100, 110)         # 主页"活动"钱袋
-ROI_SIGNIN_LEFT_MENU = (0, 100, 250, 980)          # 活动页左侧菜单全高(找"每月签到")
-ROI_SIGN_BUTTON = (1700, 850, 250, 180)            # "签到"按钮(右下); 2026-06-29 14:26 dryrun 验证旧 ROI 太小
-ROI_CLOSE_X = (1820, 60, 80, 80)                  # 活动页 X 关闭
-ROI_HOME_BUTTON = (30, 700, 100, 80)               # 主页按钮(14:29 user 重新放回 home_button_v3.png)
+# 活动入口 ROI(2026-07-01 修正):右上角"活动"钱袋
+#   x: 1760-1920 (160), y: 30-160 (130)
+#   中心 (1840, 95) — ClickAction 无 offset 直接用 ROI 中心
+ROI_ACTIVITY_BUTTON = (1760, 30, 160, 130)
+
+# 左侧菜单下滑 ROI(narutomobile begin/end)
+SWIPE_BEGIN = (80, 600, 50, 50)
+SWIPE_END = (80, 300, 50, 50)
+SWIPE_DURATION_MS = 200
+
+# 每月签到 tab ROI(2026-07-01 扩:y 下边界 700→800,因左侧菜单靠下)
+ROI_MONTHLY_SIGN_TAB = (0, 100, 220, 800)
+
+# 签到按钮 ROI(narutomobile 直接给)
+ROI_SIGN_BTN = (1107, 547, 164, 61)                # 中心 (1189, 577)
+
+# 验证签到 ROI(narutomobile OCR 1104,532,158,98)
+ROI_SIGN_DONE = (1104, 532, 158, 98)                # 中心 (1183, 581)
+
+# 回主页 ROI(main_green_masked 全屏匹配,绿通道)
+ROI_HOME_MAIN = (0, 0, 1920, 1080)
 
 
 def _build_monthly_signin_pipeline(nav: Navigator) -> Pipeline:
-    """构造"每月签到" pipeline。"""
+    """构造"每月签到" pipeline (narutomobile ROI)。"""
     tpls = nav.templates
     pipe = Pipeline(entry="ensure_home")
 
     # ---- 1. 主页基线 ----
     pipe.add(Node(
         name="ensure_home",
-        templates=[],
         action=NoopAction(),
         next=["find_activity"],
-        focus="ensure home (pre_check)",
+        focus="主页基线",
     ))
 
-    # ---- 2. 主页找"活动"钱袋 → 点击 ----
+    # ---- 2. 找活动入口(activity_button_v4.png)→ tap = ROI 中心 (1840, 95) ----
     pipe.add(Node(
         name="find_activity",
         templates=tpls(
-            "shared/activity_button_v4.png",   # 2026-06-29 14:23 user 裁的"活动"钱袋特写
-            "shared/activity_button_v3.png",   # 2026-06-29 14:00 真机跑过的
+            "shared/activity_button_v4.png",       # "活动"钱袋 (主模板,2026-06-29 user 裁)
+            "shared/activity_button_v3.png",       # 旧 DPI fallback
         ),
         roi=ROI_ACTIVITY_BUTTON,
-        threshold=0.55,
-        action=ClickAction(),
-        next=["swipe_left_menu_down"],
-        on_error=["verify_done"],  # 找不到活动 → 直接结束
+        threshold=0.6,
+        action=ClickAction(),                      # 2026-07-01 修正:无 offset,直接用 ROI 中心
+        next=["swipes_for_monthly_sign"],
+        on_error=["back_main_screen"],
+        max_hit=3,
         post_delay_ms=2000,
-        focus="点击主页'活动'钱袋",
+        focus="点活动入口 (1840, 95)",
     ))
 
-    # ---- 3. 下滑左侧菜单(每月签到 在左侧菜单靠下,初始视口看不到) ----
-    # 2026-06-29 14:36 user 强烈纠正:"你需要下滑左侧菜单栏啊"
+    # ---- 3. 下滑左侧菜单(max_hit=10 找每月签到 tab) ----
     pipe.add(Node(
-        name="swipe_left_menu_down",
-        templates=[],   # swipe 不靠模板
+        name="swipes_for_monthly_sign",
+        templates=[],
         action=SwipeAction(
-            x1=100, y1=200,    # 起点(左侧菜单顶部)
-            x2=100, y2=900,    # 终点(左侧菜单底部)
-            duration_ms=600,
+            x1=SWIPE_BEGIN[0], y1=SWIPE_BEGIN[1],
+            x2=SWIPE_END[0], y2=SWIPE_END[1],
+            duration_ms=SWIPE_DURATION_MS,
         ),
         next=["find_monthly_sign_tab"],
-        on_error=["find_monthly_sign_tab"],  # swipe 失败也尝试 find
-        max_hit=2,
-        post_delay_ms=1200,
-        focus="下滑左侧菜单找'每月签到'",
+        on_error=["find_monthly_sign_tab"],
+        max_hit=10,
+        post_delay_ms=900,
+        focus="下滑左侧菜单 (80,600)→(80,300)",
     ))
 
-    # ---- 4. 活动页左侧菜单找"每月签到" tab → 点击 ----
+    # ---- 4. 找每月签到 tab(template match)-------
     pipe.add(Node(
         name="find_monthly_sign_tab",
         templates=tpls(
-            "activity/monthly_sign_undone.png",        # 2026-06-29 14:23 user 已裁(163x70,带红点)
+            "activity/monthly_sign_undone.png",            # 带红点未签
             "activity/monthly_sign_undone_activity.png",
-            "activity/monthly_sign_done.png",          # 已签到
+            "activity/monthly_sign_done.png",              # 已签到
             "activity/monthly_sign_done_1.png",
             "activity/monthly_sign_done_activity.png",
-            # 2026-06-29 14:26 dryrun 验证:title.png (活动页"活动"标题) 在 0.625 误命中 → 删除
         ),
-        roi=ROI_SIGNIN_LEFT_MENU,
-        threshold=0.55,
+        roi=ROI_MONTHLY_SIGN_TAB,
+        threshold=0.6,
         action=ClickAction(),
         next=["find_sign_button"],
-        on_error=["swipe_left_menu_down_2"],  # 没找到 → 再滑一次
+        on_error=["swipes_for_monthly_sign"],
         max_hit=3,
         post_delay_ms=1500,
-        focus="点击'每月签到' tab",
+        focus="找'每月签到' tab 并点",
     ))
 
-    # ---- 4b. 二次下滑(若第一次 find_monthly_sign_tab 没命中) ----
-    pipe.add(Node(
-        name="swipe_left_menu_down_2",
-        templates=[],
-        action=SwipeAction(
-            x1=100, y1=200,
-            x2=100, y2=900,
-            duration_ms=600,
-        ),
-        next=["find_monthly_sign_tab_retry"],
-        on_error=["close_activity_page"],
-        max_hit=1,
-        post_delay_ms=1200,
-        focus="二次下滑左侧菜单",
-    ))
-
-    # ---- 4c. 二次找(下滑后) ----
-    pipe.add(Node(
-        name="find_monthly_sign_tab_retry",
-        templates=tpls(
-            "activity/monthly_sign_undone.png",
-            "activity/monthly_sign_undone_activity.png",
-            "activity/monthly_sign_done.png",
-            "activity/monthly_sign_done_1.png",
-            "activity/monthly_sign_done_activity.png",
-        ),
-        roi=ROI_SIGNIN_LEFT_MENU,
-        threshold=0.55,
-        action=ClickAction(),
-        next=["find_sign_button"],
-        on_error=["close_activity_page"],
-        max_hit=2,
-        post_delay_ms=1500,
-        focus="二次点击'每月签到' tab",
-    ))
-
-    # ---- 4. 找右下"签到"橙色按钮 → 点击 ----
+    # ---- 5. 找签到按钮(sign.png @ narutomobile ROI)----
     pipe.add(Node(
         name="find_sign_button",
         templates=tpls(
-            "activity/sign.png",                 # 签到按钮
+            "activity/sign.png",
         ),
-        roi=ROI_SIGN_BUTTON,
-        threshold=0.55,
+        roi=ROI_SIGN_BTN,
+        threshold=0.6,
         action=ClickAction(),
-        next=["close_sign_popup"],
-        on_error=["close_activity_page"],  # 找不到签到按钮 → 关活动页(可能已签到)
+        next=["verify_signed"],
+        on_error=["back_main_screen"],
         max_hit=2,
         post_delay_ms=1500,
-        focus="点击'签到'按钮",
+        focus="点签到按钮 (1189, 577)",
     ))
 
-    # ---- 5. 关闭签到后弹窗(如有) ----
+    # ---- 6. 验证签到完成(monthly_sign_done.png @ 签到按钮附近)----
     pipe.add(Node(
-        name="close_sign_popup",
+        name="verify_signed",
         templates=tpls(
-            "shared/x.png",
-            "shared/x_right_top.png",
-            "shared/green_masked_x.png",
-            "shared/notice_x.png",
+            "activity/monthly_sign_done.png",              # 已签到 = 带"已签到"标记
+            "activity/monthly_sign_done_1.png",
+            "activity/monthly_sign_done_activity.png",
         ),
-        roi=ROI_CLOSE_X,
-        threshold=0.5,
-        action=ClickAction(),
-        next=["close_activity_page"],
-        on_error=["close_activity_page"],
+        roi=ROI_SIGN_DONE,
+        threshold=0.6,
+        action=NoopAction(),
+        next=["back_main_screen"],
+        on_error=["back_main_screen"],
         max_hit=2,
-        post_delay_ms=600,
-        focus="关闭签到后弹窗",
+        post_delay_ms=1500,
+        focus="验证签到完成",
     ))
 
-    # ---- 6. 关闭活动页(X 关闭 1860, 60) ----
+    # ---- 7. 回主页(main_green_masked.png)----
     pipe.add(Node(
-        name="close_activity_page",
+        name="back_main_screen",
         templates=tpls(
-            "shared/x.png",
-            "shared/green_masked_x.png",
-            "shared/notice_x.png",
+            "state/main_green_masked.png",
         ),
-        roi=ROI_CLOSE_X,
-        threshold=0.5,
-        action=ClickAction(),
-        next=["back_to_home"],
-        on_error=["back_to_home"],
-        max_hit=2,
-        post_delay_ms=600,
-        focus="关闭活动页",
-    ))
-
-    # ---- 7. 返回主页(点主页按钮, NOT 系统 BACK) ----
-    pipe.add(Node(
-        name="back_to_home",
-        templates=tpls(
-            "shared/home_button_v3.png",  # 2026-06-29 14:00 user 删,best-effort
-        ),
-        roi=ROI_HOME_BUTTON,
-        threshold=0.5,
-        action=ClickAction(),
+        roi=ROI_HOME_MAIN,
+        threshold=0.7,
+        green_mask=True,
+        action=NoopAction(),
         next=["verify_done"],
-        on_error=["verify_done"],
-        post_delay_ms=800,
-        focus="点击主页按钮",
+        on_error=["verify_done"],                       # narutomobile: 找不到也停
+        max_hit=5,
+        post_delay_ms=1000,
+        focus="回主页验证",
     ))
 
     # ---- 8. 终点 ----
     pipe.add(Node(
         name="verify_done",
-        templates=[],
         action=NoopAction(),
         next=[],
         focus="每月签到流程完成",
@@ -249,7 +215,7 @@ def _build_monthly_signin_pipeline(nav: Navigator) -> Pipeline:
 
 
 class MonthlySigninTask(BaseTask):
-    """每月签到任务(活动页 → 左侧菜单 → 签到)。"""
+    """每月签到任务(活动页 → 左侧菜单下滑 → 签到)。"""
 
     task_id = "monthly_signin"
     name = "每月签到"
@@ -277,11 +243,7 @@ class MonthlySigninTask(BaseTask):
         return True
 
     def recover(self, ctx: "ExecutionContext") -> bool:
-        """恢复:用界面内关闭按钮 + 主页按钮(NOT 系统 BACK)。
-
-        严格禁止 KeyAction(key="BACK") — 会触发"是否退出游戏"弹窗。
-        v1.2 P1 #3: 委托给 tasks.common_actions.make_recovery_chain(double_x=False)。
-        """
+        """恢复:用界面内关闭按钮 + 主页按钮(NOT 系统 BACK)。"""
         if ctx.common_actions is None:
             return False
         return make_recovery_chain(
@@ -316,7 +278,7 @@ class MonthlySigninTask(BaseTask):
                 attempts=1,
             )
 
-        # 失败 → recover (用界面 X 按钮) + 重试
+        # 失败 → recover + 重试
         log.warning("first attempt failed: {}; recover + retry", result.error)
         self.recover(ctx)
         time.sleep(1)
@@ -331,12 +293,12 @@ class MonthlySigninTask(BaseTask):
                 attempts=2,
             )
 
-        # best-effort
-        log.warning("monthly_signin best-effort: {}", result2.error)
+        # 真失败(2026-06-30:不再 best-effort SUCCESS 掩盖)
+        log.error("monthly_signin 真失败: {}", result2.error)
         return TaskResult(
             task_id=self.task_id,
-            status=TaskStatus.SUCCESS,
-            message="monthly_signin best-effort: " + str(result2.error),
+            status=TaskStatus.FAIL,
+            message="monthly_signin failed: " + str(result2.error),
             attempts=2,
         )
 
@@ -347,4 +309,4 @@ class MonthlySigninTask(BaseTask):
         )
         nav = runner.make_navigator()
         pipe = _build_monthly_signin_pipeline(nav)
-        return runner.run(pipe, max_total_iterations=20, max_idle_iterations=4)
+        return runner.run(pipe, max_total_iterations=40, max_idle_iterations=8)
