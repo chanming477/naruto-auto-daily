@@ -62,9 +62,7 @@ TASK_MAPPING: Final[dict[str, str]] = {
 
 # 反向映射(narutomobile entry → 我们 task_id,多个时取首个)
 REVERSE_MAPPING: Final[dict[str, str]] = {
-    entry: tid
-    for tid, entry in TASK_MAPPING.items()
-    if entry not in {"activity"} or tid == "daily_signin"
+    entry: tid for tid, entry in TASK_MAPPING.items() if entry not in {"activity"} or tid == "daily_signin"
 }
 # 显式: activity 反向映射到 daily_signin(第一个用 daily_signin 名字注册的)
 # 注: REVERSE_MAPPING 第一个见到的 entry 是 daily_signin(已确保上面 if 保留)

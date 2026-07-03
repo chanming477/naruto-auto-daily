@@ -64,8 +64,10 @@ class StateTransition:
     source: str
 
     def __str__(self) -> str:
-        return (f"[{self.timestamp.isoformat(timespec='milliseconds')}] "
-                f"{self.from_state.value} --({self.source})--> {self.to_state.value}")
+        return (
+            f"[{self.timestamp.isoformat(timespec='milliseconds')}] "
+            f"{self.from_state.value} --({self.source})--> {self.to_state.value}"
+        )
 
 
 class GameStateMachine:
@@ -87,16 +89,12 @@ class GameStateMachine:
             history_limit: 历史切换记录保留上限。
         """
         if not isinstance(initial, GameState):
-            raise TypeError(
-                f"initial must be a GameState, got {type(initial).__name__}"
-            )
+            raise TypeError(f"initial must be a GameState, got {type(initial).__name__}")
         self._initial: GameState = initial
         self._current: GameState = initial
         self._history_limit: int = max(1, int(history_limit))
         self._history: list[StateTransition] = []
-        logger.bind(component="fsm").info(
-            "GameStateMachine initialized: initial={}", initial.value
-        )
+        logger.bind(component="fsm").info("GameStateMachine initialized: initial={}", initial.value)
 
     # ----- properties ---------------------------------------------------
 
@@ -138,9 +136,7 @@ class GameStateMachine:
             return False
 
         if new_state == self._current:
-            logger.bind(component="fsm").debug(
-                "update_state noop: current={}", self._current.value
-            )
+            logger.bind(component="fsm").debug("update_state noop: current={}", self._current.value)
             return False
 
         prev = self._current
@@ -154,7 +150,7 @@ class GameStateMachine:
         self._history.append(record)
         # 保留最近 N 条
         if len(self._history) > self._history_limit:
-            self._history = self._history[-self._history_limit:]
+            self._history = self._history[-self._history_limit :]
 
         log = logger.bind(component="fsm")
         if new_state == GameState.UNKNOWN:
@@ -215,6 +211,4 @@ class GameStateMachine:
         prev = self._current
         self._current = self._initial
         self._history.clear()
-        logger.bind(component="fsm").info(
-            "FSM reset: {} -> {}", prev.value, self._initial.value
-        )
+        logger.bind(component="fsm").info("FSM reset: {} -> {}", prev.value, self._initial.value)

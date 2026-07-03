@@ -39,7 +39,7 @@ class ControlPanel(QtWidgets.QGroupBox):
 
     start_requested = QtCore.Signal(list)  # 参数 = task_ids list
     stop_requested = QtCore.Signal()
-    scheme_selected = QtCore.Signal(str)   # 参数 = scheme name
+    scheme_selected = QtCore.Signal(str)  # 参数 = scheme name
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__("控制面板", parent)

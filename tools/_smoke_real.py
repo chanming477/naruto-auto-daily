@@ -1,10 +1,12 @@
 """临时验证脚本:跑一个真实任务验证全链路。"""
+
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
+
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 
@@ -14,6 +16,7 @@ cfg = ConfigManager(Path("."), auto_load=True)
 print(f"[OK] ConfigManager loaded")
 
 from tasks.task_engine_maafw import MaaTaskEngine
+
 print(f"[INFO] Creating MaaTaskEngine...")
 
 try:

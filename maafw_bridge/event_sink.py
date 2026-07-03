@@ -26,15 +26,17 @@ from typing import Any
 
 try:
     from maa.context import ContextEventSink  # type: ignore
+
     _MAAFW_AVAILABLE = True
 except ImportError:  # pragma: no cover
     ContextEventSink = None  # type: ignore
     _MAAFW_AVAILABLE = False
 
-from loguru import logger
-
 # 用 TYPE_CHECKING 避免循环依赖:core 不知道 maafw_bridge
 from typing import TYPE_CHECKING
+
+from loguru import logger
+
 if TYPE_CHECKING:
     from core.base_task import TaskResult
 
@@ -43,6 +45,7 @@ _LOG = logger.bind(component="maafw.sink")
 
 
 # ----- detail attribute helpers ---------------------------------------------
+
 
 def _safe_get(obj: Any, *attrs: str, default: Any = None) -> Any:
     """安全地从 maafw detail 对象取字段(失败返 default)。"""
@@ -68,6 +71,7 @@ def _status_name(status: Any) -> str:
 
 # ----- sink class ------------------------------------------------------------
 
+
 class MaaEventSink(ContextEventSink if ContextEventSink else object):
     """收集 MaaFramework 节点执行进度,产出 ``core.base_task.TaskResult``。
 
@@ -89,9 +93,7 @@ class MaaEventSink(ContextEventSink if ContextEventSink else object):
         qt_signal: Any = None,  # 可选:QtCore.Signal(str, dict) 用于 GUI 进度
     ) -> None:
         if not _MAAFW_AVAILABLE:
-            raise RuntimeError(
-                "maafw 未安装,无法创建 MaaEventSink。先 pip install maafw==5.10.4"
-            )
+            raise RuntimeError("maafw 未安装,无法创建 MaaEventSink。先 pip install maafw==5.10.4")
         self.task_id = task_id
         self.started_at = datetime.now()
         self.nodes: list[dict[str, Any]] = []
@@ -124,8 +126,11 @@ class MaaEventSink(ContextEventSink if ContextEventSink else object):
         self.nodes.append(entry)
         _LOG.debug(
             "[{}] recognition node={} algo={} hit={} status={}",
-            self.task_id, entry["name"], entry["algo"],
-            entry["hit"], entry["status"],
+            self.task_id,
+            entry["name"],
+            entry["algo"],
+            entry["hit"],
+            entry["status"],
         )
         self._emit_qt(entry)
 
@@ -147,7 +152,9 @@ class MaaEventSink(ContextEventSink if ContextEventSink else object):
         self.nodes.append(entry)
         _LOG.debug(
             "[{}] action node={} status={}",
-            self.task_id, entry["name"], entry["status"],
+            self.task_id,
+            entry["name"],
+            entry["status"],
         )
         self._emit_qt(entry)
 
@@ -221,10 +228,8 @@ class MaaEventSink(ContextEventSink if ContextEventSink else object):
         finished_at = datetime.now()
         duration = (finished_at - self.started_at).total_seconds()
         if success in (True, "stopped"):
-            message = (
-                f"{self.recognition_count} rec + {self.action_count} act "
-                f"in {duration:.2f}s"
-                + (" [stopped/best-effort]" if success == "stopped" else "")
+            message = f"{self.recognition_count} rec + {self.action_count} act " f"in {duration:.2f}s" + (
+                " [stopped/best-effort]" if success == "stopped" else ""
             )
             task_status = TaskStatus.SUCCESS
         else:

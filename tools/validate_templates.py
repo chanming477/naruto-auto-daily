@@ -31,6 +31,7 @@
     1 = 有 MISSING(必须修复)
     2 = 参数错误
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,9 +45,7 @@ from typing import Iterable
 
 # 模板路径字面量模式: "<dir>/<filename>.png" / '<dir>/<filename>.png'
 # 允许字符: 字母/数字/下划线/连字符
-TEMPLATE_RE = re.compile(
-    r"""['"](?P<path>[a-zA-Z_][a-zA-Z0-9_/.\-]*\.png)['"]"""
-)
+TEMPLATE_RE = re.compile(r"""['"](?P<path>[a-zA-Z_][a-zA-Z0-9_/.\-]*\.png)['"]""")
 
 # 可疑路径模式:命中这些的引用视为"应改/应清"
 # 注意:模板根目录是 resources/templates/actions/,所以 "shared/" 是合法的子目录,
@@ -54,8 +53,8 @@ TEMPLATE_RE = re.compile(
 #   - SharedNode (narutomobile 老目录,模板已归档到 narutomobile_ref/)
 #   - 任何引用了 narutomobile_ref/ 下文件的代码(只读参考,不该在生产 pipeline)
 DEPRECATED_DIRS = {
-    "SharedNode",                # narutomobile 老目录,已归档到 resources/templates/narutomobile_ref/
-    "narutomobile_ref",          # 仅供 v1.2 节日参考,生产 pipeline 不应引用
+    "SharedNode",  # narutomobile 老目录,已归档到 resources/templates/narutomobile_ref/
+    "narutomobile_ref",  # 仅供 v1.2 节日参考,生产 pipeline 不应引用
 }
 
 # 排除目录:这些目录里的 .py 不扫描
@@ -77,9 +76,9 @@ EXCLUDE_DIRS = {
 class TemplateRef:
     """单条模板引用。"""
 
-    path: str                  # 原始路径字面量,例 "shared/x.png"
-    source_file: Path          # 引用所在的 .py
-    line_no: int               # 行号(1-indexed)
+    path: str  # 原始路径字面量,例 "shared/x.png"
+    source_file: Path  # 引用所在的 .py
+    line_no: int  # 行号(1-indexed)
 
     def __str__(self) -> str:
         rel = self.source_file.name
@@ -143,7 +142,19 @@ def extract_template_refs(py_file: Path) -> list[TemplateRef]:
             if subdir.startswith("."):
                 continue
             # 排除明显非模板的子目录
-            if subdir in {"config", "docs", "tests", "tools", "tasks", "core", "device", "ui", "screenshots", "resources", "logs"}:
+            if subdir in {
+                "config",
+                "docs",
+                "tests",
+                "tools",
+                "tasks",
+                "core",
+                "device",
+                "ui",
+                "screenshots",
+                "resources",
+                "logs",
+            }:
                 continue
             refs.append(TemplateRef(path=path, source_file=py_file, line_no=line_no))
     return refs
@@ -167,19 +178,13 @@ def first_segment_is_suspect(ref_path: str) -> str | None:
             "(narutomobile 老目录,已归档到 resources/templates/narutomobile_ref/)"
         )
     if first == "narutomobile_ref":
-        return (
-            "deprecated directory 'narutomobile_ref' "
-            "(仅作 v1.2 节日参考,生产 pipeline 不应直接引用)"
-        )
+        return "deprecated directory 'narutomobile_ref' " "(仅作 v1.2 节日参考,生产 pipeline 不应直接引用)"
     return None
 
 
 def collect_template_files(templates_root: Path) -> set[Path]:
     """收集 templates_root 下所有 .png 模板文件的相对路径集合。"""
-    return {
-        p.relative_to(templates_root)
-        for p in templates_root.rglob("*.png")
-    }
+    return {p.relative_to(templates_root) for p in templates_root.rglob("*.png")}
 
 
 def validate(project_root: Path) -> ValidationReport:
@@ -213,8 +218,7 @@ def validate(project_root: Path) -> ValidationReport:
     all_files = collect_template_files(templates_root)
     report.total_templates = len(all_files)
     seen_paths: set[Path] = {
-        Path(ref_path)  # 保持与 collect_template_files 一致的相对路径形式
-        for ref_path in seen_refs
+        Path(ref_path) for ref_path in seen_refs  # 保持与 collect_template_files 一致的相对路径形式
     }
     report.orphan = sorted(all_files - seen_paths)
 

@@ -34,8 +34,7 @@ from device.types import ActionResult
 if TYPE_CHECKING:
     from core.config_manager import AdbConfig, ConfigManager
 
-__all__ = ["ADBClient", "ADBError", "ADBUnavailableError", "ADBTimeoutError",
-           "ADBCommandError"]
+__all__ = ["ADBClient", "ADBError", "ADBUnavailableError", "ADBTimeoutError", "ADBCommandError"]
 
 
 # ============================================================
@@ -94,7 +93,10 @@ class ADBClient:
         self._connected: bool = False
         logger.bind(component="adb").debug(
             "ADBClient initialized: path={}, serial={}, timeout={}s, retry={}",
-            self._adb_path, self._serial or "<auto>", self._timeout_sec, self._retry_count,
+            self._adb_path,
+            self._serial or "<auto>",
+            self._timeout_sec,
+            self._retry_count,
         )
 
     # ----- properties ----------------------------------------------------
@@ -162,9 +164,7 @@ class ADBClient:
                             None,
                         )
                     return ActionResult(True, f"auto-detected device: {first}", None)
-                return ActionResult(
-                    False, f"no devices found by 'adb devices': {text!r}", None
-                )
+                return ActionResult(False, f"no devices found by 'adb devices': {text!r}", None)
             return ActionResult(False, f"adb connect returned: {text!r}", None)
         except ADBError as exc:
             logger.bind(component="adb").error("ADB connect failed: {}", exc)
@@ -222,9 +222,7 @@ class ADBClient:
             except ADBError as exc:
                 # 区分可重试/不可重试错误
                 if not self._is_retryable_error(exc):
-                    logger.bind(component="adb").error(
-                        "screenshot aborted: non-retryable error: {}", exc
-                    )
+                    logger.bind(component="adb").error("screenshot aborted: non-retryable error: {}", exc)
                     return ActionResult(False, str(exc), None, payload=None)
                 logger.bind(component="adb").warning(
                     "screenshot attempt {}/{} failed: {}", attempt, self._retry_count, exc
@@ -241,8 +239,7 @@ class ADBClient:
             x: 屏幕像素 x(0 = 最左)。
             y: 屏幕像素 y(0 = 最上)。
         """
-        return self._shell_action(["input", "tap", str(int(x)), str(int(y))],
-                                   description=f"tap({x},{y})")
+        return self._shell_action(["input", "tap", str(int(x)), str(int(y))], description=f"tap({x},{y})")
 
     def swipe(
         self,
@@ -260,8 +257,7 @@ class ADBClient:
             duration_ms: 滑动持续时间,默认 300ms。
         """
         return self._shell_action(
-            ["input", "swipe", str(int(x1)), str(int(y1)),
-             str(int(x2)), str(int(y2)), str(int(duration_ms))],
+            ["input", "swipe", str(int(x1)), str(int(y1)), str(int(x2)), str(int(y2)), str(int(duration_ms))],
             description=f"swipe({x1},{y1})->({x2},{y2})@{duration_ms}ms",
         )
 
@@ -382,6 +378,7 @@ class ADBClient:
     #: 重试只会浪费时间,不会改变结果)。用正则而不是子串匹配,因为
     #: ADB 真实消息形如 ``device 'emulator-5554' not found``,中间会插入设备名。
     import re as _re
+
     _NON_RETRYABLE_REGEX: tuple["_re.Pattern[str]", ...] = (
         _re.compile(r"\bdevice\b.*\bnot found\b"),
         _re.compile(r"\bdevice\b.*\bunauthorized\b"),
@@ -464,9 +461,7 @@ class ADBClient:
                 shell=False,
             )
         except subprocess.TimeoutExpired as exc:
-            raise ADBTimeoutError(
-                f"adb command timed out after {timeout}s: {' '.join(cmd)}"
-            ) from exc
+            raise ADBTimeoutError(f"adb command timed out after {timeout}s: {' '.join(cmd)}") from exc
         except FileNotFoundError as exc:
             # adb 二进制突然消失(理论上构造时已检测)
             raise ADBUnavailableError(f"adb binary not found: {exc}") from exc
@@ -546,8 +541,7 @@ class ADBClient:
         which = shutil.which("adb")
         if not which:
             raise ADBUnavailableError(
-                "adb not found in PATH; set ConfigManager.app.adb.adb_path "
-                "or pass adb_path= explicitly"
+                "adb not found in PATH; set ConfigManager.app.adb.adb_path " "or pass adb_path= explicitly"
             )
         return which
 

@@ -16,19 +16,19 @@
 
 from __future__ import annotations
 
+from .event_sink import MaaEventSink
 from .resource import load_narutomobile_resource, verify_resource_path
 from .task_mapping import (
-    TASK_MAPPING,
     REVERSE_MAPPING,
+    TASK_MAPPING,
+    is_known_entry,
+    is_supported,
+    list_supported_entries,
+    list_supported_tasks,
     resolve_entry,
     resolve_task_id,
-    list_supported_tasks,
-    list_supported_entries,
-    is_supported,
-    is_known_entry,
 )
 from .tasker import MaaTaskerSingleton, get_tasker, reset_tasker
-from .event_sink import MaaEventSink
 
 __all__ = [
     # resource

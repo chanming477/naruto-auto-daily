@@ -18,9 +18,7 @@ from loguru import logger
 try:
     from maa.resource import Resource  # type: ignore
 except ImportError as exc:  # pragma: no cover
-    raise RuntimeError(
-        "maafw 未安装,先跑: pip install maafw==5.10.4"
-    ) from exc
+    raise RuntimeError("maafw 未安装,先跑: pip install maafw==5.10.4") from exc
 
 
 def verify_resource_path(path: str | Path) -> tuple[bool, str]:
@@ -65,7 +63,9 @@ def load_narutomobile_resource(resource_path: str) -> Resource:
 
     n_templates = sum(1 for _ in (path / "image").rglob("*.png"))
     logger.info(
-        "loading narutomobile resource: {} ({} templates)", path, n_templates,
+        "loading narutomobile resource: {} ({} templates)",
+        path,
+        n_templates,
     )
 
     resource = Resource()
@@ -74,6 +74,7 @@ def load_narutomobile_resource(resource_path: str) -> Resource:
     # maafw 5.10.4 Resource 没有 inited 属性
     logger.success(
         "narutomobile resource loaded: {} ({} templates)",
-        path, n_templates,
+        path,
+        n_templates,
     )
     return resource

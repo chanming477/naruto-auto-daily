@@ -9,6 +9,7 @@
 
     # 输出:screenshots/calibration/20260626_1430_mail_envelope_open.png
 """
+
 from __future__ import annotations
 
 import argparse

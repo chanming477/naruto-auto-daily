@@ -151,6 +151,7 @@ def load_template(path: Path) -> np.ndarray | None:
             # P7-REAL fallback: cv2.imdecode 也失败时,用 PIL 读再转 BGR
             try:
                 from PIL import Image
+
                 pil = Image.open(path).convert("RGB")
                 rgb = np.array(pil, dtype=np.uint8)
                 img = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
@@ -176,8 +177,10 @@ def _expand_template_paths(paths: Sequence[Path]) -> list[Path]:
             # 但显式 corrupt/权限错误用 import 一致的 logger 提示
             try:
                 from loguru import logger as _lg
+
                 _lg.bind(component="template_matcher").debug(
-                    "template path not found or inaccessible: {}", p,
+                    "template path not found or inaccessible: {}",
+                    p,
                 )
             except Exception:
                 pass
@@ -209,9 +212,7 @@ class TemplateMatcher:
         if config is None:
             self._default_threshold: float = 0.85
         elif hasattr(config, "template_matching"):
-            self._default_threshold = float(
-                getattr(config.template_matching, "default_threshold", 0.85)
-            )
+            self._default_threshold = float(getattr(config.template_matching, "default_threshold", 0.85))
         elif hasattr(config, "default_threshold"):
             self._default_threshold = float(config.default_threshold)
         else:
@@ -245,7 +246,7 @@ class TemplateMatcher:
         thr = self._resolve_threshold(threshold)
         roi_xywh = _normalize_roi(screen, roi)
         roi_x, roi_y, roi_w, roi_h = roi_xywh
-        roi_view = screen[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+        roi_view = screen[roi_y : roi_y + roi_h, roi_x : roi_x + roi_w]
 
         best: MatchResult | None = None
         for tpl_path in _expand_template_paths(_coerce_paths(template)):
@@ -256,8 +257,10 @@ class TemplateMatcher:
                 if key not in self._warned_corrupt:
                     try:
                         from loguru import logger as _lg
+
                         _lg.bind(component="template_matcher").warning(
-                            "template skipped: cannot load or empty: {}", key,
+                            "template skipped: cannot load or empty: {}",
+                            key,
                         )
                     except Exception:
                         pass
@@ -309,7 +312,7 @@ class TemplateMatcher:
         thr = self._resolve_threshold(threshold)
         roi_xywh = _normalize_roi(screen, roi)
         roi_x, roi_y, roi_w, roi_h = roi_xywh
-        roi_view = screen[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+        roi_view = screen[roi_y : roi_y + roi_h, roi_x : roi_x + roi_w]
 
         results: list[MatchResult] = []
         for tpl_path in _expand_template_paths(_coerce_paths(template)):

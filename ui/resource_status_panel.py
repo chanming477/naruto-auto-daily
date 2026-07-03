@@ -67,10 +67,7 @@ class ResourceStatusPanel(QtWidgets.QGroupBox):
                 counts[state.value] = 0
                 continue
             try:
-                n = sum(
-                    1 for p in state_dir.iterdir()
-                    if p.is_file() and p.suffix.lower() in IMAGE_EXTS
-                )
+                n = sum(1 for p in state_dir.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTS)
             except OSError:
                 n = 0
             counts[state.value] = n

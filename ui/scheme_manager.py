@@ -66,9 +66,7 @@ class SchemeManager:
 
     def list_schemes(self) -> list[str]:
         """列出所有方案文件名(不含后缀)。按字母序。"""
-        return sorted(
-            p.stem for p in self._dir.glob("*.json") if p.is_file()
-        )
+        return sorted(p.stem for p in self._dir.glob("*.json") if p.is_file())
 
     def exists(self, name: str) -> bool:
         return (self._dir / f"{name}.json").is_file()
@@ -102,9 +100,7 @@ class SchemeManager:
                 f"scheme '{name}' missing required 'task_ids' field",
             )
         task_ids = data["task_ids"]
-        if not isinstance(task_ids, list) or not all(
-            isinstance(t, str) for t in task_ids
-        ):
+        if not isinstance(task_ids, list) or not all(isinstance(t, str) for t in task_ids):
             raise SchemeError(
                 f"scheme '{name}' task_ids must be list[str], got {type(task_ids).__name__}",
             )
@@ -122,9 +118,7 @@ class SchemeManager:
             ValueError: name 不合法(空 / 含路径分隔符)。
         """
         self._validate_name(name)
-        if not isinstance(task_ids, list) or not all(
-            isinstance(t, str) for t in task_ids
-        ):
+        if not isinstance(task_ids, list) or not all(isinstance(t, str) for t in task_ids):
             raise SchemeError(
                 f"task_ids must be list[str], got {type(task_ids).__name__}",
             )
@@ -169,7 +163,8 @@ class SchemeManager:
                             {"task_ids": list(task_ids)},
                             ensure_ascii=False,
                             indent=2,
-                        ) + "\n",
+                        )
+                        + "\n",
                         encoding="utf-8",
                     )
                 except OSError:

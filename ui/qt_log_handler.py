@@ -78,6 +78,7 @@ def install(handler: QtLogHandler) -> int:
     P1-STABLE-01 修复: 用 loguru 的 function sink 模式,让 sink 收到完整
     ``Message`` 对象(record 在 message.record 里)。不再用 format 字符串解析。
     """
+
     def _sink(message):  # noqa: ANN001 — loguru Message type
         # 兼容:message 是 loguru Message 对象(str() 拿格式化后的文本,record 拿 dict)
         record = getattr(message, "record", None)

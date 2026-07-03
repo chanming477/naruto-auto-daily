@@ -1,14 +1,19 @@
 """用户提供的直接 maafw snippet (跳过 Navigator) — 验证 group pipeline。"""
-from maa.toolkit import Toolkit
+
 from maa.controller import AdbController
 from maa.resource import Resource
 from maa.tasker import Tasker
+from maa.toolkit import Toolkit
 
 Toolkit.init_option("./maafw_data", {"logging": True})
 dev = Toolkit.find_adb_devices()[0]
-controller = AdbController(adb_path=dev.adb_path, address=dev.address,
+controller = AdbController(
+    adb_path=dev.adb_path,
+    address=dev.address,
     screencap_methods=dev.screencap_methods,
-    input_methods=dev.input_methods, config=dev.config)
+    input_methods=dev.input_methods,
+    config=dev.config,
+)
 controller.post_connection().wait()
 
 resource = Resource()
@@ -18,6 +23,7 @@ tasker = Tasker()
 tasker.bind(resource, controller)
 
 import time
+
 start = time.time()
 detail = tasker.post_task("group").wait().get()
 elapsed = time.time() - start

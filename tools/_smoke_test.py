@@ -1,4 +1,5 @@
 """临时验证脚本:smoke test task_engine_maafw init。"""
+
 import sys
 from pathlib import Path
 
@@ -15,6 +16,7 @@ print(f"[INFO] data_dir: {cfg.app.maafw.data_dir}")
 
 # 单独测 resource load
 from maafw_bridge.resource import load_narutomobile_resource, verify_resource_path
+
 ok, msg = verify_resource_path(cfg.project_root / "resources" / "narutomobile")
 print(f"[OK] verify: ok={ok} msg={msg}")
 res = load_narutomobile_resource(str(cfg.project_root / "resources" / "narutomobile"))
@@ -22,6 +24,7 @@ print(f"[OK] Resource loaded: {type(res).__name__}")
 
 # 试 init maafw singleton (预期 ADB 失败)
 from maafw_bridge import get_tasker
+
 singleton = get_tasker()
 try:
     singleton.init(cfg)
@@ -31,4 +34,5 @@ except Exception as e:
 
 # 看 maa.pipeline 提供的 API
 import maa.pipeline as mp
+
 print(f"[INFO] maa.pipeline exports: {[x for x in dir(mp) if not x.startswith('_')]}")

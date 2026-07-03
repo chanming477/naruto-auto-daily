@@ -90,9 +90,7 @@ def capture_from_adb(serial: str | None) -> np.ndarray | None:
         client = ADBClient(cfg)
     except Exception as exc:
         logger.error("ADBClient init failed: {}", exc)
-        logger.info(
-            "hint: 在 config/app_config.yaml 里配置 adb.adb_path 和 adb.default_serial"
-        )
+        logger.info("hint: 在 config/app_config.yaml 里配置 adb.adb_path 和 adb.default_serial")
         return None
 
     logger.info("ADBClient: path={}, serial={}", client.adb_path, client.serial or "<auto>")
@@ -157,6 +155,7 @@ def select_roi_gui(screen: np.ndarray) -> tuple[int, int, int, int] | None:
     """
     try:
         import tkinter as tk
+
         from PIL import Image, ImageTk
     except Exception as exc:
         logger.warning("tkinter/PIL 不可用 ({})。fallback 到命令行输入", exc)
@@ -186,8 +185,13 @@ def select_roi_gui(screen: np.ndarray) -> tuple[int, int, int, int] | None:
     canvas.create_image(0, 0, anchor=tk.NW, image=tk_img)
 
     state: dict[str, Any] = {
-        "x0": 0, "y0": 0, "x1": 0, "y1": 0,
-        "rect": None, "done": False, "canceled": False,
+        "x0": 0,
+        "y0": 0,
+        "x1": 0,
+        "y1": 0,
+        "rect": None,
+        "done": False,
+        "canceled": False,
     }
 
     def on_press(event: Any) -> None:
@@ -195,15 +199,23 @@ def select_roi_gui(screen: np.ndarray) -> tuple[int, int, int, int] | None:
         if state["rect"] is not None:
             canvas.delete(state["rect"])
         state["rect"] = canvas.create_rectangle(
-            state["x0"], state["y0"], state["x0"], state["y0"],
-            outline="red", width=2,
+            state["x0"],
+            state["y0"],
+            state["x0"],
+            state["y0"],
+            outline="red",
+            width=2,
         )
 
     def on_drag(event: Any) -> None:
         state["x1"], state["y1"] = event.x, event.y
         if state["rect"] is not None:
             canvas.coords(
-                state["rect"], state["x0"], state["y0"], state["x1"], state["y1"],
+                state["rect"],
+                state["x0"],
+                state["y0"],
+                state["x1"],
+                state["y1"],
             )
 
     def on_release(event: Any) -> None:
@@ -406,9 +418,7 @@ def capture_one(
         if conf > 0.0:
             logger.success("self-verify ok: confidence={:.4f}", conf)
         else:
-            logger.warning(
-                "self-verify 没匹配到(可能模板在原图里没有出现 — 也可能是阈值太高)"
-            )
+            logger.warning("self-verify 没匹配到(可能模板在原图里没有出现 — 也可能是阈值太高)")
 
     print()
     print(f"✅ 模板已保存: {path}")
@@ -437,31 +447,42 @@ examples:
 """,
     )
     parser.add_argument(
-        "state", nargs="?", default=None,
+        "state",
+        nargs="?",
+        default=None,
         help="目标 GameState (HOME / POPUP / LOADING)",
     )
     parser.add_argument(
-        "--from-image", type=Path, default=None,
+        "--from-image",
+        type=Path,
+        default=None,
         help="用本地图片代替 ADB 截图",
     )
     parser.add_argument(
-        "--list", action="store_true",
+        "--list",
+        action="store_true",
         help="列出该 state 已有模板,不入参采集",
     )
     parser.add_argument(
-        "--no-gui", action="store_true",
+        "--no-gui",
+        action="store_true",
         help="强制命令行输入 ROI(不弹 tkinter 窗口)",
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=PROJECT_ROOT / "resources" / "templates",
+        "--output-dir",
+        type=Path,
+        default=PROJECT_ROOT / "resources" / "templates",
         help="模板根目录(默认 resources/templates)",
     )
     parser.add_argument(
-        "--device", type=str, default=None,
+        "--device",
+        type=str,
+        default=None,
         help="ADB 序列号覆盖(默认从 config 读)",
     )
     parser.add_argument(
-        "--no-verify", action="store_true",
+        "--no-verify",
+        action="store_true",
         help="采集后不调用 TemplateMatcher 自检",
     )
     return parser.parse_args(argv)

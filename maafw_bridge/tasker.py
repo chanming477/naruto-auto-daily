@@ -27,9 +27,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 try:
-    from maa.toolkit import Toolkit  # type: ignore
     from maa.controller import AdbController  # type: ignore
     from maa.tasker import Tasker  # type: ignore
+    from maa.toolkit import Toolkit  # type: ignore
+
     _MAAFW_AVAILABLE = True
 except ImportError:  # pragma: no cover
     Toolkit = None  # type: ignore
@@ -39,8 +40,8 @@ except ImportError:  # pragma: no cover
 
 from loguru import logger
 
-from .resource import load_narutomobile_resource
 from .custom_actions import register_default_custom_actions
+from .resource import load_narutomobile_resource
 
 if TYPE_CHECKING:
     from core.config_manager import ConfigManager
@@ -124,12 +125,9 @@ class MaaTaskerSingleton:
             maafw ``TaskJob`` 实例。未初始化时访问会触发 init 抛异常。
         """
         if not self._initialized:
-            raise RuntimeError(
-                "MaaTaskerSingleton not initialized. Call .init(cfg) first."
-            )
+            raise RuntimeError("MaaTaskerSingleton not initialized. Call .init(cfg) first.")
         log = _LOG.bind(entry=entry)
-        log.info("post_task entry={} override_keys={}",
-                 entry, list((override or {}).keys()))
+        log.info("post_task entry={} override_keys={}", entry, list((override or {}).keys()))
         return self._tasker.post_task(entry, override or {})
 
     # ----- internals ----------------------------------------------------------
@@ -137,17 +135,13 @@ class MaaTaskerSingleton:
     def _do_init(self, cfg: "ConfigManager") -> None:
         """实际初始化流程。失败抛清晰异常。"""
         if not _MAAFW_AVAILABLE:
-            raise MaaFrameworkUnavailable(
-                "maafw Python 包未安装,先跑: pip install maafw==5.10.4"
-            )
+            raise MaaFrameworkUnavailable("maafw Python 包未安装,先跑: pip install maafw==5.10.4")
 
         log = _LOG
         project_root = Path(cfg.project_root)
 
         # 1. 解析 resource 路径
-        raw_resource = getattr(
-            cfg.app.maafw, "narutomobile_resource_path", ""
-        ) or "resources/narutomobile"
+        raw_resource = getattr(cfg.app.maafw, "narutomobile_resource_path", "") or "resources/narutomobile"
         resource_path = Path(raw_resource)
         if not resource_path.is_absolute():
             resource_path = project_root / resource_path
@@ -171,12 +165,10 @@ class MaaTaskerSingleton:
         devices = Toolkit.find_adb_devices()
         if not devices:
             raise AdbDeviceNotFound(
-                "Toolkit.find_adb_devices() 返空列表。"
-                "确认模拟器已启动,且 adb server 能识别(adb devices)。"
+                "Toolkit.find_adb_devices() 返空列表。" "确认模拟器已启动,且 adb server 能识别(adb devices)。"
             )
         device = _pick_device(devices)
-        log.info("adb device selected: address={} adb_path={}",
-                 device.address, device.adb_path)
+        log.info("adb device selected: address={} adb_path={}", device.address, device.adb_path)
         self._controller = AdbController(
             adb_path=device.adb_path,
             address=device.address,
@@ -207,8 +199,7 @@ class MaaTaskerSingleton:
         log.info("tasker bound: inited={}", self._tasker.inited)
         if not self._tasker.inited:
             raise RuntimeError(
-                "Tasker.bind() 失败:inited=False。"
-                "可能 ADB 连接成功但 resource/controller 状态异常。"
+                "Tasker.bind() 失败:inited=False。" "可能 ADB 连接成功但 resource/controller 状态异常。"
             )
 
     # ----- attributes (post-init) ---------------------------------------------
@@ -216,25 +207,19 @@ class MaaTaskerSingleton:
     @property
     def tasker(self) -> Any:
         if not self._initialized:
-            raise RuntimeError(
-                "MaaTaskerSingleton not initialized. Call .init(cfg) first."
-            )
+            raise RuntimeError("MaaTaskerSingleton not initialized. Call .init(cfg) first.")
         return self._tasker
 
     @property
     def resource(self) -> Any:
         if not self._initialized:
-            raise RuntimeError(
-                "MaaTaskerSingleton not initialized. Call .init(cfg) first."
-            )
+            raise RuntimeError("MaaTaskerSingleton not initialized. Call .init(cfg) first.")
         return self._resource
 
     @property
     def controller(self) -> Any:
         if not self._initialized:
-            raise RuntimeError(
-                "MaaTaskerSingleton not initialized. Call .init(cfg) first."
-            )
+            raise RuntimeError("MaaTaskerSingleton not initialized. Call .init(cfg) first.")
         return self._controller
 
     @property

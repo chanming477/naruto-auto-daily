@@ -103,8 +103,7 @@ class RunContext:
         """绑定了 task_id / state_before 的 logger(``__enter__`` 之后才能用)。"""
         if self._log is None:
             raise RuntimeError(
-                "RunContext.log is only available inside 'with' block; "
-                "access it in __enter__ or later.",
+                "RunContext.log is only available inside 'with' block; " "access it in __enter__ or later.",
             )
         return self._log
 

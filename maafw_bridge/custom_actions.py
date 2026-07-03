@@ -42,9 +42,10 @@ import time
 from typing import Any
 
 try:
-    from maa.custom_action import CustomAction  # type: ignore
     from maa.context import Context  # type: ignore
+    from maa.custom_action import CustomAction  # type: ignore
     from maa.pipeline import JOCR, JRecognitionType  # type: ignore
+
     _MAAFW_AVAILABLE = True
 except ImportError:  # pragma: no cover
     CustomAction = None  # type: ignore
@@ -116,7 +117,10 @@ class NonlinearSwipeAction(CustomAction if CustomAction else object):
                 from_y += random.randint(-self.NOISE_PX, self.NOISE_PX)
 
             job = ctrl.post_swipe(
-                int(from_x), int(from_y), int(mid_x), int(mid_y),
+                int(from_x),
+                int(from_y),
+                int(mid_x),
+                int(mid_y),
                 duration=max(50, delay // self.SEGMENTS),
             )
             job.wait()
@@ -124,11 +128,16 @@ class NonlinearSwipeAction(CustomAction if CustomAction else object):
         # 完成后延迟
         if delay > 0:
             import time
+
             time.sleep(delay / 1000)
 
         _LOG.debug(
             "NonlinearSwipe done: ({},{}) -> ({},{}) delay={}ms",
-            sx, sy, ex, ey, delay,
+            sx,
+            sy,
+            ex,
+            ey,
+            delay,
         )
         return True
 
@@ -209,12 +218,15 @@ class GoIntoEntryByGuideAction(CustomAction if CustomAction else object):
                     order_by="Vertical",  # 左侧菜单 tab 是纵向排列
                 )
                 reco = context.run_recognition_direct(
-                    JRecognitionType.OCR, jocr, image,
+                    JRecognitionType.OCR,
+                    jocr,
+                    image,
                 )
             except Exception as exc:  # noqa: BLE001
                 _LOG.warning(
                     "GoIntoEntryByGuide: OCR call failed for '{}': {}",
-                    name, exc,
+                    name,
+                    exc,
                 )
                 continue
             if reco is None:
@@ -227,7 +239,8 @@ class GoIntoEntryByGuideAction(CustomAction if CustomAction else object):
         if box is None or matched is None:
             _LOG.warning(
                 "GoIntoEntryByGuide: '{}' not found in ninja guide menu ROI={}",
-                entry_names, self.ROI_MENU,
+                entry_names,
+                self.ROI_MENU,
             )
             return False
 
@@ -246,7 +259,13 @@ class GoIntoEntryByGuideAction(CustomAction if CustomAction else object):
 
         _LOG.info(
             "GoIntoEntryByGuide: clicked '{}' at ({}, {}) box=({},{},{},{})",
-            matched, x, y, box.x, box.y, box.w, box.h,
+            matched,
+            x,
+            y,
+            box.x,
+            box.y,
+            box.w,
+            box.h,
         )
         return True
 

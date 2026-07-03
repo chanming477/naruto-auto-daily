@@ -43,10 +43,10 @@
 
 **ROI 坐标**: 全部是 1280x720 内部坐标(MaaFramework 引擎缩放后)。
 """
+
 from __future__ import annotations
 
 from typing import Any
-
 
 # 忍者指引左侧菜单 tab 找 tab 的 ROI — 来自 narutomobile 真机验证
 # - regular 玩家路径(ninja_guide_find_funtion_entry.roi)

@@ -1,10 +1,12 @@
 """批量跑 4 个核心任务:mail / headhunt / group / liveness_award。"""
+
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
+
 logger.remove()
 logger.add(sys.stderr, level="WARNING")  # 静默 info/debug,只看 WARNING+
 
@@ -14,6 +16,7 @@ cfg = ConfigManager(Path("."), auto_load=True)
 print(f"[OK] ConfigManager loaded")
 
 from tasks.task_engine_maafw import MaaTaskEngine
+
 engine = MaaTaskEngine(cfg)
 print(f"[OK] MaaTaskEngine init OK")
 
@@ -33,7 +36,9 @@ for tid in CORE_TASKS:
     act = result.extra.get("action_count", "?")
     best_effort = result.extra.get("best_effort", False)
     msg = (result.message or "")[:60]
-    print(f"  status={status} dur={result.duration_sec:.2f}s rec={rec} act={act} be={best_effort} msg='{msg}'")
+    print(
+        f"  status={status} dur={result.duration_sec:.2f}s rec={rec} act={act} be={best_effort} msg='{msg}'"
+    )
     results.append((tid, status, result.duration_sec, result.message))
 
 # 汇总

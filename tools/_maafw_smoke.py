@@ -26,12 +26,11 @@ from loguru import logger
 
 from core.config_manager import ConfigManager
 from maafw_bridge import (
+    MaaEventSink,
     MaaTaskerSingleton,
     get_tasker,
-    MaaEventSink,
     reset_tasker,
 )
-
 
 # v2.0 Step 4 要求: 4 个核心 entry 都要真机跑通至少 1 次,conf ≥ 0.75
 ENTRIES = [
@@ -141,17 +140,19 @@ def main() -> int:
                 success_str = "failed"
 
             n = sink.recognition_count + sink.action_count
-            results.append({
-                "task_id": our_task_id,
-                "entry": entry,
-                "status_name": status_name,
-                "success": success_str,
-                "is_real_success": success is True,
-                "recognition_count": sink.recognition_count,
-                "action_count": sink.action_count,
-                "wait_freezes_count": sink.wait_freezes_count,
-                "elapsed_sec": round(elapsed, 2),
-            })
+            results.append(
+                {
+                    "task_id": our_task_id,
+                    "entry": entry,
+                    "status_name": status_name,
+                    "success": success_str,
+                    "is_real_success": success is True,
+                    "recognition_count": sink.recognition_count,
+                    "action_count": sink.action_count,
+                    "wait_freezes_count": sink.wait_freezes_count,
+                    "elapsed_sec": round(elapsed, 2),
+                }
+            )
             print(
                 f"{mark} [{our_task_id} → {entry}] "
                 f"status={status_name}({success_str}) "
@@ -161,14 +162,16 @@ def main() -> int:
         except Exception as exc:
             elapsed = time.monotonic() - t0
             logger.exception("entry {} failed", entry)
-            results.append({
-                "task_id": our_task_id,
-                "entry": entry,
-                "status_cls": "FAIL",
-                "success": False,
-                "error": str(exc),
-                "elapsed_sec": round(elapsed, 2),
-            })
+            results.append(
+                {
+                    "task_id": our_task_id,
+                    "entry": entry,
+                    "status_cls": "FAIL",
+                    "success": False,
+                    "error": str(exc),
+                    "elapsed_sec": round(elapsed, 2),
+                }
+            )
             print(f"✗ [{our_task_id} → {entry}] FAILED: {exc} ({elapsed:.2f}s)")
 
     # 4. 总结

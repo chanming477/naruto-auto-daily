@@ -25,6 +25,7 @@
     python tools/find_and_tap.py <template.png> --threshold 0.8      # 调阈值
     python tools/find_and_tap.py <template.png> --tap-offset-y -0.25 # 偏上 25%(按钮热区)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -84,8 +85,17 @@ def adb_swipe(
     """ADB swipe → 返回码。"""
     r = subprocess.run(
         [
-            adb_path, "-s", serial, "shell", "input", "swipe",
-            str(x1), str(y1), str(x2), str(y2), str(duration_ms),
+            adb_path,
+            "-s",
+            serial,
+            "shell",
+            "input",
+            "swipe",
+            str(x1),
+            str(y1),
+            str(x2),
+            str(y2),
+            str(duration_ms),
         ],
         capture_output=True,
         timeout=10,
@@ -105,6 +115,7 @@ def load_template(path: Path) -> np.ndarray:
     (绕开 cv2.imread 的 iCCP bug,跟 capture_template.py / core/ 一致)。
     """
     from recognition.template_matcher import load_template as _lt
+
     img = _lt(path)
     if img is None:
         raise RuntimeError(f"模板加载失败:{path}")
@@ -187,12 +198,7 @@ def save_debug(
     )
     if out_path is None:
         ts = time.strftime("%Y%m%d_%H%M%S")
-        out_path = (
-            PROJECT_ROOT
-            / "screenshots"
-            / "calibration"
-            / f"findtap_{ts}_conf{conf:.2f}.png"
-        )
+        out_path = PROJECT_ROOT / "screenshots" / "calibration" / f"findtap_{ts}_conf{conf:.2f}.png"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(out_path), debug_img)
     return out_path
@@ -270,13 +276,9 @@ def find_and_tap(
         if tap_offset_y != 0.0:
             offset_px = int(round(tpl_h * tap_offset_y))
             cy_tap = cy + offset_px
-            logger.info(
-                f"tap_offset_y={tap_offset_y}: cy {cy} → {cy_tap} (Δ={offset_px}px, tpl_h={tpl_h})"
-            )
+            logger.info(f"tap_offset_y={tap_offset_y}: cy {cy} → {cy_tap} (Δ={offset_px}px, tpl_h={tpl_h})")
             cy = cy_tap
-        logger.success(
-            f"✅ 命中 ({cx},{cy}) conf={conf:.3f} scale={scale:.2f} (attempt {attempt})"
-        )
+        logger.success(f"✅ 命中 ({cx},{cy}) conf={conf:.3f} scale={scale:.2f} (attempt {attempt})")
         if debug:
             p = save_debug(screen, template, cx, cy, conf, scale)
             logger.info(f"debug 图:{p}")
@@ -339,21 +341,30 @@ examples:
         help="自定义尺度列表,逗号分隔(默认 0.85..1.15 七档)",
     )
     parser.add_argument(
-        "--swipe-before", type=str, default=None,
+        "--swipe-before",
+        type=str,
+        default=None,
         help="首次截图前 swipe:x1,y1,x2,y2",
     )
     parser.add_argument(
-        "--swipe-retry", type=str, default=None,
+        "--swipe-retry",
+        type=str,
+        default=None,
         help="每次 retry 前 swipe:x1,y1,x2,y2",
     )
     parser.add_argument("--max-retries", type=int, default=3, help="最大重试次数")
     parser.add_argument(
-        "--retry-interval", type=float, default=0.4, help="retry 间等待秒数",
+        "--retry-interval",
+        type=float,
+        default=0.4,
+        help="retry 间等待秒数",
     )
     parser.add_argument("--debug", action="store_true", help="保存带框 debug 图")
     parser.add_argument("--no-tap", action="store_true", help="只找不打(用于验证)")
     parser.add_argument(
-        "--tap-offset-y", type=float, default=0.0,
+        "--tap-offset-y",
+        type=float,
+        default=0.0,
         help="命中后 y 偏移比例(占模板高度);负=向上. 0.0=视觉中心,-0.25=偏上 25%%",
     )
 

@@ -161,8 +161,7 @@ class ConfigDialog(QtWidgets.QDialog):
         if app is None:
             # 不应该发生(ConfigManager.app property 不返 None),但保险起见显式抛
             raise ConfigurationError(
-                "ConfigManager.app returned None unexpectedly; "
-                "config not loaded?",
+                "ConfigManager.app returned None unexpectedly; " "config not loaded?",
             )
         path = self._cfg.config_dir / "app_config.yaml"
         payload = app.model_dump(mode="json")

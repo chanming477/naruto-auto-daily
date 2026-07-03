@@ -40,7 +40,8 @@ if TYPE_CHECKING:
 from ui.config_dialog import ConfigDialog
 from ui.control_panel import ControlPanel
 from ui.log_panel import LogPanel
-from ui.qt_log_handler import QtLogHandler, install as install_log_handler
+from ui.qt_log_handler import QtLogHandler
+from ui.qt_log_handler import install as install_log_handler
 from ui.resource_status_panel import ResourceStatusPanel
 from ui.run_worker import RunWorker
 from ui.run_worker_maafw import MaaRunWorker
@@ -80,6 +81,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ExecutionContext(window_manager / screenshot_manager / state_machine 必传,
         # 业务 Phase 1 资产;这里用 MagicMock 跑得起 GUI 但不能真截图)
         from unittest.mock import MagicMock
+
         from core.base_task import ExecutionContext
         from core.state_machine import build_default_state_machine
 
@@ -102,7 +104,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # ADB client(用 MagicMock fallback,Phase 5 demo 不连真 ADB)
         self._adb = MagicMock(spec=ADBClient)
         self._adb.screenshot.return_value = ActionResult(
-            True, "mock screenshot", None,
+            True,
+            "mock screenshot",
+            None,
         )
         self._adb.keyevent.return_value = ActionResult(True, "mock", None)
         self._adb.tap.return_value = ActionResult(True, "mock", None)
@@ -142,6 +146,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt convention)
         """关窗时清理 worker thread + log handler。"""
         from loguru import logger
+
         try:
             if self._thread is not None and self._thread.isRunning():
                 # 通知 engine 停止(MaaTaskEngine 走 worker.stop(),旧走 engine.stop())
@@ -164,6 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
             logger.warning("closeEvent: 清理 worker thread 异常: {}", exc)
         try:
             from ui.qt_log_handler import uninstall
+
             uninstall(self._log_handler, self._log_sink_id)
         except Exception as exc:
             logger.warning("closeEvent: 卸载 log handler 异常: {}", exc)
@@ -247,12 +253,15 @@ class MainWindow(QtWidgets.QMainWindow):
             task_ids = self._schemes.load(name) or []
         except Exception as exc:
             QtWidgets.QMessageBox.warning(
-                self, "加载方案失败", f"方案 '{name}' 加载失败:\n{exc}",
+                self,
+                "加载方案失败",
+                f"方案 '{name}' 加载失败:\n{exc}",
             )
             return
         self._task_panel.set_selected(task_ids)
         # log
         from loguru import logger
+
         logger.info(f"scheme selected: {name} ({len(task_ids)} task(s))")
 
     def _on_start(self, task_ids: list[str]) -> None:
@@ -263,18 +272,20 @@ class MainWindow(QtWidgets.QMainWindow):
         # maafw 路径:在 worker thread 里 lazy 创建 MaaTaskEngine(避免 GUI 启动卡 ADB)
         if self._use_maafw:
             try:
-                from tasks.task_engine_maafw import MaaTaskEngine
                 from core.config_manager import ConfigManager
+                from tasks.task_engine_maafw import MaaTaskEngine
+
                 cfg = ConfigManager(self._project_root, auto_load=True)
                 # 创建 MaaTaskEngine 会触发 init(cfg) → 连 ADB + 加载 resource
                 self._maafw_engine = MaaTaskEngine(cfg)
             except Exception as exc:
                 from loguru import logger
+
                 logger.error("MaaTaskEngine init failed: {}", exc)
                 QtWidgets.QMessageBox.critical(
-                    self, "引擎初始化失败",
-                    f"MaaTaskEngine 启动失败:\n{exc}\n\n"
-                    "请确认模拟器已启动 + narutomobile 资源完整。",
+                    self,
+                    "引擎初始化失败",
+                    f"MaaTaskEngine 启动失败:\n{exc}\n\n" "请确认模拟器已启动 + narutomobile 资源完整。",
                 )
                 return
 
@@ -297,10 +308,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self._control_panel.set_running(True)
         self._status_panel.start_ticking()
         engine_name = "MaaTaskEngine" if self._use_maafw else "TaskEngine"
-        self._status_lbl.setText(
-            f"Running ({engine_name}) | run_id: {self._ctx.run_id}"
-        )
+        self._status_lbl.setText(f"Running ({engine_name}) | run_id: {self._ctx.run_id}")
         from loguru import logger
+
         logger.info(f"{engine_name} started: tasks={task_ids}")
         # 3) 启动
         self._thread.start()
@@ -310,6 +320,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self._engine is not None:
             self._engine.stop()
         from loguru import logger
+
         logger.warning("Stop requested; waiting for worker to exit")
 
     def _on_worker_finished(self, report) -> None:
@@ -317,9 +328,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._status_panel.stop_ticking()
         self._control_panel.set_running(False)
         from loguru import logger
+
         logger.success(
             "RunWorker finished: total={} success={} fail={} aborted={}",
-            report.total_count, report.success_count, report.fail_count, report.aborted,
+            report.total_count,
+            report.success_count,
+            report.fail_count,
+            report.aborted,
         )
         self._status_lbl.setText(
             f"Done | run_id: {self._ctx.run_id} | total={report.total_count} "
@@ -336,11 +351,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._status_panel.stop_ticking()
         self._control_panel.set_running(False)
         from loguru import logger
+
         logger.error("RunWorker error: {}", msg)
         self._status_lbl.setText(f"Error | {msg}")
 
     def _on_worker_progress(self, task_id: str, result) -> None:
         from loguru import logger
+
         # result.status 可能是 TaskStatus 枚举(MagicMock 时是 str) — 都支持
         status_val = getattr(result.status, "value", result.status)
         nodes = getattr(result, "extra", {}).get("nodes", [])
@@ -348,8 +365,7 @@ class MainWindow(QtWidgets.QMainWindow):
         act_n = sum(1 for n in nodes if n.get("kind") == "action")
         duration = getattr(result, "duration_sec", 0.0)
         logger.info(
-            f"task done: {task_id} status={status_val} duration={duration:.2f}s "
-            f"rec={rec_n} act={act_n}"
+            f"task done: {task_id} status={status_val} duration={duration:.2f}s " f"rec={rec_n} act={act_n}"
         )
 
     def _on_worker_node_progress(
@@ -360,6 +376,7 @@ class MainWindow(QtWidgets.QMainWindow):
     ) -> None:
         """细粒度节点进度(MaaRunWorker 触发)。"""
         from loguru import logger
+
         kind = detail.get("kind", "?")
         hit = detail.get("hit", "?")
         logger.debug(f"[{task_id}] node {kind}: {node_name} hit={hit}")
@@ -368,6 +385,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = ConfigDialog(self._cfg, self)
         if dlg.exec() == QtWidgets.QDialog.Accepted:
             from loguru import logger
+
             logger.success("Config saved and reloaded")
             # 任务面板可能变了(用户改了 task_registry 不太可能,reload 一下)
             self._task_panel.reload()
@@ -377,9 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.about(
             self,
             "About",
-            "Naruto Auto Daily\n"
-            "Phase 5 桌面客户端 (PySide6)\n\n"
-            "Phase 1-4 业务逻辑不变,仅展示和交互。",
+            "Naruto Auto Daily\n" "Phase 5 桌面客户端 (PySide6)\n\n" "Phase 1-4 业务逻辑不变,仅展示和交互。",
         )
 
 

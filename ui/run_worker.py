@@ -52,8 +52,8 @@ class RunWorker(QtCore.QObject):
     """
 
     progress = QtCore.Signal(str, object)  # (task_id, TaskResult)
-    finished = QtCore.Signal(object)        # RunReport
-    error = QtCore.Signal(str)               # error message
+    finished = QtCore.Signal(object)  # RunReport
+    error = QtCore.Signal(str)  # error message
 
     def __init__(
         self,

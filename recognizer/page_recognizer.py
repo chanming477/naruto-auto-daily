@@ -71,7 +71,8 @@ class PageRecognizer:
         self._warned_failed_templates: set[str] = set()
         logger.bind(component="recognizer").debug(
             "PageRecognizer initialized: templates_root={}, threshold={}",
-            self._root, threshold if threshold is not None else "<matcher default>",
+            self._root,
+            threshold if threshold is not None else "<matcher default>",
         )
 
     # ----- public --------------------------------------------------------
@@ -102,7 +103,9 @@ class PageRecognizer:
                     logger.bind(component="recognizer").warning(
                         "templates dir for GameState={} does not exist: {}; "
                         "this state will never match. Hint: mkdir -p {} and put PNG/JPG templates inside.",
-                        state.value, state_dir, state_dir,
+                        state.value,
+                        state_dir,
+                        state_dir,
                     )
                     self._warned_empty_states.add(state.value)
                 empty_dirs += 1
@@ -111,7 +114,8 @@ class PageRecognizer:
                 if state.value not in self._warned_empty_states:
                     logger.bind(component="recognizer").warning(
                         "templates path for GameState={} is not a directory: {}; skipping",
-                        state.value, state_dir,
+                        state.value,
+                        state_dir,
                     )
                     self._warned_empty_states.add(state.value)
                 empty_dirs += 1
@@ -121,7 +125,8 @@ class PageRecognizer:
                     logger.bind(component="recognizer").warning(
                         "templates dir for GameState={} is empty: {}; "
                         "this state will never match. Hint: place PNG/JPG templates inside.",
-                        state.value, state_dir,
+                        state.value,
+                        state_dir,
                     )
                     self._warned_empty_states.add(state.value)
                 empty_dirs += 1
@@ -140,9 +145,7 @@ class PageRecognizer:
             else:
                 method = "fallback:no_match"
                 msg = "no template matched above threshold"
-            logger.bind(component="recognizer").info(
-                "detect_state: UNKNOWN ({})", msg
-            )
+            logger.bind(component="recognizer").info("detect_state: UNKNOWN ({})", msg)
             return RecognitionResult(
                 state=GameState.UNKNOWN,
                 confidence=0.0,
@@ -154,7 +157,9 @@ class PageRecognizer:
         method = f"template_match:{winner_state.value}:{winner_match.template_name}"
         logger.bind(component="recognizer").info(
             "detect_state: {} (confidence={:.4f}, method={})",
-            winner_state.value, winner_match.confidence, method,
+            winner_state.value,
+            winner_match.confidence,
+            method,
         )
         return RecognitionResult(
             state=winner_state,

@@ -69,9 +69,7 @@ class LogPanel(QtWidgets.QGroupBox):
         # 渲染(把尾部换行去掉,append 一次)
         line = message.rstrip("\n")
         if self._current_extra:
-            extra_str = "  ".join(
-                f"{k}={v}" for k, v in self._current_extra.items() if v is not None
-            )
+            extra_str = "  ".join(f"{k}={v}" for k, v in self._current_extra.items() if v is not None)
             if extra_str:
                 line = f"{line}  | {extra_str}"
         self._buffer.append(line)
@@ -122,9 +120,7 @@ class LogPanel(QtWidgets.QGroupBox):
         font.setStyleHint(QtGui.QFont.Monospace)
         self._text.setFont(font)
         # 暗色背景
-        self._text.setStyleSheet(
-            "QPlainTextEdit { background-color: #1e1e1e; color: #d4d4d4; }"
-        )
+        self._text.setStyleSheet("QPlainTextEdit { background-color: #1e1e1e; color: #d4d4d4; }")
         layout.addWidget(self._text, stretch=1)
         # 当前最新级别(过滤判断用)
         self._last_level = "INFO"
@@ -142,8 +138,13 @@ class LogPanel(QtWidgets.QGroupBox):
         target = level or self._last_level
         # 过滤:WARNING 包含 ERROR;INFO 包含 INFO+SUCCESS
         priority = {
-            "TRACE": 0, "DEBUG": 1, "INFO": 2, "SUCCESS": 3,
-            "WARNING": 4, "ERROR": 5, "CRITICAL": 6,
+            "TRACE": 0,
+            "DEBUG": 1,
+            "INFO": 2,
+            "SUCCESS": 3,
+            "WARNING": 4,
+            "ERROR": 5,
+            "CRITICAL": 6,
         }
         cur = priority.get(self._current_level, 2)
         msg = priority.get(target, 2)
@@ -161,11 +162,7 @@ class LogPanel(QtWidgets.QGroupBox):
         cursor = self._text.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
         # 把 line 中的 '<' '>' 转义防 HTML 注入
-        safe = (
-            line.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-        )
+        safe = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         cursor.insertHtml(f'<span style="color: {color};">{safe}</span><br/>')
         if self._auto_scroll.isChecked():
             sb = self._text.verticalScrollBar()

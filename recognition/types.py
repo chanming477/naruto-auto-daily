@@ -40,13 +40,9 @@ class RecognitionResult:
         # 强制约束:confidence 必须在 [0, 1],state 必须是合法枚举。
         # 违反约束立即抛错,避免脏数据传到上层。
         if not (0.0 <= self.confidence <= 1.0):
-            raise ValueError(
-                f"confidence must be in [0.0, 1.0], got {self.confidence}"
-            )
+            raise ValueError(f"confidence must be in [0.0, 1.0], got {self.confidence}")
         if not isinstance(self.state, GameState):
-            raise TypeError(
-                f"state must be a GameState enum, got {type(self.state).__name__}"
-            )
+            raise TypeError(f"state must be a GameState enum, got {type(self.state).__name__}")
 
     def is_recognized(self) -> bool:
         """是否识别到具体状态(非 UNKNOWN)。"""

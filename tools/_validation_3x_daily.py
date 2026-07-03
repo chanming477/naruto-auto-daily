@@ -8,6 +8,7 @@
 每个 run = 5 任务 (mail/liveness/group_signin/daily_signin/recruit)。
 3 run 总时长预估 ~5 min (基于上一轮 20 task = 488s)。
 """
+
 import json
 import sys
 import time
@@ -16,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
+
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
 
@@ -64,7 +66,9 @@ for run_idx in range(1, N_RUNS + 1):
     run_dur = time.time() - run_start
     ok = sum(1 for _, s, _, _ in run_results if s == "TaskStatus.SUCCESS" or s == "SUCCESS")
     fail = len(run_results) - ok
-    print(f"\n  Run {run_idx} summary: {ok} SUCCESS / {fail} FAIL / {len(run_results)} total, dur={run_dur:.1f}s")
+    print(
+        f"\n  Run {run_idx} summary: {ok} SUCCESS / {fail} FAIL / {len(run_results)} total, dur={run_dur:.1f}s"
+    )
     all_results.append(run_results)
 
 total_dur = time.time() - overall_start
@@ -87,6 +91,7 @@ for run_results in all_results:
         task_dur[tid].append(dur)
 
 import statistics
+
 for tid in daily_tasks:
     statuses = task_status[tid]
     durs = task_dur[tid]
@@ -99,16 +104,15 @@ for tid in daily_tasks:
 
 # 总判定
 all_success = all(
-    s == "TaskStatus.SUCCESS" or s == "SUCCESS"
-    for run_results in all_results
-    for tid, s, _, _ in run_results
+    s == "TaskStatus.SUCCESS" or s == "SUCCESS" for run_results in all_results for tid, s, _, _ in run_results
 )
 print()
 if all_success:
     print(f"  ✓ ALL 3 RUNS PASS (15/15 tasks SUCCESS)")
 else:
     fails = sum(
-        1 for run_results in all_results
+        1
+        for run_results in all_results
         for tid, s, _, _ in run_results
         if not (s == "TaskStatus.SUCCESS" or s == "SUCCESS")
     )

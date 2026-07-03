@@ -1,4 +1,5 @@
 """临时验证脚本:检查 merged.json + task_mapping 对齐。"""
+
 import json
 import sys
 from pathlib import Path
@@ -34,5 +35,21 @@ if mail_node and isinstance(mail_node, dict):
         print(f"[INFO] mail.next: {nxt[:5] if isinstance(nxt, list) else nxt}")
 
 # 检查有没有 entry 风格(顶层 entry 节点)
-entry_like = [k for k in all_keys if k in {"mail", "headhunt", "group", "liveness_award", "activity", "easy_helper", "rich_room", "ninja_book", "give_energy", "use_energy"}]
+entry_like = [
+    k
+    for k in all_keys
+    if k
+    in {
+        "mail",
+        "headhunt",
+        "group",
+        "liveness_award",
+        "activity",
+        "easy_helper",
+        "rich_room",
+        "ninja_book",
+        "give_energy",
+        "use_energy",
+    }
+]
 print(f"[INFO] entry-style nodes found: {entry_like}")

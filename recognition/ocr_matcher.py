@@ -22,6 +22,7 @@
     - 同样的 ROI 规范化,同样的 match/match_all/exists 模式
     - 同样的 threshold 概念(OCR 用置信度 0~1)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -33,6 +34,7 @@ import numpy as np
 
 try:
     import onnxruntime as ort  # type: ignore
+
     _ONNX_AVAILABLE = True
 except ImportError:  # pragma: no cover
     ort = None  # type: ignore
@@ -130,9 +132,7 @@ class OCRMatcher:
 
     def __init__(self, config: OCRConfig) -> None:
         if not _ONNX_AVAILABLE:
-            raise RuntimeError(
-                "onnxruntime 未安装,先跑: pip install onnxruntime"
-            )
+            raise RuntimeError("onnxruntime 未安装,先跑: pip install onnxruntime")
         if not config.model_dir.is_dir():
             raise FileNotFoundError(f"OCR model dir not found: {config.model_dir}")
         det_path = config.model_dir / "det.onnx"
@@ -206,7 +206,7 @@ class OCRMatcher:
         # 1. 限定 ROI
         roi_xywh = self._normalize_roi(screen, roi)
         rx, ry, rw, rh = roi_xywh
-        roi_view = screen[ry:ry + rh, rx:rx + rw]
+        roi_view = screen[ry : ry + rh, rx : rx + rw]
 
         # 2. 文字检测 → 文字框列表
         boxes = self._detect_text(roi_view)
@@ -226,14 +226,16 @@ class OCRMatcher:
             norm = self._normalize_text(text)
             if not self._matches_expected(norm, expected_set):
                 continue
-            results.append(OCRMatchResult(
-                text=text,
-                x=rx + int(x0),
-                y=ry + int(y0),
-                width=int(x1 - x0),
-                height=int(y1 - y0),
-                confidence=float(conf),
-            ))
+            results.append(
+                OCRMatchResult(
+                    text=text,
+                    x=rx + int(x0),
+                    y=ry + int(y0),
+                    width=int(x1 - x0),
+                    height=int(y1 - y0),
+                    confidence=float(conf),
+                )
+            )
             if len(results) >= max_results:
                 break
 
@@ -283,8 +285,7 @@ class OCRMatcher:
             x, y, bw, bh = rect
             # 文字区域加一点 padding
             pad = 2
-            boxes.append((max(0, x - pad), max(0, y - pad),
-                          min(w, x + bw + pad), min(h, y + bh + pad)))
+            boxes.append((max(0, x - pad), max(0, y - pad), min(w, x + bw + pad), min(h, y + bh + pad)))
         return boxes
 
     def _recognize_text(self, crop_bgr: np.ndarray) -> tuple[str, float]:
