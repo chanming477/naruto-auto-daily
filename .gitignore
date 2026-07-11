@@ -61,6 +61,12 @@ secrets.yaml
 *.orig
 ~$*
 
+# PyInstaller 构建产物
+*.spec
+
+# MaaFramework 运行时数据
+logs/maafw_data/
+
 # 项目数据
 data/
 *.csv

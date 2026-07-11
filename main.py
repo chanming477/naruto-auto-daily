@@ -189,7 +189,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="Phase 8: 跑指定 task (MaaFramework + narutomobile 模板),"
                              " 如 --maafw-task mail(覆盖 TASK_MAPPING 20 个 task_id)")
     parser.add_argument("--maafw-list", action="store_true",
-                        help="Phase 8: 打印 task_id ↔ entry 映射表(不连 ADB)")
+                        help="Phase 8: 打印 task_id <-> entry 映射表(不连 ADB)")
     return parser.parse_args(argv)
 
 
@@ -1026,7 +1026,7 @@ def cmd_daily_all(
 
 
 def cmd_maafw_list(project_root: Path) -> int:  # noqa: ARG001 保留 project_root 参数以便未来扩展
-    """``--maafw-list`` 打印 task_id ↔ entry 映射,不连 ADB。
+    """``--maafw-list`` 打印 task_id <-> entry 映射,不连 ADB。
 
     用于快速核对映射表是否符合预期(改 task_mapping.py 后必跑这个)。
     """

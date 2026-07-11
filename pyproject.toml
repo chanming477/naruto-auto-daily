@@ -1,7 +1,7 @@
 [project]
 name = "naruto-auto-daily"
 version = "0.7.0"
-description = "V2 本地自动化工具 — 火影手游日常自动化（Phase 1-7：基础设施 + 28 真实日常 task + narutomobile 全抄）"
+description = "火影忍者手游日常任务自动化工具 — 基于 MaaFramework + narutomobile 模板引擎"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -19,6 +19,7 @@ dependencies = [
     "psutil>=5.9",
     "pywin32>=306 ; sys_platform == 'win32'",
     "opencv-python-headless>=4.9",
+    "maafw==5.10.4",
 ]
 
 [dependency-groups]
@@ -36,8 +37,19 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["core"]
-include = ["main.py"]
+packages = [
+    "core",
+    "device",
+    "logging_ext",
+    "maafw_bridge",
+    "recognition",
+    "recognizer",
+    "recovery",
+    "state",
+    "state_machine",
+    "tasks",
+    "ui",
+]
 
 [tool.ruff]
 line-length = 110
