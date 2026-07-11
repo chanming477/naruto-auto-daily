@@ -11,8 +11,8 @@
         5. 返回 TaskResult
 
     - ``MaaTaskEngine.run_daily(task_ids)``:
-        - 顺序跑 task_ids
-        - 产出 ``RunReport``(同 core.scheduler.RunReport schema)
+        - 顺序跑 task_ids,任务间调 ``_back_to_home`` 恢复主页
+        - 产出 ``core.scheduler.RunReport``(直接复用,P1-2 2026-07-11 合并)
 
 CLI 入口:
     ``python main.py --daily-maafw`` 跑 schemes/daily.json 的全部 task(走 maafw)
@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from core.base_task import TaskResult, TaskStatus
+from core.scheduler import RunReport
 from maafw_bridge import (
     MaaEventSink,
     MaaTaskerSingleton,
@@ -35,52 +36,9 @@ from maafw_bridge import (
 
 if TYPE_CHECKING:
     from core.config_manager import ConfigManager
-    from core.scheduler import RunReport
 
 
 _LOG = logger.bind(component="task_engine_maafw")
-
-
-# ----- RunReport 简化版(本模块自用) -----------------------------------------
-
-
-class _SimpleRunReport:
-    """轻量 RunReport,字段对齐 core.scheduler.RunReport。
-
-    我们不直接 import core.scheduler.RunReport — 避免循环依赖 + 减少耦合。
-    如果上层要统一的 RunReport,可 to_dict() 然后让 caller 适配。
-    """
-
-    def __init__(self) -> None:
-        self.started_at = datetime.now()
-        self.finished_at: datetime | None = None
-        self.task_results: list[TaskResult] = []
-        self.aborted = False
-        self.abort_reason: str = ""
-
-    @property
-    def total_count(self) -> int:
-        return len(self.task_results)
-
-    @property
-    def success_count(self) -> int:
-        return sum(1 for r in self.task_results if r.is_success)
-
-    @property
-    def fail_count(self) -> int:
-        return sum(1 for r in self.task_results if r.is_failure)
-
-    def to_dict(self) -> dict:
-        return {
-            "started_at": self.started_at.isoformat(),
-            "finished_at": self.finished_at.isoformat() if self.finished_at else None,
-            "total": self.total_count,
-            "success": self.success_count,
-            "fail": self.fail_count,
-            "aborted": self.aborted,
-            "abort_reason": self.abort_reason,
-            "tasks": [r.to_dict() for r in self.task_results],
-        }
 
 
 # ----- Engine ----------------------------------------------------------------
@@ -180,7 +138,7 @@ class MaaTaskEngine:
         task_ids: list[str] | None = None,
         *,
         stop_on_failure: bool = False,
-    ) -> _SimpleRunReport:
+    ) -> RunReport:
         """顺序跑一批 task。
 
         Args:
@@ -188,7 +146,7 @@ class MaaTaskEngine:
             stop_on_failure: 任一 task 失败时是否中止。
 
         Returns:
-            ``_SimpleRunReport``(字段对齐 core.scheduler.RunReport)。
+            ``core.scheduler.RunReport``(2026-07-11 P1-2 合并,直接复用)。
         """
         if task_ids is None:
             # cfg.tasks.tasks 是 BaseTask 注册表 dict(本项目旧架构)
@@ -196,11 +154,11 @@ class MaaTaskEngine:
             from maafw_bridge import list_supported_tasks
             task_ids = list_supported_tasks()
 
-        report = _SimpleRunReport()
+        report = RunReport(started_at=datetime.now())
         log = _LOG
         log.info("run_daily: {} task(s) stop_on_failure={}", len(task_ids), stop_on_failure)
 
-        for tid in task_ids:
+        for i, tid in enumerate(task_ids):
             if report.aborted:
                 break
             result = self.run_task(tid)
@@ -211,6 +169,12 @@ class MaaTaskEngine:
             if result.is_failure and stop_on_failure:
                 report.aborted = True
                 report.abort_reason = f"stop_on_failure after {tid}"
+                break
+            # P0-2 任务间恢复:除最后一个 task 外,跑 narutomobile 现有链回主页
+            # 旧 TaskEngine.run_all 每个任务后 observe() + tap_home_button()
+            # 新实现走 narutomobile 已有的 back_main_screen_before_task(17 个 recovery action)
+            if i < len(task_ids) - 1:
+                self._back_to_home()
 
         report.finished_at = datetime.now()
         log.info(
@@ -219,8 +183,23 @@ class MaaTaskEngine:
         )
         return report
 
+    def _back_to_home(self) -> None:
+        """任务间恢复:跑 narutomobile back_main_screen_before_task 链回到主页。
+
+        非致命:失败只记 warning,不中断 daily run。
+        (替代旧 TaskEngine.run_all 后的 observe() + tap_home_button())
+        """
+        try:
+            job = self._singleton.run_task("back_main_screen_before_task")
+            detail = job.wait().get()
+            status_obj = getattr(detail, "status", None)
+            if not (status_obj and getattr(status_obj, "succeeded", False)):
+                _LOG.warning("_back_to_home: did not succeed")
+        except Exception as exc:
+            _LOG.warning("_back_to_home failed (non-fatal): {}", exc)
+
     @staticmethod
-    def print_report(report: _SimpleRunReport) -> None:
+    def print_report(report: RunReport) -> None:
         """打印 RunReport 总结(给 CLI 用)。"""
         print()
         print("=" * 70)
@@ -230,6 +209,7 @@ class MaaTaskEngine:
         print(f"  finished_at: {report.finished_at.isoformat() if report.finished_at else '-'}")
         print(f"  total:       {report.total_count}")
         print(f"  success:     {report.success_count}")
+        print(f"  best_effort: {report.best_effort_count}")  # P1-2 新增
         print(f"  fail:        {report.fail_count}")
         print(f"  aborted:     {report.aborted} ({report.abort_reason})")
         print()

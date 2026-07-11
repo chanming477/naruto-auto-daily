@@ -185,6 +185,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # ---- Phase 8 MaaFramework 桥接命令(2026-07-02,跟旧 --xxx-real 平行,不破坏旧)----
     parser.add_argument("--daily-maafw", action="store_true",
                         help="Phase 8: 跑 schemes/daily.json 全部 task(走 MaaFramework + narutomobile 模板,需要模拟器)")
+    parser.add_argument("--maafw-task", type=str, default=None, metavar="TASK_ID",
+                        help="Phase 8: 跑指定 task (MaaFramework + narutomobile 模板),"
+                             " 如 --maafw-task mail(覆盖 TASK_MAPPING 20 个 task_id)")
+    parser.add_argument("--maafw-list", action="store_true",
+                        help="Phase 8: 打印 task_id ↔ entry 映射表(不连 ADB)")
     return parser.parse_args(argv)
 
 
@@ -858,121 +863,91 @@ def _print_task_result(result, label: str) -> int:
     return 0 if result.is_success else 1
 
 
+def _run_single_maafw_task(
+    project_root: Path,  # noqa: ARG001 保留 project_root 参数签名(未来扩展)
+    task_id: str,
+    console_level: str | None = None,
+    label: str | None = None,
+) -> int:
+    """``--xxx-real`` / ``--maafw-task`` 公共实现(P0-1 + P2-1,2026-07-11 抽取)。
+
+    Args:
+        project_root: 保留参数签名,目前未使用(MaaTaskEngine 通过 ConfigManager 拿 root)。
+        task_id: 要跑的 task_id(``mail`` / ``liveness`` / ``recruit`` ...)。
+        console_level: CLI 日志级别覆盖(``--debug`` / ``--quiet``)。
+        label: 输出日志用的 task 标签,默认 = ``task_id``。
+
+    Returns:
+        0 = 成功(SUCCESS 或 BEST_EFFORT),1 = 失败,5 = task_id 未注册。
+    """
+    label = label or task_id
+    print("=" * 70)
+    print(f"MaaFramework {label} task")
+    print("=" * 70)
+
+    from tasks.task_engine_maafw import MaaTaskEngine  # 局部 import 避免顶层循环依赖
+
+    cfg = ConfigManager(get_user_data_dir(), auto_load=True)
+    if console_level is not None:
+        cfg.app.logger.console_level = console_level
+    configure_logger(cfg.app.logger, get_user_data_dir())  # P0-1 修复:7 个命令统一落盘
+
+    try:
+        engine = MaaTaskEngine(cfg)
+    except Exception as exc:
+        print(f"\n✗ MaaTaskEngine init failed: {exc}")
+        logger.error("MaaTaskEngine init failed: {}", exc)
+        return 1
+
+    result = engine.run_task(task_id)
+    return _print_task_result(result, label)
+
+
 def cmd_daily_signin_real(
     project_root: Path,
     console_level: str | None = None,
-    emu_resolution: str = "auto",
+    emu_resolution: str = "auto",  # noqa: ARG001 保留参数签名,内部走 MaaFW 不读分辨率
 ) -> int:
-    """``--daily-signin-real`` 命令: 真实模拟器跑每日签到全流程。
+    """``--daily-signin-real`` 命令: 跑每日签到(MaaFramework + narutomobile 模板)。
 
-    前置条件:
-        1. MuMu 模拟器已启动,游戏在主页
-        2. ADB 已配 (config/app_config.yaml 中 adb.adb_path / adb.default_serial)
-        3. 模拟器分辨率推荐 1920x1080(narutomobile 默认),
-           其他分辨率通过 --emu-resolution 指定
+    2026-07-11 起改走 MaaTaskEngine(取代旧自研 ``daily_signin_task``),
+    旧 ``--xxx-real`` CLI 入口保留以便老脚本不破。``emu_resolution`` 参数保留
+    但忽略(narutomobile 默认 1920x1080,模拟器分辨率自适配)。
     """
-    print("=" * 60)
-    print("naruto-auto-daily · P7-REAL 真实每日签到")
-    print("=" * 60)
-
-    assembled = _assemble_real_runner(project_root, console_level)
-    if isinstance(assembled, int):
-        return assembled
-    cfg, ctx, engine, (w, h) = assembled
-
-    from tasks.daily_signin_task import DailySigninTask
-    engine.register_task("daily_signin", DailySigninTask)
-
-    print()
-    print(f"开始执行 daily_signin 任务 (实际屏幕 {w}x{h},参考 1920x1080)")
-    print(f"   缩放比例: {w/1920:.3f} x {h/1080:.3f}")
-    print()
-    result = engine.run_task("daily_signin")
-    return _print_task_result(result, "daily_signin")
+    # P3-1 静默忽略提示:用户传非 "auto" 时明确告知 MaaFW 模式下该参数无效
+    if emu_resolution != "auto":
+        logger.warning(
+            "cmd_daily_signin_real: emu_resolution='{}' is ignored under MaaFramework mode "
+            "(narutomobile 自适配 1920x1080 默认坐标)",
+            emu_resolution,
+        )
+    return _run_single_maafw_task(
+        project_root, "daily_signin", console_level=console_level, label="daily_signin",
+    )
 
 
 def cmd_mail_real(
     project_root: Path,
     console_level: str | None = None,
 ) -> int:
-    """``--mail-real`` 命令: 真实模拟器跑邮件领取流程。
-
-    模板缺失时降级到"尽力回主页"模式,任务仍返 SUCCESS。
-    """
-    print("=" * 60)
-    print("naruto-auto-daily · Phase 6 邮件领取(模板缺失降级)")
-    print("=" * 60)
-
-    assembled = _assemble_real_runner(project_root, console_level)
-    if isinstance(assembled, int):
-        return assembled
-    cfg, ctx, engine, (w, h) = assembled
-
-    from tasks.mail_task import MailTask
-    engine.register_task("mail", MailTask)
-
-    print()
-    print(f"开始执行 mail 任务 (实际屏幕 {w}x{h})")
-    print("   ⚠ mail/* 模板可能缺失,Pipeline 会自然降级到 back_to_home")
-    print()
-    result = engine.run_task("mail")
-    return _print_task_result(result, "mail")
+    """``--mail-real`` 命令: 跑邮件领取(MaaFramework + narutomobile 模板)。"""
+    return _run_single_maafw_task(project_root, "mail", console_level=console_level)
 
 
 def cmd_liveness_real(
     project_root: Path,
     console_level: str | None = None,
 ) -> int:
-    """``--liveness-real`` 命令: 真实模拟器跑活跃奖励流程。
-
-    复用 16 个 liveness/* 模板(已有),只需采集 liveness_tab.png。
-    """
-    print("=" * 60)
-    print("naruto-auto-daily · Phase 6 活跃奖励")
-    print("=" * 60)
-
-    assembled = _assemble_real_runner(project_root, console_level)
-    if isinstance(assembled, int):
-        return assembled
-    cfg, ctx, engine, (w, h) = assembled
-
-    from tasks.liveness_task import LivenessTask
-    engine.register_task("liveness", LivenessTask)
-
-    print()
-    print(f"开始执行 liveness 任务 (实际屏幕 {w}x{h})")
-    print("   ℹ 复用 liveness/* 16 个模板,只需采集 liveness_tab.png")
-    print()
-    result = engine.run_task("liveness")
-    return _print_task_result(result, "liveness")
+    """``--liveness-real`` 命令: 跑活跃奖励(MaaFramework + narutomobile 模板)。"""
+    return _run_single_maafw_task(project_root, "liveness", console_level=console_level)
 
 
 def cmd_group_signin_real(
     project_root: Path,
     console_level: str | None = None,
 ) -> int:
-    """``--group-signin-real`` 命令: 真实模拟器跑组织签到流程。
-
-    group/* 模板全部缺失时,Pipeline 会自然降级到 back_to_home。
-    """
-    print("=" * 60)
-    print("naruto-auto-daily · Phase 6 组织签到(模板缺失降级)")
-    print("=" * 60)
-
-    assembled = _assemble_real_runner(project_root, console_level)
-    if isinstance(assembled, int):
-        return assembled
-    cfg, ctx, engine, (w, h) = assembled
-
-    from tasks.group_signin_task import GroupSigninTask
-    engine.register_task("group_signin", GroupSigninTask)
-
-    print()
-    print(f"开始执行 group_signin 任务 (实际屏幕 {w}x{h})")
-    print("   ⚠ group/* 模板全部缺失,Pipeline 会自然降级到 back_to_home")
-    print()
-    result = engine.run_task("group_signin")
-    return _print_task_result(result, "group_signin")
+    """``--group-signin-real`` 命令: 跑组织签到(MaaFramework + narutomobile 模板)。"""
+    return _run_single_maafw_task(project_root, "group_signin", console_level=console_level)
 
 
 def cmd_weekly_signin_real(
@@ -981,7 +956,8 @@ def cmd_weekly_signin_real(
 ) -> int:
     """``--weekly-signin-real`` 命令: 真实模拟器跑每周签到流程。
 
-    weekly_signin/* 模板缺失时,Pipeline 会自然降级到 back_to_home。
+    weekly_signin 不在 TASK_MAPPING(narutomobile 无对应 entry),
+    保留旧自研 ``weekly_signin_task`` 实现,不走 MaaFramework。
     """
     print("=" * 60)
     print("naruto-auto-daily · Phase 7 每周签到(模板缺失降级)")
@@ -997,7 +973,7 @@ def cmd_weekly_signin_real(
 
     print()
     print(f"开始执行 weekly_signin 任务 (实际屏幕 {w}x{h})")
-    print("   ⚠ weekly_signin/* 模板可能缺失,Pipeline 会自然降级到 back_to_home")
+    print(f"   ⚠ weekly_signin/* 模板可能缺失,Pipeline 会自然降级到 back_to_home")
     print()
     result = engine.run_task("weekly_signin")
     return _print_task_result(result, "weekly_signin")
@@ -1007,63 +983,50 @@ def cmd_daily_all(
     project_root: Path,
     console_level: str | None = None,
 ) -> int:
-    """``--daily-all`` 命令: 顺序跑 schemes/daily.json 全部任务。
+    """``--daily-all`` 命令: 顺序跑 schemes/daily.json 全部任务(MaaFramework 版)。
 
-    任务顺序: mail → liveness → group_signin → daily_signin
+    任务顺序由 ``schemes/daily.json`` 决定(2026-07-11 起 5 个:
+    mail / liveness / group_signin / daily_signin / recruit),走 MaaTaskEngine。
     """
-    print("=" * 60)
-    print("naruto-auto-daily · Phase 6 daily-all(全日常)")
-    print("=" * 60)
-
-    assembled = _assemble_real_runner(project_root, console_level)
-    if isinstance(assembled, int):
-        return assembled
-    cfg, ctx, engine, (w, h) = assembled
-
-    # 注册 7 个任务(代码级注册优先级 > YAML,v1.1 增加 weekly_signin)
-    from tasks.daily_signin_task import DailySigninTask
-    from tasks.mail_task import MailTask
-    from tasks.liveness_task import LivenessTask
-    from tasks.group_signin_task import GroupSigninTask
-    from tasks.weekly_signin_task import WeeklySigninTask
-    engine.register_task("daily_signin", DailySigninTask)
-    engine.register_task("mail", MailTask)
-    engine.register_task("liveness", LivenessTask)
-    engine.register_task("group_signin", GroupSigninTask)
-    engine.register_task("weekly_signin", WeeklySigninTask)
-
-    # 加载 scheme
     import json
-    scheme_path = get_resource_root() / "schemes" / "daily.json"
+    from core.config_manager import ConfigManager
+    from tasks.task_engine_maafw import MaaTaskEngine
+
+    print("=" * 70)
+    print("MaaFramework daily (schemes/daily.json)")
+    print("=" * 70)
+
+    cfg = ConfigManager(get_user_data_dir(), auto_load=True)
+    if console_level is not None:
+        cfg.app.logger.console_level = console_level
+    configure_logger(cfg.app.logger, get_user_data_dir())  # P0-1 修复
+
+    scheme_path = get_resource_root() / "schemes" / "daily.json"  # P2-2 统一路径
     if not scheme_path.exists():
-        logger.error("schemes/daily.json not found: {}", scheme_path)
+        print(f"✗ not found: {scheme_path}")
         return 6
-    scheme = json.loads(scheme_path.read_text(encoding="utf-8"))
-    task_ids = scheme.get("task_ids", [])
-    logger.info("daily-all: scheme loaded, {} task(s): {}", len(task_ids), task_ids)
+    task_ids = json.loads(scheme_path.read_text(encoding="utf-8")).get("task_ids", [])
+    print(f"tasks ({len(task_ids)}): {' → '.join(task_ids)}")
 
-    print()
-    print(f"开始执行 daily-all (实际屏幕 {w}x{h})")
-    print(f"   任务顺序: {' → '.join(task_ids)}")
-    print()
+    try:
+        engine = MaaTaskEngine(cfg)
+    except Exception as exc:
+        print(f"\n✗ MaaTaskEngine init failed: {exc}")
+        logger.error("MaaTaskEngine init failed: {}", exc)
+        return 1
 
-    # TaskEngine.run_all 走任务列表
-    report = engine.run_all(task_ids)
-    print()
-    print("=" * 60)
-    print("执行结果 · daily-all")
-    print("=" * 60)
-    d = report.to_dict()
-    for k, v in d.items():
-        print(f"  {k}: {v}")
-    print()
-    rc = 0 if (report.fail_count == 0 and not report.aborted) else 1
-    return rc
+    report = engine.run_daily(task_ids)
+    MaaTaskEngine.print_report(report)
+    return 0 if (report.fail_count == 0 and not report.aborted) else 1
 
 
 # ============================================================
-# P1-7: --check 自检命令
-    """--maafw-list: 打印 task_id ↔ entry 映射,不连 ADB。
+# Phase 8 (2026-07-02): --maafw-list 任务映射自检命令
+# ============================================================
+
+
+def cmd_maafw_list(project_root: Path) -> int:  # noqa: ARG001 保留 project_root 参数以便未来扩展
+    """``--maafw-list`` 打印 task_id ↔ entry 映射,不连 ADB。
 
     用于快速核对映射表是否符合预期(改 task_mapping.py 后必跑这个)。
     """
@@ -1092,7 +1055,10 @@ def cmd_daily_all(
         print(f"  {entry:<20s} → {tid}")
     print()
 
-    ok, msg = verify_resource_path()
+    # 2026-07-11 修:verify_resource_path 需要 path 参数(原孤儿函数从未跑过,这次发现缺参)
+    # 默认路径与 maafw_bridge.tasker._do_init 一致:{resource_root}/resources/narutomobile
+    resource_path = get_resource_root() / "resources" / "narutomobile"
+    ok, msg = verify_resource_path(resource_path)
     if ok:
         print(f"✓ resource 路径合法: {msg}")
         rc = 0
@@ -1122,6 +1088,9 @@ def cmd_daily_maafw(project_root: Path, console_level: str | None = None) -> int
     print("=" * 70)
 
     cfg = ConfigManager(get_user_data_dir(), auto_load=True)
+    if console_level is not None:
+        cfg.app.logger.console_level = console_level
+    configure_logger(cfg.app.logger, get_user_data_dir())  # P0-1 修复
     print(f"project_root: {get_user_data_dir()}")
     print(f"maafw resource: {cfg.app.maafw.narutomobile_resource_path or '(default: resources/narutomobile)'}")
 
@@ -1137,6 +1106,18 @@ def cmd_daily_maafw(project_root: Path, console_level: str | None = None) -> int
 
     rc = 0 if (report.fail_count == 0 and not report.aborted) else 1
     return rc
+
+
+def cmd_maafw_task(project_root: Path, task_id: str, console_level: str | None = None) -> int:
+    """``--maafw-task <task_id>``: 跑单个 task(走 MaaFramework + narutomobile 模板)。
+
+    覆盖 TASK_MAPPING 全部 20 个 task_id(包括旧 CLI 无入口的 recruit / advanture /
+    elite_instance 等),为补足旧 ``--xxx-real`` 命令未覆盖的 task。
+    """
+    from maafw_bridge import resolve_entry
+
+    print(f"task_id: {task_id}  →  entry: {resolve_entry(task_id)}")
+    return _run_single_maafw_task(project_root, task_id, console_level=console_level)
 
 
 def cmd_check(project_root: Path, console_level: str | None = None) -> int:
@@ -1305,13 +1286,6 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         return cmd_check(PROJECT_ROOT, console_level=console_level)
 
-    # console level 由 CLI 覆盖
-    console_level = None
-    if args.debug:
-        console_level = "DEBUG"
-    elif args.quiet:
-        console_level = "WARNING"
-
     # init-config 在 logger 初始化之前执行（它不依赖 logger）
     if args.init_config:
         return cmd_init_config(PROJECT_ROOT)
@@ -1361,6 +1335,10 @@ def main(argv: list[str] | None = None) -> int:
     # Phase 8 MaaFramework 桥接(2026-07-02,跟旧 --daily-all 平行)
     if args.daily_maafw:
         return cmd_daily_maafw(PROJECT_ROOT, console_level=console_level)
+    if args.maafw_task:
+        return cmd_maafw_task(PROJECT_ROOT, args.maafw_task, console_level=console_level)
+    if args.maafw_list:
+        return cmd_maafw_list(PROJECT_ROOT)
 
     # 其他 Phase 1 命令需要完整的 ExecutionContext
     no_action = not any([

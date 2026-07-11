@@ -56,7 +56,8 @@ LEFT_MENU_FIND_ROI_RETURNING: list[int] = [306, 100, 83, 558]
 
 
 # 哨兵值,用于"不 override ROI"的语义区分
-_NO_ROI: list[int] = []  # 空 list 作为"不要 ROI 字段"的标记
+# P1-3 2026-07-11 加固:用 ``object()`` 单例代替可变 list,避免 ``[] != []`` 值比较问题
+_NO_ROI = object()  # 单例哨兵,身份安全
 
 
 def _make_overrides(
@@ -86,12 +87,13 @@ def _make_overrides(
     self_loop_returning = "ninja_guide_returning_player_to_funtion_entry"
 
     # 构造节点字典 — 只在 ROI 不是 _NO_ROI 时才加 roi 字段
+    # P1-3 2026-07-11:用 ``is not`` 身份比较(``_NO_ROI`` 改 object() 后必须用 is)
     find_regular: dict[str, Any] = {"expected": [tab_text]}
-    if roi_regular != _NO_ROI:
+    if roi_regular is not _NO_ROI:
         find_regular["roi"] = roi_regular
 
     find_returning: dict[str, Any] = {"expected": [tab_text]}
-    if roi_returning != _NO_ROI:
+    if roi_returning is not _NO_ROI:
         find_returning["roi"] = roi_returning
 
     return {

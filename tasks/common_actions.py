@@ -78,6 +78,11 @@ class CommonActions:
         self._config = config
         self._project_root = Path(project_root).resolve()
         self._logger = logger.bind(component="common_actions")
+        # P3-2 2026-07-11: 缓存 TemplateMatcher 实例,避免 tap_template / dismiss_x
+        # 每次调用都新建(原本每帧截图/每弹窗都 new,GC 压力大)。
+        # TemplateMatcher 是无状态的(只读 config + self),共享安全。
+        from recognition.template_matcher import TemplateMatcher
+        self._matcher = TemplateMatcher()
 
     @property
     def adb(self) -> "ADBClient":
@@ -726,10 +731,8 @@ class CommonActions:
                 log.warning("tap_template({}): screenshot failed", display_name)
                 return False
 
-            # 延迟导入避免循环依赖
-            from recognition.template_matcher import TemplateMatcher
-
-            matcher = TemplateMatcher()
+            # P3-2: 用 self._matcher 复用实例(原为每次新建,GC 压力大)
+            matcher = self._matcher
             result = matcher.match(Path(template_path), screen, threshold=thr)
             if result is None:
                 log.warning(
@@ -794,8 +797,8 @@ class CommonActions:
             log.warning("dismiss_x: capture raised: {}", exc)
             return False
 
-        from recognition.template_matcher import TemplateMatcher
-        matcher = TemplateMatcher()
+        # P3-2: 用 self._matcher 复用实例
+        matcher = self._matcher
 
         for tpl_path, name in candidates:
             if not tpl_path.exists():
