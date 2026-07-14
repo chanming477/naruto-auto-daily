@@ -61,11 +61,13 @@ secrets.yaml
 *.orig
 ~$*
 
-# PyInstaller 构建产物
-*.spec
-
 # MaaFramework 运行时数据
 logs/maafw_data/
+
+# Frontend 二进制发布(MaaFramework 官方 MFAAvalonia,234 MB)
+# 用户首次运行前需手动从 GitHub releases 下载解压到 frontend/MFAAvalonia/
+# 详见 README §3 快速开始 + start.bat 启动时的下载提示
+frontend/MFAAvalonia/
 
 # 项目数据
 data/

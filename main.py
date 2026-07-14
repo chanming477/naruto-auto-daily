@@ -41,7 +41,8 @@ Phase 6/7 命令（28 个真实 task 跑批）：
     --daily-all  顺序跑 schemes/daily.json 全部 task
 
 默认行为（无任何参数）：
-    等价 ``--phase2-smoke``:在没有 ADB / 模拟器 / 模板图的情况下也跑完整流程并正常退出。
+    启动 MFAAvalonia 桌面 GUI(等价 ``--gui``,需先下载 frontend/MFAAvalonia/)。
+    想无 ADB 跑 demo 用 ``python main.py --phase2-smoke``;真机跑批用 ``--mail-real`` / ``--daily-all``。
 
 详见 README.md / CONTRIBUTING.md / docs/standards/
 """
@@ -113,11 +114,12 @@ __all__ = [
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="naruto-auto-daily",
-        description="火影手游日常自动化工具 (Phase 2: 识别闭环)",
+        description="火影手游日常自动化工具 (MaaFramework 5.10.4 + MFAAvalonia 桌面 GUI)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="示例:\n"
-               "  python main.py                 # 默认跑 Phase 2 demo(无需 ADB)\n"
-               "  python main.py --phase2        # 尝试连接 ADB 真设备\n"
+               "  python main.py                 # 默认启 MFAAvalonia 桌面 GUI\n"
+               "  python main.py --phase2        # 尝试连接 ADB 真设备(无 ADB 自动 fallback demo)\n"
+               "  python main.py --phase2-smoke  # 不连 ADB,跑 Phase 2 识别闭环 demo\n"
                "  python main.py --init-config\n"
                "  python main.py --smoke-test\n"
                "  python main.py --list-windows\n"
@@ -157,9 +159,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                              "演示 GameStateMachine.recover(recovery_manager) 新签名。")
     parser.add_argument("--phase4-smoke", action="store_true",
                         help="Phase 4 smoke:不连真 ADB,MagicMock fallback。")
-    # ---- Phase 5 增量 ----
+    # ---- GUI 桌面客户端 ----
     parser.add_argument("--gui", action="store_true",
-                        help="Phase 5 桌面客户端(PySide6)。启动 MainWindow。")
+                        help="启动 MFAAvalonia 桌面客户端(需要 .NET 10 Desktop Runtime)")
     # ---- Phase 6 真实接入增量(P7-REAL) ----
     parser.add_argument("--daily-signin-real", action="store_true",
                         help="P7-REAL: 真实模拟器跑每日签到全流程(需要 MuMu 模拟器 + 1920x1080)")
@@ -863,6 +865,32 @@ def _print_task_result(result, label: str) -> int:
     return 0 if result.is_success else 1
 
 
+def _launch_mfaavalonia_gui(project_root: Path) -> int:
+    """启动 MFAAvalonia 桌面客户端。
+
+    需要 .NET 10 Desktop Runtime,首次运行请先执行:
+        frontend\\MFAAvalonia\\DependencySetup_依赖库安装_win.bat
+
+    Args:
+        project_root: 项目根目录。
+
+    Returns:
+        退出码: 0 = 成功启动, 1 = exe 不存在。
+    """
+    import subprocess
+
+    exe = project_root / "frontend" / "MFAAvalonia" / "MFAAvalonia.exe"
+    if not exe.is_file():
+        print("MFAAvalonia.exe 未找到，请先下载前端包。")
+        print("  下载地址: https://github.com/MaaXYZ/MaaFramework/releases")
+        print("  解压到: frontend\\MFAAvalonia\\")
+        return 1
+    # 以 frontend/MFAAvalonia/ 为工作目录启动(所有相对路径以此为根)
+    subprocess.Popen([str(exe)], cwd=str(exe.parent))
+    print("MFAAvalonia 已启动。关闭此窗口不影响 GUI 运行。")
+    return 0
+
+
 def _run_single_maafw_task(
     project_root: Path,  # noqa: ARG001 保留 project_root 参数签名(未来扩展)
     task_id: str,
@@ -1308,12 +1336,9 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(args, "phase4_smoke") and args.phase4_smoke:
         return cmd_phase4_smoke(PROJECT_ROOT, console_level=console_level)
 
-    # Phase 5 桌面客户端
+    # GUI 桌面客户端
     if args.gui:
-        from ui.main_window import main as gui_main
-        # 支持 `--gui --maafw` 切到 MaaFramework 引擎
-        gui_argv = sys.argv[1:sys.argv.index("--gui")] if "--gui" in sys.argv else []
-        return gui_main(gui_argv)
+        return _launch_mfaavalonia_gui(PROJECT_ROOT)
 
     # Phase 6 真实接入: 每日签到真实流程(P7-REAL)
     if args.daily_signin_real:
@@ -1346,12 +1371,9 @@ def main(argv: list[str] | None = None) -> int:
         args.run, args.activate_window, args.capture_test,
     ])
     if no_action:
-        # 桌面应用(.exe 双击)默认启 GUI;源码调试维持 Phase 2 demo
-        if getattr(sys, "frozen", False):
-            from ui.main_window import main as gui_main
-            return gui_main([])
-        # 默认行为(Phase 2 验收入口):跑 Phase 2 demo
-        return cmd_phase2_smoke(PROJECT_ROOT, console_level=console_level)
+        # 2026-07-11: 无参数时默认启动 MFAAvalonia 桌面客户端
+        # (源码模式 + 打包 exe 模式 行为一致,均交给 _launch_mfaavalonia_gui)
+        return _launch_mfaavalonia_gui(PROJECT_ROOT)
 
     t0 = time.monotonic()
     ctx = build_context(PROJECT_ROOT, console_level=console_level)

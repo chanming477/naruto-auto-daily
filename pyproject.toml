@@ -4,7 +4,7 @@ version = "0.7.0"
 description = "火影忍者手游日常任务自动化工具 — 基于 MaaFramework + narutomobile 模板引擎"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-only" }
 authors = [
     { name = "naruto-auto-daily contributors" },
 ]
@@ -25,9 +25,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.0",
-    "pytest-qt>=4.0",
     "pytest-asyncio>=0.23",
-] 
+]
 
 [project.scripts]
 naruto-auto-daily = "main:main"
@@ -48,7 +47,6 @@ packages = [
     "state",
     "state_machine",
     "tasks",
-    "ui",
 ]
 
 [tool.ruff]
@@ -59,14 +57,13 @@ target-version = "py311"
 select = ["E", "F", "I", "W", "B", "UP"]
 
 # ============================================================
-# pytest 全局 addopts (2026-07-02)
-# 4 个测试项依赖旧自研 Navigator/TaskEngine 或已删除模板,Phase 8 起走 MaaFramework 路径,
-# 这些测试失去意义,默认 ignore。
-# 恢复方式(临时): pytest tests/test_phase5_pipeline.py  # 单文件
+# pytest 全局 addopts (2026-07-02,2026-07-11 调整)
+# 3 个测试项依赖旧自研 Navigator/TaskEngine 或已删除模板,Phase 8 起走 MaaFramework 路径,
+# 这些测试失去意义,默认 ignore / deselect。
+# 恢复方式(临时): pytest tests/test_phase6_integration.py  # 单文件
 # ============================================================
 [tool.pytest.ini_options]
 addopts = [
-    "--ignore=tests/test_phase5_pipeline.py",
     "--ignore=tests/test_phase6_integration.py",
     "--ignore=tests/test_phase6_business_tasks.py",
     # 单条 stale 用例: 引用 2026-07-01 已删的 headhunt.png (user OK 过)

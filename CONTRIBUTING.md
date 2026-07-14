@@ -30,7 +30,8 @@ naruto-auto-daily/
 ├── state_machine/       # game_state_machine.py(业务状态机)
 ├── recovery/            # Phase 4 稳定性
 ├── logging_ext/         # RunContext
-├── ui/                  # PySide6 桌面
+├── (ui/ 已删)            # 2026-07-11 改用 MFAAvalonia 官方 GUI
+├── frontend/MFAAvalonia/ # .NET 10 桌面客户端(interface.json → resources/narutomobile/)
 ├── tasks/               # 28 个业务 task + 4 个核心(共 32 .py)
 │   ├── navigator.py / pipeline_runner.py / common_actions.py / task_engine.py  # 核心 4
 │   └── <task_id>_task.py ×28                                                  # 业务 28
@@ -70,7 +71,7 @@ naruto-auto-daily/
 ```powershell
 # 1. 从 narutomobile / merged.json 抽 ROI,加到 tools/gen_11_tasks.py 的 TASKS 列表
 # 2. 运行
-python D:\tmp\gen_11_tasks.py
+python tools/gen_11_tasks.py
 # 3. 加到 tools/dryrun_runner.py 的 TASK_BUILDERS 字典
 # 4. 加到 config/task_registry.yaml (display_order / category / description)
 # 5. 写一个 test_<task>_task.py

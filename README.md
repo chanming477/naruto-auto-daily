@@ -1,15 +1,25 @@
 # naruto-auto-daily
 
-> 火影手游本地自动化工具 — **28 个真实日常任务** + 工程治理(2026-06-30)。
+> 火影手游本地自动化工具 — **Python CLI 后端** + **MFAAvalonia 官方 GUI** + **28 个真实日常任务**(2026-07-11 重大调整)。
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue)]() [![License](https://img.shields.io/badge/License-MIT-green)]() [![Tasks](https://img.shields.io/badge/Tasks-28-brightgreen)]() [![Template](https://img.shields.io/badge/Templates-680+-orange)]()
+[![Python](https://img.shields.io/badge/Python-3.11+-blue)]() [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)]() [![Tasks](https://img.shields.io/badge/Tasks-28-brightgreen)]() [![Templates](https://img.shields.io/badge/Templates-786-orange)]() [![GUI](https://img.shields.io/badge/GUI-MFAAvalonia-purple)]()
+
+**前端**:[MFAAvalonia v2.12.1](https://github.com/MaaXYZ/MaaFramework)(MaaFramework 官方 Avalonia 桌面客户端,2026-07-11 整合进 `frontend/MFAAvalonia/`)
+**后端**:本项目(MaaFramework 5.10.4 + narutomobile 模板引擎,Python CLI 跑批)
+
+**启动 GUI**:双击 `start.bat`(首次运行会自动检测并安装 .NET 10 Desktop Runtime,需管理员权限)
+**启动 CLI**:双击 `start_cli.bat` 或 `python main.py --help`
+**后台跑任务**:`python main.py --daily-all`(纯 Python CLI,无需 .NET)
+
+---
+
 
 ---
 
 ## 📑 目录
 
 - [0. 一句话总结](#0-一句话总结)
-- [1. 当前阶段 (2026-06-30)](#1-当前阶段-2026-06-30)
+- [1. 当前阶段 (2026-07-11)](#1-当前阶段-2026-07-11)
 - [2. 28 任务快速一览](#2-28-任务快速一览)
 - [3. 快速开始](#3-快速开始)
 - [4. 命令速查](#4-命令速查)
@@ -28,13 +38,15 @@
 
 > **naruto-auto-daily** = 通过模板匹配(OpenCV `TM_CCOEFF_NORMED`)+ MaaFramework pipeline 节点,把火影手游里 28 个"日常任务"(邮件/签到/活跃/招募/活动/战斗副本/叛忍/百忍/...)自动化执行,无需 GPU 只需 MuMu 12 模拟器(1920x1080)+ 永不停歇的小忍者。
 
-## 1. 当前阶段 (2026-06-30)
+## 1. 当前阶段 (2026-07-11)
 
-**Phase 7 — 工程治理 + 28 task 全栈就绪**
+**Phase 8 — MFAAvalonia 前端整合 + PySide6 弃用 + 工程治理**
 
-- ✅ Phase 1-6: 核心引擎 + 7 基础 task
-- ✅ Phase 7-A: **21 个新 task 全抄自 [narutomobile-main](D:\自动日常源码带\narutomobile-main)**(v1.3.35 merged.json)
-- ✅ Phase 7-B: 工程治理(目录/文档/命名/LICENSE/CONTRIBUTING/CHANGELOG)
+- ✅ Phase 1-7: 核心引擎 + 28 task 全栈就绪(narutomobile v1.3.35 抄)
+- ✅ Phase 8-A: **MFAAvalonia v2.12.1 接入** — 删 `ui/`(15 文件)+ 整合 MaaFramework 官方 Avalonia 桌面 UI
+- ✅ Phase 8-B: **OCR 模型去重** — `resources/ocr_models/` 合并到 `resources/narutomobile/model/ocr/`(省 15MB)
+- ✅ Phase 8-C: **LICENSE MIT → AGPL-3.0**(与 MaaFramework + narutomobile 模板授权兼容)
+- ✅ Phase 8-D: 工程治理(CHANGELOG 拆分 / PySide6 dep 清理 / 死代码清理 / 文档同步)
 - 🔄 阶段 2 真机回归(MuMu 12 端口 `127.0.0.1:5555`)
 
 ## 2. 28 任务快速一览
@@ -85,20 +97,25 @@ python -m pip install -r requirements.txt
 # 2. 生成默认配置(已存在不覆盖)
 python main.py --init-config
 
-# 3. 自检(ADB / 配置 / 模板 / 任务注册表)
+# 3. (可选)下载 MFAAvalonia 桌面 GUI(234 MB,不 commit)
+#    跳过此步也能用 CLI 跑批,只影响 --gui / 双击 start.bat
+#    下载地址:https://github.com/MaaXYZ/MaaFramework/releases
+#    解压到 frontend/MFAAvalonia/(目录已在 .gitkeep 占位)
+
+# 4. 自检(ADB / 配置 / 模板 / 任务注册表)
 python main.py --check
 
-# 4. 真机跑任务(需 MuMu 12 模拟器 + 游戏在主页 + 1920x1080)
+# 5. 真机跑任务(需 MuMu 12 模拟器 + 游戏在主页 + 1920x1080)
 python tools\dryrun_runner.py mail
 python tools\dryrun_runner.py monthly_signin
 
-# 5. 不连真机的 demo(任意机器能跑)
+# 6. 不连真机的 demo(任意机器能跑)
 python main.py --phase2-smoke
 
-# 6. 跑测试
+# 7. 跑测试
 python -m pytest tests -q
 
-# 7. 验证模板库
+# 8. 验证模板库
 python tools/validate_templates.py
 python tools/generate_template_manifest.py
 ```
@@ -108,11 +125,12 @@ python tools/generate_template_manifest.py
 | 命令 | 用途 |
 |---|---|
 | `--check` | **P1-7 自检**: ADB / Pydantic / 模板 / 任务注册表 |
-| `--phase2-smoke` | 不连 ADB,跑 Phase 2 识别闭环 (默认行为) |
+| `--phase2-smoke` | 不连 ADB,跑 Phase 2 识别闭环(默认行为改为启 MFAAvalonia GUI)|
 | `--phase2` | 尝试连真 ADB;失败自动 fallback |
 | `--phase3` / `--phase3-task <id>` | 任务系统 TaskEngine + DailySigninTask |
 | `--phase4` | 稳定性体系 RetryManager + RecoveryManager |
-| `--gui` | PySide6 桌面客户端 |
+| **GUI 启动** | 双击 `start.bat`(自动检测 .NET Runtime) |
+| **CLI 启动** | 双击 `start_cli.bat` 或 `python main.py --gui` |
 | `<task>-real` (28 个) | 真模拟器跑指定 task(需 MuMu 12 + 127.0.0.1:5555) |
 | `--daily-all` | 顺序跑 `schemes/daily.json` 全部 task |
 | `--debug` / `--quiet` | 日志级别 DEBUG / WARNING |
@@ -122,13 +140,13 @@ python tools/generate_template_manifest.py
 
 ```
 naruto-auto-daily/
-├── main.py                       # CLI 入口(1297 行)
+├── main.py                       # CLI 入口 + --gui 启动 MFAAvalonia
 ├── pyproject.toml                # 项目元数据 + Ruff 配置 + dev deps
-├── requirements.txt              # 12 个运行时依赖
+├── requirements.txt              # 10 个运行时依赖
 ├── README.md                     # 本文件
 ├── CHANGELOG.md                  # 版本变更日志
 ├── CONTRIBUTING.md               # 多 AI 协作开发规范
-├── LICENSE                       # MIT
+├── LICENSE                       # AGPL-3.0
 ├── workgroup.md                  # Mavis+DeepSeek 协作日志
 │
 ├── config/
@@ -144,22 +162,25 @@ naruto-auto-daily/
 ├── state_machine/                # 游戏业务状态机
 ├── recovery/                     # Phase 4 稳定性
 ├── logging_ext/                  # RunContext
-├── ui/                           # Phase 5 PySide6
+├── start.bat                     # GUI 启动器(自动检测 .NET Runtime)
+├── start_cli.bat                 # CLI 启动器
 ├── tasks/                        # 28 业务 + 4 核心
 ├── tools/                        # 39 dryrun/utility
 ├── tests/                        # 24 测试
 │
 ├── resources/
-│   └── templates/
-│       ├── manifest.json         # 模板元数据
-│       ├── actions/              # 680 个模板(56 子目录)
-│       ├── shared/               # 公共模板(主页/关闭按钮等)
-│       ├── state/                # main_green_masked.png 主页标识
-│       ├── startup/              # 启动页模板
-│       ├── popup/                # 弹窗关闭按钮
-│       ├── home/                 # 主页背景
-│       ├── home_special/         # 特殊主页卷轴
-│       └── liveness/             # 活跃度
+│   └── narutomobile/             # MaaFramework 资源包(24.9 MB)
+│       ├── pipeline/merged.json  # 28 task pipeline 入口
+│       ├── image/                # 786 张 PNG 模板
+│       └── model/ocr/            # DBNet + CRNN OCR 模型
+│
+├── frontend/
+│   └── MFAAvalonia/              # ⚠️ 234 MB 二进制,**不 commit**(.gitignore)
+│       └── .gitkeep              # 占位 + 下载提示(见下方)
+│
+│ 首次启动 GUI 前需手动从 MaaFramework releases 下载解压到此目录:
+│   https://github.com/MaaXYZ/MaaFramework/releases
+│   start.bat 启动时会检测 MFAAvalonia.exe 是否存在,缺失会打印下载链接
 │
 ├── docs/
 │   ├── PROJECT_PLAN.md
@@ -174,19 +195,34 @@ naruto-auto-daily/
 │
 ├── screenshots/                  # 调试截图
 ├── logs/                         # 运行时日志(按日期分)
-└── schemes/                      # daily/event/weekly JSON
+└── schemes/                      # 任务方案 JSON(目前只 daily.json,event/weekly 预留)
 ```
 
 ## 6. 架构图
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                     UI Layer (PySide6)                       │
-│      main_window / log_panel / task_panel / config_dialog  │
+│         UI Layer (MFAAvalonia v2.12.1)                      │
+│   frontend/MFAAvalonia/MFAAvalonia.exe                     │
+│   (Avalonia 11 + SukiUI 暗色主题,.NET 10 独立应用)      │
+│   双击 start.bat 启动(自动检测依赖)                       │
 └────────────────────────┬─────────────────────────────────────┘
-                         │ qasync / signals
+                         │ MaaFramework (内嵌 C# binding)
                          ▼
 ┌──────────────────────────────────────────────────────────────┐
+│         Resources Layer (MaaFramework 5.10.4)               │
+│   resources/narutomobile/ (24.9 MB)                        │
+│   - pipeline/merged.json (28 task 入口)                    │
+│   - image/ (786 PNG 模板)                                 │
+│   - model/ocr/ (DBNet + CRNN)                              │
+└────────────────────────┬─────────────────────────────────────┘
+                         │ maafw_bridge (Python 5.10.4)
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│         Backend Layer (Python CLI)                          │
+│   main.py --xxx-real  /  --maafw-task <id>                 │
+│   MaaTaskEngine / MaaEventSink                              │
+└──────────────────────────────────────────────────────────────┘
 │                  Pipeline Orchestration                     │
 │   scheduler → task_engine → pipeline_runner → navigator     │
 │   (BaseTask lifecycle: pre → enter → execute → verify)      │
@@ -214,7 +250,7 @@ naruto-auto-daily/
 
 | 模板目录 | 数量 | 来源 |
 |---------|------|------|
-| `actions/` 主目录 | 56 子目录,680+ PNG | narutomobile v1.3.35 merged.json 镜像 |
+| `actions/` 主目录 | 56 子目录,786 PNG | narutomobile v1.3.35 merged.json 镜像 |
 | `shared/` | 公共(主页 / 关闭 / 忍者指南 / 进忍法帖 等) | 含 `award_center_entry.png` / `headhunt.png` / `guide.png` |
 | `state/main_green_masked.png` | 主页绿通道标识 | narutomobile 权威 |
 | `startup/` | 启动页(`naruto_logo.png` / `start_game.png`) | 启动流程 |
@@ -225,7 +261,21 @@ naruto-auto-daily/
 
 ## 8. 工程治理
 
-2026-06-30 完成清理:
+**2026-07-11 开源前清理**:
+- ✅ 删整个 `ui/` 目录(15 文件,114.8 KB)— 自研 PySide6 桌面 GUI
+- ✅ 删 3 个 PySide6 相关测试(`test_phase5_pipeline` / `test_config_dialog` / `test_scheme_manager`)
+- ✅ OCR 模型去重:`resources/ocr_models/` → `resources/narutomobile/model/ocr/`(省 15 MB,SHA256 一致)
+- ✅ 删空 `schemes/event.json` / `schemes/weekly.json`(占位符,无人引用)
+- ✅ `pyproject.toml` 移除 `PySide6>=6.5` runtime dep
+- ✅ `LICENSE` MIT → AGPL-3.0(与 MaaFramework + narutomobile 模板授权兼容)
+- ✅ `tasks/task_engine_maafw.py` 删死代码 `_SimpleRunReport`
+- ✅ `frontend/MFAAvalonia/` 加 `.gitignore`(234 MB 二进制不 commit)
+- ✅ `frontend/.gitkeep` 保留目录结构 + 下载提示
+- ✅ `start.bat` / `start_cli.bat` 新增(GUI/CLI 启动器,.NET 10 检测)
+- ✅ `main.py` --gui 默认行为对齐(三处 docstring/description/epilog)
+- ✅ CHANGELOG 拆分 4 个 `[Unreleased]` 为版本段,符合 Keep-a-Changelog
+
+**2026-06-30 完成清理**:
 
 ✅ 删除 `_tmp_a5_list.py`(根临时)
 ✅ 删除 `dryrun_v2.py` / `dryrun_v3.py`(已替代)
@@ -271,10 +321,11 @@ naruto-auto-daily/
 - ✅ Phase 2: ADB / Template / Recognize / GameStateMachine
 - ✅ Phase 3: TaskEngine + DailySigninTask
 - ✅ Phase 4: RetryManager + RecoveryManager
-- ✅ Phase 5: PySide6 GUI
+- ❌ Phase 5: PySide6 GUI(**2026-07-11 弃用**,改用 MFAAvalonia 官方 UI)
 - ✅ Phase 6: 7 基础真实日常 task
 - ✅ Phase 7: 21 新 task(narutomobile 全抄)+ 工程治理
-- 🔄 Phase 8: 真机回归(2026-06-30 开始,等 user MuMu 重启)
+- ✅ Phase 8-A: MFAAvalonia 前端整合(`start.bat` / `--gui` 启动)+ OCR 模型去重 + AGPL-3.0
+- 🔄 Phase 8-B: 真机回归(2026-06-30 开始,等 user MuMu 重启)
 - ⏳ Phase 9: Task-level 测试 + CI(GitHub Actions)
 - ⏳ Phase 10: Template 版本管理(SHA + commit)
 - ⏳ Phase 11: 模板生成器 v2(支持 custom_action / MultiSwipe 等复杂节点)
@@ -292,7 +343,7 @@ naruto-auto-daily/
 
 ## 12. License
 
-本项目采用 [MIT License](./LICENSE)。
+本项目采用 [GNU Affero General Public License v3.0](./LICENSE)。
 
 ---
 

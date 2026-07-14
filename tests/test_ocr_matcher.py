@@ -2,7 +2,7 @@
 
 依赖:
     - onnxruntime(必须装,否则整个测试文件 skip)
-    - resources/ocr_models/{det,rec}.onnx + keys.txt(必须存在)
+    - resources/narutomobile/model/ocr/{det,rec}.onnx + keys.txt(必须存在,阶段 8 起统一用 narutomobile 自带)
 
 覆盖:
     - 构造:模型目录合法 / 不存在 / 缺文件
@@ -24,9 +24,9 @@ import numpy as np
 import pytest
 
 
-# 模型目录 = 项目根/resources/ocr_models
+# 模型目录 = 项目根/resources/narutomobile/model/ocr (阶段 8 去重,2026-07-11)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODEL_DIR = PROJECT_ROOT / "resources" / "ocr_models"
+MODEL_DIR = PROJECT_ROOT / "resources" / "narutomobile" / "model" / "ocr"
 
 
 pytestmark = pytest.mark.skipif(
@@ -276,8 +276,8 @@ def test_load_keys_handles_empty_lines(tmp_path):
 
 
 def test_load_default_ocr_model_dir():
-    """load_default_ocr_model_dir 返回 {project_root}/resources/ocr_models。"""
+    """load_default_ocr_model_dir 返回 {project_root}/resources/narutomobile/model/ocr(阶段 8 去重)。"""
     from recognition.ocr_matcher import load_default_ocr_model_dir
     p = load_default_ocr_model_dir(PROJECT_ROOT)
-    assert p == PROJECT_ROOT / "resources" / "ocr_models"
-    assert p.is_dir()  # 我们刚把模型拷过来
+    assert p == PROJECT_ROOT / "resources" / "narutomobile" / "model" / "ocr"
+    assert p.is_dir()  # narutomobile 已自带 OCR 模型

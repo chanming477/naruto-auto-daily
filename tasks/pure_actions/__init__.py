@@ -4,7 +4,7 @@
     narutomobile ``merged.json`` 里的 GoIntoEntryByGuide / 15-JumpBack recovery 链
     默认走 Maafw 引擎 + 抄来的社区模板/模型。本目录提供 **纯 Python 替代实现**,
     用本项目自己的:
-        - ``recognition.ocr_matcher.OCRMatcher`` (onnxruntime,模型在 resources/ocr_models/)
+        - ``recognition.ocr_matcher.OCRMatcher`` (onnxruntime,模型在 resources/narutomobile/model/ocr/ — 阶段 8 去重后)
         - ``recognition.template_matcher.TemplateMatcher`` (OpenCV,本项目自写)
         - ``device.adb_client.ADBClient`` (本项目封装)
         - ``tasks.common_actions.CommonActions`` (本项目封装)

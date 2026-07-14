@@ -1,21 +1,21 @@
 """recognition.ocr_matcher — **[本项目 OCR 节点]** onnxruntime 文字识别封装。
 
-设计来源:
+    设计来源:
     narutomobile ``merged.json`` 6 个 OCR 节点(``ninja_guide_find_funtion_entry`` 等)
     走 Maafw 内置 OCR,模型是 ``det.onnx`` (DBNet 文字检测) + ``rec.onnx`` (CRNN 文字识别)
     + ``keys.txt`` (字符表)。
 
-    我们不依赖 narutomobile,把模型从 ``resources/narutomobile/model/ocr/`` 拷到
-    ``resources/ocr_models/`` 下,本模块用 onnxruntime 加载,自己实现 pre/post process。
+    2026-07-11 阶段 8 去重:不再单独维护 ``resources/ocr_models/``(15MB),
+    OCRMatcher 直接用 narutomobile 自带的 ``resources/narutomobile/model/ocr/`` 模型(SHA256 验证一致)。
 
-公开 API:
-    OCRMatcher
-        .match(expected, screen, *, roi=None, threshold=0.3) -> MatchResult | None
-        .match_all(expected, screen, *, roi=None, threshold=0.3, max_results=10) -> list[MatchResult]
+    公开 API:
+        OCRMatcher
+            .match(expected, screen, *, roi=None, threshold=0.3) -> MatchResult | None
+            .match_all(expected, screen, *, roi=None, threshold=0.3, max_results=10) -> list[MatchResult]
 
-依赖:
-    - onnxruntime(纯 Python pip install,推理在 CPU/GPU 都行)
-    - 模型在 ``D:\\火影自动日常\\resources\\ocr_models\\``(首次跑自动加载)
+    依赖:
+        - onnxruntime(纯 Python pip install,推理在 CPU/GPU 都行)
+        - 模型在 ``D:\\火影自动日常\\resources\\narutomobile\\model\\ocr\\``(首次跑自动加载)
 
 与 ``recognition.template_matcher.TemplateMatcher`` 风格对齐:
     - 都返回 ``MatchResult``(x, y, w, h, confidence, template_name)
@@ -109,13 +109,16 @@ class OCRConfig:
 
 
 def load_default_ocr_model_dir(project_root: Path | None = None) -> Path:
-    """返回本项目默认 OCR 模型目录 ``{project_root}/resources/ocr_models``。
+    """返回本项目默认 OCR 模型目录。
+
+    2026-07-11 阶段 8 变更:从 ``{project_root}/resources/ocr_models/`` 改为
+    ``{project_root}/resources/narutomobile/model/ocr/``(去重,SHA256 验证一致)。
 
     Args:
         project_root: 项目根,None 时用 ``Path.cwd()``。
     """
     root = project_root or Path.cwd()
-    return root / "resources" / "ocr_models"
+    return root / "resources" / "narutomobile" / "model" / "ocr"
 
 
 # ============================================================
