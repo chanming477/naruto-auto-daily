@@ -48,6 +48,53 @@
 - **新 GUI 用户**: 下载 MFAAvalonia 到 `frontend/MFAAvalonia/` 后双击 `start.bat`
 - **打包发布**: 无需 build.py(本项目源码分发),MFAAvalonia 自己维护 exe 发布
 
+### Fixed (2026-07-14 跟进)
+- **MFAAvalonia `interface.json` option 块缺失** — 跑批时 4 张 on_error 截图(`up_swipe_for_ninja_guide_find_funtion_entry` × 3 + `energy_entry` × 1),任务报告"成功"但实际走 swipe 兜底,OCR 找不到"装备"等默认文字
+  - 根因: 上游 MaaAutoNaruto v1.3.35 的 `interface.json` 138 KB,本项目 2.3 KB 缺 `option` 块(`merged.json` 和模板完全相同)
+  - 修复: 选择性复制 10 个相关 option(覆盖 19 个 task 中的 9 个),`ninja_guide_find_funtion_entry.expected` 从默认 `["装备"]` 动态覆盖为实际任务入口文字(如 `["组织"]` / `["积分赛"]` / `["秘境"]` 等)
+
+### Changed (2026-07-14 全面清理 — 用户审计 18 项 P0/P1/P2/P3)
+
+#### P0 阻塞 (3 项全修)
+- **`cmd_weekly_signin_real` 迁移到 MaaTaskEngine** — 走 `activity` entry(同 `daily_signin`),不再用旧自研 `WeeklySigninTask`
+- **`onnxruntime` 加到 `pyproject.toml`** — `recognition/ocr_matcher.py:36` 真的在用(用户 P0#2, 但只 `onnxruntime`; `rapidocr-onnxruntime` 是 `tasks/navigator.py` 用,navigator 已删所以不用加)
+- **27 个死 `tasks/*_task.py` 删** — 用户说 19, 实际 27, 加上 `navigator.py` / `pipeline_runner.py` / `pure_actions/` 共 32 个
+
+#### P1 严重冗余 (5 项全修)
+- **`resources/templates/` (10 MB, 770 PNG) 删** — 跟 `resources/narutomobile/image/` 重复, 只旧自研 Navigator 在用
+- **Phase 2/3/4 demos ~410 行删** — `cmd_phase2` / `cmd_phase3` / `cmd_phase4` 等 8 个 demo 函数 + `_assemble_real_runner` (拖死 `tasks/assembly.py` / `common_actions.py` / `task_engine.py` / `weekly_signin_task.py` 4 个文件)
+- **5 个 `cmd_*_real` + `cmd_weekly_signin_real` 合 1 个 `_run_real_task_impl`** — 走 `--run-task <id>` 通用参数, `TASK_MAPPING` 20 个 task_id 复用 (`weekly_signin` 加到映射, 走 `activity` entry)
+- **9 个引用已删模块的测试删** — `test_common_actions.py` / `test_daily_signin_task.py` / `test_navigator_jumpback.py` / `test_phase2-4_pipeline.py` / `test_pure_go_into_entry.py` / `test_retry_manager.py` / `test_task_engine.py` / `test_group_signin.py`
+- **`config/app_config.yaml` 修**:
+  - `version: 0.6.0 → 0.7.0` / `phase: 6 → 8`
+  - `adb_path: "C:\\tmp\\android-sdk\\..." → ""` (改走 PATH)
+  - `default_serial: "127.0.0.1:7555" → "127.0.0.1:16384"` (MuMu 12 实际端口)
+  - `templates_dir: "resources/templates" → "resources/narutomobile/image"` (旧 dir 删了)
+
+#### P2 文档/配置过时 (6 项, 5 修 1 跳过)
+- **README 5 个 broken refs 删** — `PROJECT_PLAN.md` / `COMPLETION_REPORT.md` / `operation_flows.md` / `calibration/` / `game_wiki/` 全不存在
+- **5 个 `common_actions.py` TODO stub 删** — 整个 `common_actions.py` 文件删(只 Phase 2/3/4 demos 用, 现都删了)
+- **`__version__` 统一到 0.7.0** — `core/device/recognition/recognizer/state/state_machine/tasks` 之前是 0.1.0-0.3.2 错位
+- **`docs/MAF_CONFIG_FIX.md` commit** — 之前 untracked
+- **`.vscode/` audit 修正** — 用户说被跟踪, 实际**没**被 git 跟踪, 这条不做
+- **`docs/operation_flows.md` 26 KB Phase 6 旧引擎** — 用户提到但**不删**(可能用户还想要历史参考, 不强行删)
+
+#### P3 优化 (4 项, 2 修 2 跳过)
+- **`core/screenshot_utils.py` 删** — 零引用
+- **`state/types.py` 删** — 1 行 `GameContext = ExecutionContext` 别名
+- **`recognition/` + `recognizer/` 合并** — 用户提到但**不动**(重构范围太大, 留作 follow-up)
+- **`frontend/MFAAvalonia/debug/` 23 MB 清** — `maafw.log` 10.5 MB + 截图 12 MB 删
+
+#### 净效果
+- **代码量**: `main.py` 1405 → 736 行(-669, -48%); `tasks/` 35 文件 → 2 文件; `tests/` 24 → 15 文件
+- **磁盘**: 删 `resources/templates/` 10 MB + `debug/` 23 MB = **33 MB 释放**
+- **依赖**: 删 `rapidocr-onnxruntime`(无用户), 加 `onnxruntime>=1.18`(ocr_matcher 真用)
+- **测试**: 192/192 pass, 0 fail, 0 引用死代码
+- **CLI 兼容**: `--run-task <id>` 替代 6 个 `--<task>-real` + `cmd_weekly_signin_real`; `--list-tasks` 替代 `--maafw-list` 重复
+  - 来源: `https://github.com/duorua/narutomobile` v1.3.35 (AGPL-3.0,与本项目许可证兼容)
+  - 详见 `docs/MAF_CONFIG_FIX.md`
+  - **注意**: `frontend/MFAAvalonia/interface.json` 在 `.gitignore` 内 (234 MB 二进制),此修复为本地操作,重装 MFAAvalonia 时需重新应用
+
 ## [0.7.0] - 2026-06-30 (Phase 7 完成)
 
 ### Added

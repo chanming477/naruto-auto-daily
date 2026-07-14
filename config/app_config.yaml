@@ -5,8 +5,8 @@
 
 app:
   name: "naruto-auto-daily"
-  version: "0.6.0"
-  phase: 6
+  version: "0.7.0"
+  phase: 8
   # 是否以调试模式启动（影响日志详细程度）
   debug: false
 
@@ -69,15 +69,13 @@ screenshot:
 # ADB 客户端
 adb:
   # ADB 可执行路径,空字符串 = 从 PATH 自动找 adb
-  # Phase 6 真实接入建议: MuMu 模拟器自带 ADB 一般在
-  #   C:\tmp\android-sdk\platform-tools\adb.exe
-  # 若 PATH 中已有 adb,保持空即可。
-  adb_path: "C:\\tmp\\android-sdk\\platform-tools\\adb.exe"
-  # 默认设备序列号(如 "127.0.0.1:7555" 或 "emulator-5554"),空 = 不指定
-  # Phase 6 真实接入建议: MuMu 模拟器使用 "127.0.0.1:7555"
+  # 2026-07-14 默认走 PATH(MuMu 12 / 夜游神等都自带 adb 进 PATH,无需硬编码路径)
+  adb_path: ""
+  # 默认设备序列号(如 "127.0.0.1:16384" 或 "emulator-5554"),空 = 不指定
+  # 2026-07-14: MuMu 12 实际端口 16384(原 7555 是旧版,MuMu Player 12 改 16384)
   #   雷电/Nox/BlueStacks 通常为 "emulator-5554" 或其自定端口
   # 留空时,ADBClient.connect() 会执行 `adb devices` 自动选第一个 device
-  default_serial: "127.0.0.1:7555"
+  default_serial: "127.0.0.1:16384"
   # 单条 adb 命令的超时(秒)
   command_timeout_sec: 10
   # 失败重试次数(>=1)
@@ -108,8 +106,9 @@ template_matching:
 game_state:
   # 启动时初始 GameState:HOME / POPUP / LOADING / UNKNOWN
   initial_state: "UNKNOWN"
-  # 模板根目录(相对 project_root)
-  templates_dir: "resources/templates"
+  # 模板根目录(相对 project_root) — 2026-07-14 改用 narutomobile 自带 image/(MaaFramework 路径)
+  # 旧值 "resources/templates" 已被删除
+  templates_dir: "resources/narutomobile/image"
   # recover() 调用 probe 的最大次数
   recovery_probe_max: 3
 

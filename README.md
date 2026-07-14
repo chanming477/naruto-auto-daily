@@ -183,13 +183,10 @@ naruto-auto-daily/
 │   start.bat 启动时会检测 MFAAvalonia.exe 是否存在,缺失会打印下载链接
 │
 ├── docs/
-│   ├── PROJECT_PLAN.md
-│   ├── COMPLETION_REPORT.md
-│   ├── operation_flows.md
 │   ├── 项目准备.md
-│   ├── home_for_reference.png
-│   ├── calibration/              # ROI 校准
-│   ├── game_wiki/                # 15 个游戏系统知识库
+│   ├── MAF_CONFIG_FIX.md         # MFAAvalonia 配置修复(option 块 + logo + icon)
+│   ├── superpowers/
+│   │   └── specs/                # 设计 spec (e.g. 2026-07-14-task-truthfulness)
 │   ├── standards/                # TASK_STANDARD / TASK_TEMPLATE / TEMPLATE_NAMING
 │   └── collaboration/            # WORKGROUP.md(Mavis+DeepSeek)
 │

@@ -45,9 +45,10 @@ TASK_MAPPING: Final[dict[str, str]] = {
     "recruit": "headhunt",
     "group_signin": "group",
     "liveness": "liveness_award",
-    # 2 个合并到同一个 entry
+    # 3 个合并到同一个 entry (activity 涵盖月签到/一乐外卖/周签到)
     "daily_signin": "activity",
     "monthly_signin": "activity",
+    "weekly_signin": "activity",
     # 额外 entry(本项目暂未单独注册,直接传 task_id 也能跑)
     "advanture": "advanture",
     "elite_instance": "elite_instance",

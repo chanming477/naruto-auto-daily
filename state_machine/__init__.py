@@ -11,4 +11,4 @@
 """
 
 __all__ = ["game_state_machine"]
-__version__ = "0.2.0"
+__version__ = "0.7.0"
