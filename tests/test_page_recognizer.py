@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 import pytest
 
-from recognizer.page_recognizer import PageRecognizer
-from state.game_state import GameState
+from recognition.page_recognizer import PageRecognizer
+from state_machine.game_state import GameState
 
 
 def _save_template(directory: Path, name: str, img: np.ndarray) -> Path:

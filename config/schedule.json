@@ -4,6 +4,8 @@
     "liveness",
     "group_signin",
     "daily_signin",
-    "recruit"
+    "recruit",
+    "get_copper",
+    "survival_challenge"
   ]
 }

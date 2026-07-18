@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -13,7 +14,7 @@ import pytest
 
 from device.types import ActionResult
 from recovery.recovery_manager import RecoveryManager
-from state.game_state import GameState
+from state_machine.game_state import GameState
 from state_machine.game_state_machine import GameStateMachine
 
 
@@ -335,3 +336,70 @@ def test_recovery_manager_without_screenshot_manager_does_not_crash(
     # 不应抛
     result = rm.recover_unknown()
     assert result == GameState.HOME
+
+
+# ============================================================
+# Footgun 防护 (2026-07-18) — common_actions=None 不应 AttributeError
+# ============================================================
+
+
+def test_recover_unknown_with_none_common_returns_unknown(
+    fake_game_sm, fake_adb,
+):
+    """common_actions=None → recover_unknown 提前返 UNKNOWN,不 AttributeError。"""
+    rm = RecoveryManager(
+        common_actions=None,
+        game_sm=fake_game_sm,
+        adb_client=fake_adb,
+        config=None,
+    )
+    fake_game_sm.update_state(GameState.UNKNOWN, source="test_setup")
+    result = rm.recover_unknown()
+    assert result == GameState.UNKNOWN
+
+
+def test_recover_popup_with_none_common_returns_false(
+    fake_game_sm, fake_adb,
+):
+    """common_actions=None → recover_popup 提前返 False。"""
+    rm = RecoveryManager(
+        common_actions=None,
+        game_sm=fake_game_sm,
+        adb_client=fake_adb,
+        config=None,
+    )
+    fake_game_sm.update_state(GameState.POPUP, source="test_setup")
+    result = rm.recover_popup()
+    assert result is False
+
+
+def test_recover_loading_timeout_with_none_common_returns_false(
+    fake_game_sm, fake_adb,
+):
+    """common_actions=None → recover_loading_timeout 提前返 False。"""
+    rm = RecoveryManager(
+        common_actions=None,
+        game_sm=fake_game_sm,
+        adb_client=fake_adb,
+        config=None,
+    )
+    fake_game_sm.update_state(GameState.LOADING, source="test_setup")
+    result = rm.recover_loading_timeout()
+    assert result is False
+
+
+def test_recover_adb_error_does_not_use_common(
+    fake_game_sm, fake_adb,
+):
+    """recover_adb_error 只用 adb_client,不依赖 common_actions,所以 None 也跑得通。"""
+    rm = RecoveryManager(
+        common_actions=None,
+        game_sm=fake_game_sm,
+        adb_client=fake_adb,
+        config=None,
+    )
+    fake_adb.disconnect.return_value = None
+    fake_adb.connect.return_value = SimpleNamespace(success=True, message="ok")
+    fake_adb.is_connected = True
+    result = rm.recover_adb_error()
+    assert result is True

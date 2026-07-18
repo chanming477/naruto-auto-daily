@@ -22,14 +22,11 @@
 
 ```
 naruto-auto-daily/
-├── core/                # Phase 1 核心引擎(只读,改动需评审)
+├── core/                # Phase 1 核心引擎 + run_context(原 logging_ext/)
 ├── device/              # ADB 客户端
-├── recognition/         # template_matcher.py(主识别)
-├── recognizer/          # page_recognizer.py(页面识别入口)
-├── state/               # game_state.py + types.py
-├── state_machine/       # game_state_machine.py(业务状态机)
+├── recognition/         # template_matcher + page_recognizer + types(含 recognizer/ 合并)
+├── state_machine/       # GameState 枚举 + 游戏状态机(含 state/ 合并)
 ├── recovery/            # Phase 4 稳定性
-├── logging_ext/         # RunContext
 ├── (ui/ 已删)            # 2026-07-11 改用 MFAAvalonia 官方 GUI
 ├── frontend/MFAAvalonia/ # .NET 10 桌面客户端(interface.json → resources/narutomobile/)
 ├── tasks/               # 28 个业务 task + 4 个核心(共 32 .py)
@@ -45,7 +42,7 @@ naruto-auto-daily/
 │   ├── calibration/     # home_entry_paths / roi_calibration_log
 │   ├── collaboration/   # WORKGROUP(Mavis+DeepSeek 协作日志)
 │   └── CHANGELOG.md     # 版本变更(根目录链接)
-├── config/              # YAML + schemes/*.json
+├── config/              # YAML + schedule.json
 ├── logs/                # 运行时日志
 └── screenshots/         # 调试截图(calibration/ + failures/)
 ```

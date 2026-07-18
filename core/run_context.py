@@ -1,4 +1,4 @@
-"""logging_ext.run_context — 单次执行区间的日志上下文(Phase 4)。
+"""core.run_context — 单次执行区间的日志上下文(Phase 4,从 logging_ext/ 迁移)。
 
 职责(单一):
     进入时绑定 loguru 上下文(task_id / state_before / run_id) + 开始计时;

@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from state.game_state import GameState
+    from state_machine.game_state import GameState
 
 __all__ = ["ActionResult"]
 

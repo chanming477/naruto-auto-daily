@@ -394,7 +394,7 @@ recovery:
   max_loading_seconds: 60.0
   adb_reconnect_attempts: 2
 
-# logging_ext: 暂无字段(P1-OVER-01 删了 capture_transitions / log_state_changes 死配置)
+# logging_ext 段: 原 logging_ext/ 包已合并到 core/run_context.py,配置段保留字段名便于向后兼容
 logging_ext: {}
 """
 

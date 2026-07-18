@@ -74,3 +74,9 @@ data/
 *.csv
 *.db
 *.sqlite3
+
+# Mavis / 开发期临时产物(不参与发布)
+# - findings_*.json: Mavis 任务结束后的结构化诊断报告
+# - _test_backups/: 调试 merged.json 时留的 backup(不参与发布)
+/findings_*.json
+/resources/narutomobile/_test_backups/

@@ -132,7 +132,7 @@ python tools/generate_template_manifest.py
 | **GUI 启动** | 双击 `start.bat`(自动检测 .NET Runtime) |
 | **CLI 启动** | 双击 `start_cli.bat` 或 `python main.py --gui` |
 | `<task>-real` (28 个) | 真模拟器跑指定 task(需 MuMu 12 + 127.0.0.1:5555) |
-| `--daily-all` | 顺序跑 `schemes/daily.json` 全部 task |
+| `--daily-all` | 顺序跑 `config/schedule.json` 全部 task |
 | `--debug` / `--quiet` | 日志级别 DEBUG / WARNING |
 | `--version` | 打印版本号 |
 
@@ -154,14 +154,11 @@ naruto-auto-daily/
 │   ├── device_config.yaml
 │   └── task_registry.yaml        # 28 task 注册表
 │
-├── core/                         # Phase 1 核心引擎
+├── core/                         # Phase 1 核心引擎 + run_context(原 logging_ext/)
 ├── device/                       # ADB 客户端
-├── recognition/                  # template_matcher(主识别)
-├── recognizer/                   # page_recognizer(页面识别入口)
-├── state/                        # game_state 枚举 + types
-├── state_machine/                # 游戏业务状态机
+├── recognition/                  # template_matcher + page_recognizer + types
+├── state_machine/                # GameState 枚举 + 游戏业务状态机(含 state/ 合并)
 ├── recovery/                     # Phase 4 稳定性
-├── logging_ext/                  # RunContext
 ├── start.bat                     # GUI 启动器(自动检测 .NET Runtime)
 ├── start_cli.bat                 # CLI 启动器
 ├── tasks/                        # 28 业务 + 4 核心
@@ -192,7 +189,7 @@ naruto-auto-daily/
 │
 ├── screenshots/                  # 调试截图
 ├── logs/                         # 运行时日志(按日期分)
-└── schemes/                      # 任务方案 JSON(目前只 daily.json,event/weekly 预留)
+└── config/schedule.json          # 任务方案 JSON(从 schemes/daily.json 迁移)
 ```
 
 ## 6. 架构图
@@ -262,7 +259,7 @@ naruto-auto-daily/
 - ✅ 删整个 `ui/` 目录(15 文件,114.8 KB)— 自研 PySide6 桌面 GUI
 - ✅ 删 3 个 PySide6 相关测试(`test_phase5_pipeline` / `test_config_dialog` / `test_scheme_manager`)
 - ✅ OCR 模型去重:`resources/ocr_models/` → `resources/narutomobile/model/ocr/`(省 15 MB,SHA256 一致)
-- ✅ 删空 `schemes/event.json` / `schemes/weekly.json`(占位符,无人引用)
+- ✅ 删空 `schemes/` 目录(原 `daily.json` → `config/schedule.json`,event/weekly 占位从未使用)
 - ✅ `pyproject.toml` 移除 `PySide6>=6.5` runtime dep
 - ✅ `LICENSE` MIT → AGPL-3.0(与 MaaFramework + narutomobile 模板授权兼容)
 - ✅ `tasks/task_engine_maafw.py` 删死代码 `_SimpleRunReport`
@@ -292,7 +289,10 @@ naruto-auto-daily/
 ✅ README.md 全面重写(28 task 表格 + 架构图 + 完整命令)
 
 未做(将来):
-- ⏳ `state/` vs `state_machine/` / `recognition/` vs `recognizer/` 命名合并(改动大)
+- ✅ `state/` vs `state_machine/` 合并 → `state_machine/` (含 GameState 枚举)
+- ✅ `recognition/` vs `recognizer/` 合并 → `recognition/` (含 page_recognizer)
+- ✅ `logging_ext/` 迁移到 `core/run_context.py`
+- ✅ `schemes/` 迁移到 `config/schedule.json`
 - ⏳ actions/ 子目录大小写统一(影响 tasks/*.py 路径)
 
 ## 9. 开发规范

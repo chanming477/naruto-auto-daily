@@ -27,18 +27,17 @@
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
-from state.game_state import GameState
+from state_machine.game_state import GameState
 
 if TYPE_CHECKING:
     from core.screenshot_manager import ScreenshotManager
     from device.adb_client import ADBClient
     from recovery.retry_manager import RetryManager
     from state_machine.game_state_machine import GameStateMachine
-    from tasks.common_actions import CommonActions
 
 __all__ = ["RecoveryManager"]
 
@@ -47,7 +46,9 @@ class RecoveryManager:
     """4 个异常场景的统一恢复器。
 
     Args:
-        common_actions: 跨任务动作库(必传,所有导航/按键都委托给它)。
+        common_actions: 跨任务动作库(所有导航/按键都委托给它)。
+            ``tasks.common_actions`` 已于 2026-07-14 随旧 Navigator 删除,保留参数
+            便于向后兼容(调用方传 Any mock 即可);生产环境不应再使用。
         game_sm: 游戏状态机(读 current_state / update_state)。
         adb_client: ADB 句柄(用于 recover_adb_error 重连)。
         screenshot_manager: 可选,用于 ``save_recovery`` 归档恢复成功的截图。
@@ -58,9 +59,9 @@ class RecoveryManager:
 
     def __init__(
         self,
-        common_actions: "CommonActions",
         game_sm: "GameStateMachine",
         adb_client: "ADBClient",
+        common_actions: Any = None,
         screenshot_manager: "ScreenshotManager | None" = None,
         retry_manager: "RetryManager | None" = None,
         config: "object | None" = None,
@@ -94,7 +95,15 @@ class RecoveryManager:
 
         Returns:
             恢复后的 GameState(可能仍是 UNKNOWN)。
+
+        Footgun 防护 (2026-07-18): common_actions=None 时,observe/go_home 都会
+        AttributeError 炸。本方法提前返 UNKNOWN,让上层知道"没救"而不是崩。
         """
+        if self._common is None:
+            self._logger.warning(
+                "recover_unknown: common_actions=None, 跳过恢复(生产代码不应走到这里)"
+            )
+            return GameState.UNKNOWN
         if self._game_sm.current_state != GameState.UNKNOWN:
             self._logger.debug(
                 "recover_unknown: not UNKNOWN, returning current={}",
@@ -150,7 +159,15 @@ class RecoveryManager:
 
         Returns:
             True 表示弹窗已关闭且回到主页;False 表示尽力但失败。
+
+        Footgun 防护 (2026-07-18): common_actions=None 时,所有 self._common.X
+        会 AttributeError 炸。提前返 False,让 caller 知道"救不了"而不是崩。
         """
+        if self._common is None:
+            self._logger.warning(
+                "recover_popup: common_actions=None, 跳过恢复(生产代码不应走到这里)"
+            )
+            return False
         if self._game_sm.current_state != GameState.POPUP:
             self._logger.debug(
                 "recover_popup: not POPUP, no recovery needed (current={})",
@@ -209,7 +226,15 @@ class RecoveryManager:
             已知限制: ``CommonActions.wait_loading`` 是**被动**轮询(P1-QUAL-03),
             不会主动触发 game_sm 状态切换。本方法依赖「外部有机制触发 update_state」
             (例如:截图线程、或任务内的某个动作副作用)。Phase 5+ 应改为主动观测。
+
+        Footgun 防护 (2026-07-18): common_actions=None 时,wait_loading/go_home
+        会 AttributeError 炸。提前返 False。
         """
+        if self._common is None:
+            self._logger.warning(
+                "recover_loading_timeout: common_actions=None, 跳过恢复(生产代码不应走到这里)"
+            )
+            return False
         if self._game_sm.current_state != GameState.LOADING:
             self._logger.debug(
                 "recover_loading_timeout: not LOADING (current={}), no recovery needed",

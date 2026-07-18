@@ -1,53 +1,166 @@
-"""maafw_bridge.pipeline_overrides — pipeline override 字典 (v2,2026-07-02)。
+"""maafw_bridge.pipeline_overrides — pipeline override 字典 (v3,2026-07-15 auto-sync)。
 
-**v2 设计**(基于 narutomobile 完成组织任务日志分析):
-    narutomobile 不用 ``_po_goto_<entry>`` 新节点,而是**直接 override 已有的 OCR 节点**:
+**真理源** (single source of truth,2 个文件):
+    1. ``frontend/MFAAvalonia/interface.json`` 的 ``option`` 块 — 包含所有可选 option
+       的 cases,每个 case 有 ``pipeline_override`` 字典。
+    2. ``frontend/MFAAvalonia/config/instances/default.json`` 的 ``ResourceOptionItems``
+       — 当前 user 选中的 option 值 (``{"从奖励中心进入": "Yes"}`` 等)。
 
-    1. ``ninja_guide_find_funtion_entry``(merged.json 已存在)
-       原: ``recognition=OCR, expected=["装备"], roi=[0,66,219,627]``
-       改: ``expected=["<entry_tab>"], roi=[120,68,98,585]``
+**合并规则** (v3 auto-sync):
+    1. **Frontend overrides** (auto-loaded):
+       对 ``default.json`` 的 ``ResourceOptionItems`` 里每个 option,从 ``interface.json``
+       找到对应 option,再找选中的 case,把 case 的 ``pipeline_override`` 合并起来。
+       例: user 选 ``"从奖励中心进入"="Yes"`` → 自动应用 8 个 entry override
+       (group / shugyou_no_michi / mission_office / weekly_win / point_race /
+       secret_realm / black_market_merchant / more_gameplay)。
+    2. **Hardcoded overrides** (P1-3 保留,frontend 没覆盖的部分):
+       - ``give_energy`` ROI 修复 (1280x720 模拟器专用,frontend interface.json 无此 option)
+       - ``stronghold`` 忍者指南 path (frontend "从奖励中心进入" 不覆盖要塞,因要塞本身
+         就是组织玩法,走忍者指南找"组织"tab)
+    3. **合并**: ``PIPELINE_OVERRIDES_BY_ENTRY = {**HARDCODED, **FRONTEND}`` —
+       frontend 覆盖 hardcoded,hardcoded 补 frontend 缺口。
 
-    2. ``ninja_guide_in_funtion_entry``
-       原: ``recognition=OCR, expected=["装备"], roi=[514,85,212,72]``
-       改: ``expected=["<entry_tab>"]``
+**Fallback**: frontend 读不到时 → 只用 hardcoded,保证 Python 端永不死。
 
-    3. ``ninja_guide_returning_player_find_funtion_entry``
-       原: ``expected=["装备"], roi=[209,88,200,580]``
-       改: ``expected=["<entry_tab>"], roi=[306,100,83,558]``
-
-    4. ``ninja_guide_returning_player_in_funtion_entry``
-       原: ``recognition=TemplateMatch ninja_guide_returning_player_in_ninja_guide.png``
-       改: ``expected=["<entry_tab>"]``
-
-    5. ``ninja_guide_to_funtion_entry``
-       原: ``recognition=OCR, expected=["即刻","前往"], roi=[852,587,138,51], action=Click``
-       改: 追加 ``next=[<entry_business_nodes>, self_loop]``
-
-    6. ``ninja_guide_returning_player_to_funtion_entry``
-       原: ``action=Click, next=[ninja_guide_returning_player_in_ninja_guide, self_loop]``
-       改: 追加 ``next=[<entry_business_nodes>, self_loop]``
-
-**为什么 v2 比 v1 好**:
-    - **更高效**: 复用 merged.json 已有的 OCR 节点,不需要节点转换
-    - **覆盖更全**: v1 只覆盖 regular 玩家路径,v2 还覆盖 returning_player 路径
-    - **更稳定**: OCR ``expected`` + ``roi`` 直接生效,不需要 Python 端 ``GoIntoEntryByGuide``
-      Custom Action 的 OCR 调用(更快、更准确)
-    - **真机验证**: narutomobile 用此模式跑 group 任务 **28.2s**,v1 模式跑 **47s**
-
-**5 个 entry 的差异**:
-    - ``group``: expected="组织", next=[group_gameplay_undone, group_gameplay_done, no_group]
-    - ``mission_office``: expected="任务集会所", next=[mission_office_in_ninja_guide]
-    - ``point_race``: expected="积分赛", next=[point_race_in_center_enter, point_race_challenge_enter, point_race_cross_server]
-    - ``weekly_win``: expected="忍术对战", next=[weekly_win_in_center_enter, weekly_win_in_duel_field]
-    - ``stronghold``: expected="组织"(同 group), next=[stronghold_in_stronghold, stronghold_in_match]
-
-**ROI 坐标**: 全部是 1280x720 内部坐标(MaaFramework 引擎缩放后)。
+**v2 → v3 关键变化**:
+    - v2 5 个 entry (group/mission_office/point_race/weekly_win/stronghold) 全部 hardcoded
+    - v3 4 个 entry (mission_office/point_race/weekly_win/group) 改走 frontend auto-sync
+      (跟 MFAAvalonia 前端用户配置同步),只剩 stronghold 走 hardcoded (frontend 没覆盖)
+    - v3 不需要每个 entry 写一遍 ``_make_overrides(...)`` — frontend 改 default.json
+      选不同的 case,Python 端自动生效
 """
 
 from __future__ import annotations
 
-from typing import Any
+import json
+from pathlib import Path
+from typing import Any, Final
 
+# 前端配置根
+_FRONTEND_DIR: Final[Path] = Path(__file__).parent.parent / "frontend" / "MFAAvalonia"
+_INTERFACE_JSON: Final[Path] = _FRONTEND_DIR / "interface.json"
+_DEFAULT_JSON: Final[Path] = _FRONTEND_DIR / "config" / "instances" / "default.json"
+
+
+# v2-shape option 的 pipeline_override 是节点级 (ninja_guide_* / sent_energy / get_energy),
+# 跟 entry-level (group / mission_office / point_race 等) 区分。loader 用这个 set 检测
+# v2-shape 并跳过(由 C# pipeline 层处理,Python 端用不上)。
+# 2026-07-15 review I1 修。
+_V2_SHAPE_NODE_KEYS: Final[frozenset[str]] = frozenset({
+    "ninja_guide_find_funtion_entry",
+    "ninja_guide_in_funtion_entry",
+    "ninja_guide_to_funtion_entry",
+    "ninja_guide_returning_player_find_funtion_entry",
+    "ninja_guide_returning_player_in_funtion_entry",
+    "ninja_guide_returning_player_to_funtion_entry",
+    "sent_energy",
+    "get_energy",
+})
+
+
+def _is_v2_shape_override(po: dict[str, Any]) -> bool:
+    """判断 case.pipeline_override 是否 v2-shape (节点级) vs v3-shape (entry 级)。
+
+    v2-shape: keys 全是已知 pipeline 节点名 (ninja_guide_* / sent_energy / get_energy),
+              由 MFAAvalonia C# pipeline 层在运行时覆盖,Python 端不需要。
+
+    v3-shape: keys 是 entry 名 (group / mission_office / point_race 等),
+              Python 端 post_task(entry, pipeline_override=...) 时用。
+
+    Returns:
+        True = v2-shape (loader 跳过,Python 不处理)
+        False = v3-shape (loader 正常加载)
+    """
+    return set(po.keys()) <= _V2_SHAPE_NODE_KEYS
+
+
+# ============================================================
+# Frontend auto-loader: 读 interface.json + default.json
+# ============================================================
+def _load_overrides_from_frontend() -> dict[str, dict[str, Any]]:
+    """读 frontend 两个 JSON,合并 user 选中的 option case 的 pipeline_override。
+
+    只加载 v3-shape override (entry 级)。v2-shape (节点级, 如 ``忍界指引寻找排行榜``)
+    跳过 — 由 MFAAvalonia C# pipeline 层处理。
+
+    Returns:
+        ``{entry: pipeline_override}`` 字典,失败返 ``{}``。
+
+    Examples:
+        ``default.json`` 有 ``{"从奖励中心进入": "Yes"}`` →
+        返回 8 个 entry 的 next override (group / shugyou_no_michi / ...)。
+    """
+    if not _INTERFACE_JSON.exists() or not _DEFAULT_JSON.exists():
+        return {}
+    try:
+        interface = json.loads(_INTERFACE_JSON.read_text(encoding="utf-8"))
+        default = json.loads(_DEFAULT_JSON.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+    options: dict[str, Any] = interface.get("option") or {}
+    selected: dict[str, str] = default.get("ResourceOptionItems") or {}
+    if not isinstance(options, dict) or not isinstance(selected, dict):
+        return {}
+
+    # Fallback (2026-07-16 修正注): MFAAvalonia 启动会重写 default.json,
+    # 把 ResourceOptionItems 清空 (用户没动过 GUI 时)。这 3 个核心 option
+    # **期望** Yes (无论 interface.json 有无 default_case,我们主动 fallback)。
+    # 行为: selected 没选某 option 时 fallback 用 "Yes";selected 选了时尊重 user。
+    _FALLBACK_YES_OPTIONS: Final[frozenset[str]] = frozenset({
+        "从奖励中心进入",
+        "1280x720 模拟器 ROI 修复",
+        "从忍者指南寻找组织",
+    })
+
+    merged: dict[str, dict[str, Any]] = {}
+    skipped_v2: list[str] = []
+    for opt_name, opt in options.items():
+        if not isinstance(opt, dict):
+            continue
+        # 选 user 的值;没选则用 fallback
+        if opt_name in selected:
+            opt_value = selected[opt_name]
+        elif opt_name in _FALLBACK_YES_OPTIONS:
+            opt_value = "Yes"
+        else:
+            continue  # user 没选 + 不在 fallback 列表,跳过
+        cases = opt.get("cases")
+        if not isinstance(cases, list):
+            continue
+        # 找到 case
+        for case in cases:
+            if not isinstance(case, dict):
+                continue
+            if case.get("name") == opt_value:
+                po = case.get("pipeline_override")
+                if isinstance(po, dict):
+                    # v2-shape (节点级): 跳过,Python 端用不上
+                    if _is_v2_shape_override(po):
+                        skipped_v2.append(opt_name)
+                    else:
+                        # v3-shape (entry 级): 合并
+                        for entry, override in po.items():
+                            if not isinstance(override, dict):
+                                continue
+                            if entry in merged:
+                                merged[entry].update(override)
+                            else:
+                                merged[entry] = dict(override)
+                break  # 找到 case 就 break
+
+    if skipped_v2:
+        from loguru import logger as _log
+        _log.debug(
+            "Skipped v2-shape options (C# pipeline layer handles): {}",
+            skipped_v2,
+        )
+    return merged
+
+
+# ============================================================
+# Hardcoded overrides (frontend 没覆盖的部分,补缺口)
+# ============================================================
 # 忍者指引左侧菜单 tab 找 tab 的 ROI — 来自 narutomobile 真机验证
 # - regular 玩家路径(ninja_guide_find_funtion_entry.roi)
 LEFT_MENU_FIND_ROI_REGULAR: list[int] = [120, 68, 98, 585]
@@ -56,7 +169,6 @@ LEFT_MENU_FIND_ROI_RETURNING: list[int] = [306, 100, 83, 558]
 
 
 # 哨兵值,用于"不 override ROI"的语义区分
-# P1-3 2026-07-11 加固:用 ``object()`` 单例代替可变 list,避免 ``[] != []`` 值比较问题
 _NO_ROI = object()  # 单例哨兵,身份安全
 
 
@@ -76,18 +188,10 @@ def _make_overrides(
             - 默认 LEFT_MENU_FIND_ROI_REGULAR (适合"组织"这种位置窄的 tab)
             - 传 ``_NO_ROI`` 表示**不 override ROI**(用 merged.json 默认 [0,66,219,627])
         roi_returning: 回归玩家路径的 ROI,语义同上。
-
-    Notes:
-        用 ``_NO_ROI`` 哨兵值而不是 None 来区分"没传参数"和"显式不 override"。
-        这样调用者可以 ``roi_regular=_NO_ROI`` 表示"别加 roi 字段",让 merged.json 的
-        默认 ROI 生效 — narutomobile 对 mission_office 就是这么做的。
     """
-    # self-loop: 让 to_funtion_entry 节点失败后重试自己(merged.json 原设计就有这个 pattern)
     self_loop_regular = "ninja_guide_to_funtion_entry"
     self_loop_returning = "ninja_guide_returning_player_to_funtion_entry"
 
-    # 构造节点字典 — 只在 ROI 不是 _NO_ROI 时才加 roi 字段
-    # P1-3 2026-07-11:用 ``is not`` 身份比较(``_NO_ROI`` 改 object() 后必须用 is)
     find_regular: dict[str, Any] = {"expected": [tab_text]}
     if roi_regular is not _NO_ROI:
         find_regular["roi"] = roi_regular
@@ -97,76 +201,51 @@ def _make_overrides(
         find_returning["roi"] = roi_returning
 
     return {
-        # 1. regular 路径: 找 tab
         "ninja_guide_find_funtion_entry": find_regular,
-        # 2. regular 路径: 验证已点中 tab
-        "ninja_guide_in_funtion_entry": {
-            "expected": [tab_text],
-        },
-        # 3. 回归玩家路径: 找 tab
+        "ninja_guide_in_funtion_entry": {"expected": [tab_text]},
         "ninja_guide_returning_player_find_funtion_entry": find_returning,
-        # 4. 回归玩家路径: 验证已点中 tab
-        "ninja_guide_returning_player_in_funtion_entry": {
-            "expected": [tab_text],
-        },
-        # 5. regular 路径: 点即刻按钮 + 业务 next
-        "ninja_guide_to_funtion_entry": {
-            "next": business_next + [self_loop_regular],
-        },
-        # 6. 回归玩家路径: 点即刻按钮 + 业务 next
-        "ninja_guide_returning_player_to_funtion_entry": {
-            "next": business_next + [self_loop_returning],
-        },
+        "ninja_guide_returning_player_in_funtion_entry": {"expected": [tab_text]},
+        "ninja_guide_to_funtion_entry": {"next": business_next + [self_loop_regular]},
+        "ninja_guide_returning_player_to_funtion_entry": {"next": business_next + [self_loop_returning]},
     }
 
 
-# 每个 entry 单独的 override (避免 5 个 entry 之间冲突)
-# key = narutomobile pipeline entry 名
-PIPELINE_OVERRIDES_BY_ENTRY: dict[str, dict[str, Any]] = {
-    # ===== group_signin: 找"组织" tab =====
-    # narutomobile 用 roi=[120,68,98,585](缩窄 ROI 让"组织"OCR 命中更快)
-    "group": _make_overrides(
-        tab_text="组织",
-        business_next=["group_gameplay_undone", "group_gameplay_done", "no_group"],
-        roi_regular=[120, 68, 98, 585],
-    ),
-    # ===== mission_office: 找"集会所" tab (2026-07-02 v2.1 修复)=====
-    # 修复 1: tab_text "任务集会所" → "集会所" (OCR 短文本更准,narutomobile 原版)
-    # 修复 2: business_next "mission_office_in_ninja_guide" → "check_in_mission_office"
-    #         (前者是 Custom Action 节点,后者是 TemplateMatch 状态验证节点)
-    # 修复 3: **不 override ROI** — narutomobile 原版不缩窄 ROI,用默认 [0,66,219,627]
-    #         缩窄 ROI 后"集会所"在范围外找不到,触发 100+ 次 swipe 循环(实测 47s)
-    "mission_office": _make_overrides(
-        tab_text="集会所",
-        business_next=["check_in_mission_office"],
-        roi_regular=_NO_ROI,  # 不 override,merged.json 默认 ROI
-        roi_returning=_NO_ROI,
-    ),
-    # ===== point_race: 找"积分赛" tab =====
-    # 没 narutomobile 原版日志参考,默认不 override ROI (与 mission_office 同处理)
-    "point_race": _make_overrides(
-        tab_text="积分赛",
-        business_next=[
-            "point_race_in_center_enter",
-            "point_race_challenge_enter",
-            "point_race_cross_server",
-        ],
-        roi_regular=_NO_ROI,
-        roi_returning=_NO_ROI,
-    ),
-    # ===== weekly_win: 找"忍术对战" tab =====
-    "weekly_win": _make_overrides(
-        tab_text="忍术对战",
-        business_next=["weekly_win_in_center_enter", "weekly_win_in_duel_field"],
-        roi_regular=_NO_ROI,
-        roi_returning=_NO_ROI,
-    ),
-    # ===== stronghold: 找"组织" tab (同 group,需要缩窄 ROI)=====
+# Hardcoded override (P1-3 2026-07-15 保留,frontend 不覆盖的)
+_HARDCODED_OVERRIDES: dict[str, dict[str, Any]] = {
+    # ===== stronghold: 找"组织" tab (同 group,需要缩窄 ROI) =====
+    # frontend "从奖励中心进入" Yes case **不覆盖** stronghold (要塞 = 组织玩法,走忍者指南),
+    # 所以保留 hardcoded。
     "stronghold": _make_overrides(
         tab_text="组织",
         business_next=["stronghold_in_stronghold", "stronghold_in_match"],
         roi_regular=[120, 68, 98, 585],
     ),
+    # ===== give_energy: 修 narutomobile 默认 ROI (2026-07-15 修复) =====
+    # 背景: 用户的 1280x720 模拟器画面里,"一键赠送"按钮 y 中心 ≈ 660,
+    # narutomobile 默认 sent_energy.roi=[346,571,131,48] 覆盖 y=571-619,
+    # **整个按钮都在 ROI 下方 16-66 像素**,OCR 找不到 → 22s 超时。
+    # 同样的问题在 get_energy.roi=[519,575,134,42] 也有("一键领取" y ≈ 660)。
+    # 修复: extend ROI y 范围到 630-690,正好覆盖两个按钮所在的底栏。
+    # 上游 interface.json 没 override 这两个节点(narutomobile 用的是更高分辨率
+    # 模拟器,默认 ROI 没问题),这是 1280x720 模拟器特有的修。
+    # 注: merged.json 已同步改 ROI (2026-07-15),这里仍保留 hardcoded 作为
+    # defense in depth — 如果用户换模拟器分辨率,可以快速改 Python 端。
+    "give_energy": {
+        "sent_energy": {"roi": [340, 630, 110, 60]},
+        "get_energy": {"roi": [519, 630, 110, 60]},
+    },
+}
+
+
+# ============================================================
+# 最终 PIPELINE_OVERRIDES_BY_ENTRY = hardcoded + frontend (frontend 优先)
+# ============================================================
+_FRONTEND_OVERRIDES: dict[str, dict[str, Any]] = _load_overrides_from_frontend()
+
+# 合并:hardcoded 在前(被覆盖),frontend 在后(覆盖)
+PIPELINE_OVERRIDES_BY_ENTRY: dict[str, dict[str, Any]] = {
+    **_HARDCODED_OVERRIDES,
+    **_FRONTEND_OVERRIDES,
 }
 
 
@@ -181,89 +260,5 @@ def get_overrides_for_entry(entry: str) -> dict[str, Any] | None:
 
 
 # ============================================================
-# v1 旧实现 (保留作为 fallback / 参考,2026-07-02 不再使用)
-# 不删(Q1 决策:旧代码留原地),仅留为文档参考。
+# v1 旧实现 — 2026-07-15 清理删除。历史行为见 git log.
 # ============================================================
-#
-# v1 用 ``_po_goto_<entry>`` 新节点 + ``GoIntoEntryByGuide`` Custom Action。
-# 缺点:
-#   - 创建新节点,不能复用 merged.json 已有的 OCR 节点
-#   - 缺回归玩家路径覆盖
-#   - Python 端 OCR 调用比引擎内置 OCR 慢
-#
-# v1 实测 group 任务 47s,v2 实测 28s (40% 提速)。
-# ============================================================
-LEFT_MENU_ROI: tuple[int, int, int, int] = (0, 66, 219, 627)
-
-
-def _make_goto_node_v1(entry_name: str | list[str], verify_next: list[str]) -> dict[str, Any]:
-    """v1 已弃用,仅保留。"""
-    return {
-        "recognition": {
-            "type": "TemplateMatch",
-            "param": {
-                "template": ["SharedNode/in_ninja_guide.png"],
-                "roi": [988, 81, 180, 78],
-            },
-        },
-        "action": {
-            "type": "Custom",
-            "param": {
-                "custom_action": "GoIntoEntryByGuide",
-                "custom_action_param": {"entry_name": entry_name},
-            },
-        },
-        "timeout": 3000,
-        "post_delay": 1500,
-        "next": verify_next + ["[JumpBack]back_main_screen_and_stop"],
-    }
-
-
-def _make_entry_override_v1(verify_next_node: str) -> dict[str, Any]:
-    """v1 已弃用,仅保留。"""
-    return {
-        "recognition": {
-            "type": "TemplateMatch",
-            "param": {
-                "template": ["SharedNode/guide.png"],
-                "roi": [934, 597, 178, 123],
-                "threshold": 0.7,
-            },
-        },
-        "action": "Click",
-        "timeout": 5000,
-        "next": [
-            verify_next_node,
-            "[JumpBack]back_main_screen_before_task",
-        ],
-    }
-
-
-# v1 PIPELINE_OVERRIDES (旧字典,不再用,留作 fallback 文档)
-PIPELINE_OVERRIDES_V1_LEGACY: dict[str, dict[str, Any]] = {
-    "_po_goto_group": _make_goto_node_v1(
-        "组织",
-        ["group_gameplay_undone", "group_gameplay_done", "no_group"],
-    ),
-    "group": _make_entry_override_v1("_po_goto_group"),
-    "_po_goto_mission_office": _make_goto_node_v1(
-        "任务集会所",
-        ["mission_office_in_ninja_guide"],
-    ),
-    "mission_office": _make_entry_override_v1("_po_goto_mission_office"),
-    "_po_goto_point_race": _make_goto_node_v1(
-        "积分赛",
-        ["point_race_in_center_enter", "point_race_challenge_enter", "point_race_cross_server"],
-    ),
-    "point_race": _make_entry_override_v1("_po_goto_point_race"),
-    "_po_goto_weekly_win": _make_goto_node_v1(
-        "忍术对战",
-        ["weekly_win_in_center_enter", "weekly_win_in_duel_field"],
-    ),
-    "weekly_win": _make_entry_override_v1("_po_goto_weekly_win"),
-    "_po_goto_stronghold": _make_goto_node_v1(
-        "组织",
-        ["stronghold_in_stronghold", "stronghold_in_match"],
-    ),
-    "stronghold": _make_entry_override_v1("_po_goto_stronghold"),
-}

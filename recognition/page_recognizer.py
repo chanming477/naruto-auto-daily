@@ -36,7 +36,7 @@ from loguru import logger
 
 from recognition.template_matcher import MatchResult, TemplateMatcher
 from recognition.types import RecognitionResult
-from state.game_state import GameState
+from state_machine.game_state import GameState
 
 __all__ = ["PageRecognizer"]
 

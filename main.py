@@ -14,8 +14,7 @@ Phase 1 命令（保留, 调试用）：
 MaaFramework 真实跑批（2026-07-14 统一入口）：
     --run-task <TASK_ID>     真机跑指定 task (从 TASK_MAPPING 20 个 task_id 选)
     --list-tasks             打印所有可用 task_id <-> entry 映射
-    --no-retry-on-degraded   DEGRADED 不重试 (默认 retry 1 次, 调试用)
-    --daily-all              顺序跑 schemes/daily.json 全部 task (MaaFramework 引擎)
+    --daily-all              顺序跑 config/schedule.json 全部 task (MaaFramework 引擎)
 
 默认行为（无任何参数）：
     启动 MFAAvalonia 桌面 GUI (等价 ``--gui``, 需先下载 frontend/MFAAvalonia/,
@@ -45,10 +44,6 @@ if str(PROJECT_ROOT) not in sys.path:
 from core.app_paths import get_resource_root, get_user_data_dir
 from loguru import logger
 
-# Phase 2 依赖:numpy / OpenCV 用于 demo 截图生成与可选落盘
-import cv2
-import numpy as np
-
 from core import __version__
 from core.base_task import ExecutionContext
 from core.config_manager import ConfigManager
@@ -59,18 +54,9 @@ from core.screenshot_manager import ScreenshotManager
 from core.state_machine import StateMachine, build_default_state_machine
 from core.window_manager import WindowManager
 
-# Phase 2 增量
-from device.adb_client import ADBClient, ADBError, ADBUnavailableError
-from recognition.template_matcher import TemplateMatcher
-from recognizer.page_recognizer import PageRecognizer
-from state.game_state import GameState
-# V2: GameContext 已删除,改为 ExecutionContext 的类型别名(state.types 里)
-# 这里不再 import — run_phase2_demo 用 GameStateMachine 直接持有状态。
-from state_machine.game_state_machine import GameStateMachine
-
-# Phase 4 增量
-from recovery.recovery_manager import RecoveryManager
-from recovery.retry_manager import RetryManager, RetryPolicy
+# 注: Phase 2/4 的 ADBClient / TemplateMatcher / PageRecognizer / GameStateMachine /
+# RecoveryManager / RetryManager 等类已随旧 Navigator 框架删除或被 MaaFramework 取代,
+# 不再在 main.py 顶层 import。相关代码路径见 tasks/task_engine_maafw.py。
 
 __all__ = [
     "main", "build_context", "parse_args",
@@ -90,7 +76,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         epilog="示例:\n"
                "  python main.py                       # 默认启 MFAAvalonia 桌面 GUI\n"
                "  python main.py --run-task mail       # 真机跑邮件领取(走 MaaFramework)\n"
-               "  python main.py --daily-all           # 顺序跑 schemes/daily.json 全部 task\n"
+               "  python main.py --daily-all           # 顺序跑 config/schedule.json 全部 task\n"
                "  python main.py --list-tasks          # 打印 TASK_MAPPING 20 个 task_id\n"
                "  python main.py --init-config\n"
                "  python main.py --smoke-test\n"
@@ -115,12 +101,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                              " 如 --run-task mail (覆盖 TASK_MAPPING 20 个 task_id)")
     parser.add_argument("--list-tasks", action="store_true",
                         help="打印所有可用 task_id <-> entry 映射表(从 TASK_MAPPING, 不连 ADB)")
-    parser.add_argument("--no-retry-on-degraded", action="store_true",
-                        help="DEGRADED 不重试(默认 retry 1 次, 调试用)")
     parser.add_argument("--daily-all", action="store_true",
-                        help="顺序跑 schemes/daily.json 全部 task(MaaFramework + narutomobile 模板)")
-    parser.add_argument("--emu-resolution", type=str, default="auto",
-                        help="实际模拟器分辨率 WxH,默认 auto=自动检测(如 1600x900)")
+                        help="顺序跑 config/schedule.json 全部 task(MaaFramework + narutomobile 模板)")
     parser.add_argument("--debug", action="store_true",
                         help="把日志级别下调到 DEBUG")
     parser.add_argument("--quiet", action="store_true",
@@ -284,19 +266,6 @@ def cmd_capture_test(ctx: ExecutionContext) -> int:
     return 0
 
 
-def cmd_run(ctx: ExecutionContext, task_id: str | None) -> int:
-    scheduler = Scheduler(ctx)
-    if task_id:
-        print(f"running single task: {task_id}")
-        result = scheduler.run_single(task_id)
-        if result is None:
-            return 2
-        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
-        return 0 if result.is_success else 1
-    report = scheduler.run()
-    print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
-    return 0 if (report.fail_count == 0 and not report.aborted) else 1
-
 
 
 
@@ -375,7 +344,7 @@ def _run_single_maafw_task(
     try:
         engine = MaaTaskEngine(cfg)
     except Exception as exc:
-        print(f"\n✗ MaaTaskEngine init failed: {exc}")
+        print(f"\n[FAIL] MaaTaskEngine init failed: {exc}")
         logger.error("MaaTaskEngine init failed: {}", exc)
         return 1
 
@@ -383,50 +352,14 @@ def _run_single_maafw_task(
     return _print_task_result(result, label)
 
 
-def _run_real_task_impl(
-    task_id: str,
-    project_root: Path,
-    *,
-    console_level: str | None = None,
-    emu_resolution: str = "auto",  # noqa: ARG001 保留参数签名,内部走 MaaFW 不读分辨率
-    retry_on_degraded: bool = True,
-) -> int:
-    """统一真机跑批入口:支持 TASK_MAPPING 20 个 task_id。
-
-    2026-07-14 合并: 5 个 ``--<task>-real`` + ``--weekly-signin-real`` 6 个函数
-    合并为 1 个数据驱动 dispatcher, 由 ``--run-task <task_id>`` 调用。
-
-    Args:
-        task_id: TASK_MAPPING 里的 task_id(20 个,见 ``--list-tasks``)
-        project_root: 项目根
-        console_level: 日志级别(可选)
-        emu_resolution: 保留参数兼容性,内部走 MaaFW 不读
-        retry_on_degraded: 是否在 DEGRADED 时 retry(默认 True,
-                          ``--no-retry-on-degraded`` 时 False; truthfulness 接入后生效)
-
-    Returns:
-        退出码: 0 = 成功, 1 = MaaTaskEngine 初始化失败, 2 = 任务失败
-    """
-    if emu_resolution != "auto":
-        logger.warning(
-            "_run_real_task_impl: emu_resolution='{}' is ignored under MaaFramework mode "
-            "(narutomobile 自适配 1920x1080 默认坐标)",
-            emu_resolution,
-        )
-    if not retry_on_degraded:
-        logger.debug("_run_real_task_impl: --no-retry-on-degraded set (truthfulness 接入后生效)")
-    return _run_single_maafw_task(
-        project_root, task_id, console_level=console_level, label=task_id,
-    )
-
 
 def cmd_daily_all(
     project_root: Path,
     console_level: str | None = None,
 ) -> int:
-    """``--daily-all`` 命令: 顺序跑 schemes/daily.json 全部任务(MaaFramework 版)。
+    """``--daily-all`` 命令: 顺序跑 config/schedule.json 全部任务(MaaFramework 版)。
 
-    任务顺序由 ``schemes/daily.json`` 决定(2026-07-11 起 5 个:
+    任务顺序由 ``config/schedule.json`` 决定(2026-07-11 起 5 个:
     mail / liveness / group_signin / daily_signin / recruit),走 MaaTaskEngine。
     """
     import json
@@ -434,7 +367,7 @@ def cmd_daily_all(
     from tasks.task_engine_maafw import MaaTaskEngine
 
     print("=" * 70)
-    print("MaaFramework daily (schemes/daily.json)")
+    print("MaaFramework daily (config/schedule.json)")
     print("=" * 70)
 
     cfg = ConfigManager(get_user_data_dir(), auto_load=True)
@@ -442,9 +375,9 @@ def cmd_daily_all(
         cfg.app.logger.console_level = console_level
     configure_logger(cfg.app.logger, get_user_data_dir())  # P0-1 修复
 
-    scheme_path = get_resource_root() / "schemes" / "daily.json"  # P2-2 统一路径
+    scheme_path = get_resource_root() / "config" / "schedule.json"  # P2-2 统一路径(2026-07-15 从 schemes/ → config/)
     if not scheme_path.exists():
-        print(f"✗ not found: {scheme_path}")
+        print(f"[FAIL] not found: {scheme_path}")
         return 6
     task_ids = json.loads(scheme_path.read_text(encoding="utf-8")).get("task_ids", [])
     print(f"tasks ({len(task_ids)}): {' → '.join(task_ids)}")
@@ -452,7 +385,7 @@ def cmd_daily_all(
     try:
         engine = MaaTaskEngine(cfg)
     except Exception as exc:
-        print(f"\n✗ MaaTaskEngine init failed: {exc}")
+        print(f"\n[FAIL] MaaTaskEngine init failed: {exc}")
         logger.error("MaaTaskEngine init failed: {}", exc)
         return 1
 
@@ -498,67 +431,21 @@ def cmd_maafw_list(project_root: Path) -> int:  # noqa: ARG001 保留 project_ro
 
     # 2026-07-11 修:verify_resource_path 需要 path 参数(原孤儿函数从未跑过,这次发现缺参)
     # 默认路径与 maafw_bridge.tasker._do_init 一致:{resource_root}/resources/narutomobile
+    # 2026-07-15 修:Windows GBK console 不能 print [OK]/[FAIL] unicode,改用 ASCII 避免 UnicodeEncodeError
     resource_path = get_resource_root() / "resources" / "narutomobile"
     ok, msg = verify_resource_path(resource_path)
     if ok:
-        print(f"✓ resource 路径合法: {msg}")
+        print(f"[OK] resource path valid: {msg}")
         rc = 0
     else:
-        print(f"✗ resource 路径异常: {msg}")
+        print(f"[FAIL] resource path invalid: {msg}")
         rc = 1
     return rc
 
 
-
-# ============================================================
-# Phase 8 (2026-07-02) — MaaFramework 杂接: --daily-maafw
-# 设计: 不删任何旧代码,只新增平行命令。
-# ============================================================
-
-
-def cmd_daily_maafw(project_root: Path, console_level: str | None = None) -> int:
-    """``--daily-maafw``: 跑 daily schedule(走 MaaFramework + narutomobile 模板)。
-
-    跟 ``--daily-all`` 平行 — 后者走旧自研 task_engine,本命令走 maafw 引擎。
-    """
-    from core.config_manager import ConfigManager
-    from tasks.task_engine_maafw import MaaTaskEngine
-
-    print("=" * 70)
-    print("Phase 8 MaaFramework daily runner")
-    print("=" * 70)
-
-    cfg = ConfigManager(get_user_data_dir(), auto_load=True)
-    if console_level is not None:
-        cfg.app.logger.console_level = console_level
-    configure_logger(cfg.app.logger, get_user_data_dir())  # P0-1 修复
-    print(f"project_root: {get_user_data_dir()}")
-    print(f"maafw resource: {cfg.app.maafw.narutomobile_resource_path or '(default: resources/narutomobile)'}")
-
-    try:
-        engine = MaaTaskEngine(cfg)
-    except Exception as exc:
-        print(f"\n✗ MaaTaskEngine init failed: {exc}")
-        logger.error("MaaTaskEngine init failed: {}", exc)
-        return 1
-
-    report = engine.run_daily()
-    MaaTaskEngine.print_report(report)
-
-    rc = 0 if (report.fail_count == 0 and not report.aborted) else 1
-    return rc
-
-
-def cmd_maafw_task(project_root: Path, task_id: str, console_level: str | None = None) -> int:
-    """``--maafw-task <task_id>``: 跑单个 task(走 MaaFramework + narutomobile 模板)。
-
-    覆盖 TASK_MAPPING 全部 20 个 task_id(包括旧 CLI 无入口的 recruit / advanture /
-    elite_instance 等),为补足旧 ``--xxx-real`` 命令未覆盖的 task。
-    """
-    from maafw_bridge import resolve_entry
-
-    print(f"task_id: {task_id}  →  entry: {resolve_entry(task_id)}")
-    return _run_single_maafw_task(project_root, task_id, console_level=console_level)
+# 注: 2026-07-14 清理删掉 ``cmd_daily_maafw`` / ``cmd_maafw_task`` 两个死函数
+# (对应的 ``--daily-maafw`` / ``--maafw-task`` argparse flag 已删,不再调用)。
+# ``cmd_daily_all`` (走 ``--daily-all``) 是 2026-07-14 唯一保留的 daily 入口。
 
 
 def cmd_check(project_root: Path, console_level: str | None = None) -> int:
@@ -636,9 +523,9 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
                     cls = getattr(mod, class_name)
                     enabled = entry.get("enabled", False)
                     order = entry.get("display_order", "?")
-                    print(f"      ✓ {tid:18s} -> {class_name:25s}  enabled={enabled} order={order}")
+                    print(f"      [OK] {tid:18s} -> {class_name:25s}  enabled={enabled} order={order}")
                 except (ImportError, AttributeError, ValueError) as exc:
-                    print(f"      ✗ {tid:18s} -> {task_class_path}  FAIL: {exc}")
+                    print(f"      [FAIL] {tid:18s} -> {task_class_path}  FAIL: {exc}")
                     issues.append(f"task {tid}: {exc}")
     except Exception as exc:  # noqa: BLE001
         print(f"   FAIL  任务注册表解析失败: {exc}")
@@ -737,35 +624,28 @@ def main(argv: list[str] | None = None) -> int:
 
     # MaaFramework 真实跑批(2026-07-14 统一入口)
     if args.run_task:
-        from maafw_bridge import SUPPORTED_TASK_IDS
-        if args.run_task not in SUPPORTED_TASK_IDS:
-            print(f"✗ unknown task_id: {args.run_task!r}")
-            print(f"  valid: {sorted(SUPPORTED_TASK_IDS)}")
-            print("  跑 `python main.py --list-tasks` 看完整映射")
+        from maafw_bridge import is_supported
+        if not is_supported(args.run_task):
+            print(f"[FAIL] unknown task_id: {args.run_task!r}")
+            print("  run `python main.py --list-tasks` to see full mapping")
             return 4
-        return _run_real_task_impl(
-            args.run_task, PROJECT_ROOT,
-            console_level=console_level,
-            emu_resolution=args.emu_resolution,
-            retry_on_degraded=not args.no_retry_on_degraded,
+        return _run_single_maafw_task(
+            PROJECT_ROOT, args.run_task, console_level=console_level, label=args.run_task,
         )
     if args.list_tasks:
         return cmd_maafw_list(PROJECT_ROOT)
 
-    # Phase 6 业务扩展: schemes/daily.json 全流程
+    # Phase 6 业务扩展: config/schedule.json 全流程
     if args.daily_all:
         return cmd_daily_all(PROJECT_ROOT, console_level=console_level)
 
-    # Phase 8 MaaFramework 桥接(2026-07-02,跟旧 --daily-all 平行)
-    if args.daily_maafw:
-        return cmd_daily_maafw(PROJECT_ROOT, console_level=console_level)
-    if args.maafw_task:
-        return cmd_maafw_task(PROJECT_ROOT, args.maafw_task, console_level=console_level)
-
     # 其他 Phase 1 命令需要完整的 ExecutionContext
+    # 注: 2026-07-14 清理删掉 ``--daily-maafw`` / ``--maafw-task`` / ``--run`` /
+    # ``--task`` 4 个 argparse flag(走 --run-task <id> / --daily-all 统一入口),
+    # 不再判断 ``args.daily_maafw`` / ``args.maafw_task`` / ``args.run`` / ``args.task``。
     no_action = not any([
         args.smoke_test, args.list_windows,
-        args.run, args.activate_window, args.capture_test,
+        args.activate_window, args.capture_test,
     ])
     if no_action:
         # 2026-07-11: 无参数时默认启动 MFAAvalonia 桌面客户端
@@ -784,8 +664,6 @@ def main(argv: list[str] | None = None) -> int:
             rc = cmd_capture_test(ctx)
         elif args.smoke_test:
             rc = cmd_smoke_test(ctx)
-        elif args.run:
-            rc = cmd_run(ctx, args.task)
         logger.info("done in {:.2f}s", time.monotonic() - t0)
     except KeyboardInterrupt:
         logger.warning("interrupted by user")

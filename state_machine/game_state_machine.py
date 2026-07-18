@@ -39,7 +39,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from state.game_state import GameState
+from state_machine.game_state import GameState
 
 if TYPE_CHECKING:
     from recovery.recovery_manager import RecoveryManager

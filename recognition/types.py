@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from state.game_state import GameState
+from state_machine.game_state import GameState
 
 __all__ = ["RecognitionResult"]
 

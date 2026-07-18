@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from logging_ext import RunContext
-from logging_ext import run_context as run_context_module
+from core.run_context import RunContext
+from core import run_context as run_context_module
 
 
 # ============================================================

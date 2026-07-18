@@ -2,6 +2,54 @@
 
 所有重要变更记录在此。格式基于 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [0.7.1] - 2026-07-18 (开源自检 + 模块合并)
+
+### Added
+- **`agent/` Python 子进程模块** — MFAAvalonia (C# GUI) 启动时自动 spawn 的 Python 进程,负责注册 `NonlinearSwipe` / `GoIntoEntryByGuide` / `CleanLogs` 三个 custom action
+  - 通过 MaaAgentServer/MaaAgentClient IPC 接 C# 调
+  - 直接 API 模式 (Direct API) 和 Agent 模式 (子进程) 共享 `maafw_bridge._actions_core` 核心逻辑
+- **`maafw_bridge/_actions_core.py`** — 从 `custom_actions.py` 抽出的核心逻辑(方案 A),Direct API + Agent 双模式都调它
+  - `go_into_entry_by_guide_run` 完整版(narutomobile 算法 1:1 移植,5 步 OCR + 3 次 click)
+  - `clean_logs_run` 维护性 task(清理旧 session debug + MFAAvalonia backup)
+- **`config/maa_option.json`** — MaaFramework 启动选项配置
+- **`config/schedule.json`** — 任务跑批方案(从 `schemes/daily.json` 迁移)
+- **`tools/bundle_python.py`** — Python 打包工具(python-build-standalone 下载,用于 MFAAvalonia 部署)
+
+### Changed
+- **模块合并(4 项)**:
+  - `state/` → `state_machine/`(`GameState` 枚举移入)
+  - `recognizer/` → `recognition/`(`PageRecognizer` 移入)
+  - `logging_ext/` → `core/run_context.py`(`RunContext` 移入)
+  - `schemes/daily.json` → `config/schedule.json`
+- **`core/base_task.py:pre_flight`** — 简化为 no-op(直接 return True)
+  - 旧版委托 `CommonActions.ensure_game_in_foreground()`,新版由 MaaFramework merged.json pipeline 接管
+  - docstring 明确说"前台守护已从 Python 移走,pipeline 接管" + 解释原因
+- **`recovery/recovery_manager.py`** — 3 个用 `self._common` 的 `recover_*` 方法加 None guard
+  - `recover_unknown` None → 返 `GameState.UNKNOWN`
+  - `recover_popup` None → 返 `False`
+  - `recover_loading_timeout` None → 返 `False`
+  - `recover_adb_error` 不依赖 common,本来就不用改
+  - `common_actions` 参数仍为 keyword-only 且 default `None`(向后兼容,无脚枪)
+- **`tasks/task_engine_maafw.py`** — `list_supported_tasks()` 改用 `list_supported_entries()`(避免同 entry 重复跑)
+- **`pyproject.toml`**: `packages =` 更新(移除 `logging_ext/` / `recognizer/` / `state/`,加入 `agent/`)
+- **`README.md` / `CONTRIBUTING.md` / `docs/operation_flows.md`**: 反映新的目录结构
+- **测试更新**:
+  - `test_custom_actions.py` (5 个):适配 `_actions_core.go_into_entry_by_guide_run` 3-click 算法
+  - `test_clean_logs.py` (2 个):硬编码路径改为 `Path(__file__).resolve().parent.parent`,`clean_logs` entry 缺失时 skip(留作回归保险)
+  - `test_task_mapping.py` (1 个):任务计数从 `default.json` TaskItems 动态读取,不再 hardcode 21
+  - `test_pipeline_overrides.py` (1 个):改为用 `monkeypatch` + `tmp_path` 测 fallback 行为(MFAAvalonia 清空 `ResourceOptionItems` 后 `_FALLBACK_YES_OPTIONS` 仍生效)
+  - `test_recovery_manager.py` (4 个新):验证 `common_actions=None` 时 3 个 recover_* 不 AttributeError
+
+### Removed
+- **`logging_ext/`** 整个目录(2 个文件)
+- **`recognizer/`** 整个目录(2 个文件)
+- **`state/`** 整个目录(2 个文件)
+- **`schemes/`** 整个目录(只有 `daily.json`,已迁到 `config/schedule.json`)
+
+### 用户操作变更
+- 无破坏性变化 — 所有 CLI 命令(`--xxx-real` / `--maafw-task` / `--daily-all` / `--gui`)保持兼容
+- `--daily-all` 现在读 `config/schedule.json`(原 `schemes/daily.json`)
+
 ## [Unreleased] - 2026-07-11 (前端整合 + UI 清理)
 
 ### Added
@@ -40,7 +88,7 @@
 - **`maafw_bridge/`**: MaaFramework 5.10.4 Python binding
 - **`resources/narutomobile/`**: 24.9 MB 资源包(`pipeline/merged.json` + 786 张 PNG 模板 + OCR 模型)
 - **`core/` / `device/` / `recognition/` / `recognizer/` / `recovery/` / `state/` / `state_machine/` / `logging_ext/`**: 业务支撑模块
-- **`schemes/daily.json`**: 5 task 跑批方案(`mail` / `liveness` / `group_signin` / `daily_signin` / `recruit`)
+- **`config/schedule.json`**: 5 task 跑批方案(`mail` / `liveness` / `group_signin` / `daily_signin` / `recruit`)
 - **`tests/`**: 24 个测试文件(2026-06-30 阶段 7 时 27 个 - 3 个 PySide6 相关删除 = 24 个)
 
 ### 用户操作变更

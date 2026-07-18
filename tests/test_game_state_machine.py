@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from state.game_state import GameState
+from state_machine.game_state import GameState
 from state_machine.game_state_machine import GameStateMachine, StateTransition
 
 

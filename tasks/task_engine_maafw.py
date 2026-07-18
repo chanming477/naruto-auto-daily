@@ -15,7 +15,7 @@
         - 产出 ``core.scheduler.RunReport``(直接复用,P1-2 2026-07-11 合并)
 
 CLI 入口:
-    ``python main.py --daily-maafw`` 跑 schemes/daily.json 的全部 task(走 maafw)
+    ``python main.py --daily-maafw`` 跑 config/schedule.json 的全部 task(走 maafw)
 """
 
 from __future__ import annotations
@@ -149,10 +149,9 @@ class MaaTaskEngine:
             ``core.scheduler.RunReport``(2026-07-11 P1-2 合并,直接复用)。
         """
         if task_ids is None:
-            # cfg.tasks.tasks 是 BaseTask 注册表 dict(本项目旧架构)
-            # 我们走 task_mapping 表
-            from maafw_bridge import list_supported_tasks
-            task_ids = list_supported_tasks()
+            # 2026-07-15 fix: 用 list_supported_entries 避免同 entry 重复运行
+            from maafw_bridge import list_supported_entries
+            task_ids = list_supported_entries()
 
         report = RunReport(started_at=datetime.now())
         log = _LOG

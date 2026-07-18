@@ -24,7 +24,7 @@ import traceback
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from loguru import logger
 
@@ -32,9 +32,6 @@ from core.config_manager import ConfigManager
 from core.screenshot_manager import ScreenshotManager
 from core.state_machine import StateMachine
 from core.window_manager import WindowInfo, WindowManager
-
-if TYPE_CHECKING:
-    from tasks.common_actions import CommonActions  # 仅类型检查,运行时避免循环依赖
 
 __all__ = [
     "ExecutionContext",
@@ -128,16 +125,6 @@ class ExecutionContext:
     task_results: list[TaskResult] = field(default_factory=list)
     current_task_id: str | None = None
     last_screenshot_path: str | None = None
-    #: Phase 3 跨任务共享动作库。由 ``TaskEngine.__init__`` 注入,Phase 1/2 任务不读。
-    #:
-    #: 为什么不放在 ``ConfigManager`` 或 ``TaskEngine`` 私有属性:
-    #:   - ConfigManager 是声明式配置,不是运行时服务;混入服务字段会污染配置语义
-    #:   - TaskEngine 私有属性在多层调用栈中取不到
-    #:   - ExecutionContext 本就是 DI 容器(本类 docstring 已说明),放在这里最自然
-    #:
-    #: 缺失时调用方应明确处理(``pre_check`` 返 False / ``recover`` 返 False),
-    #: **不再走 noop fallback** — 见 P1-BUG-01。
-    common_actions: "CommonActions | None" = None
     #: Phase 4 增量: 业务级游戏状态(由 ``recovery.RecoveryManager`` / ``GameStateMachine`` 写入)。
     #:
     #: 与 ``state_machine`` 字段(运行级状态机)区别:
@@ -193,25 +180,22 @@ class BaseTask(abc.ABC):
     # ----- 生命周期 -----------------------------------------------------
 
     def pre_flight(self, ctx: ExecutionContext) -> bool:  # noqa: D401
-        """任务执行前的「前置守护」(Phase 5 P0 增量)。
+        """任务执行前的「前置守护」(Phase 5 P0 增量,2026-07-15 简化)。
 
-        在 ``pre_check`` 之前调用,职责:
-            - 确保游戏在前台(防止上一任务把游戏切到后台,见 narutomobile 6/25 教训)
-            - 默认实现委托给 ``CommonActions.ensure_game_in_foreground()``
-
-        返回 False 会被 Scheduler 当作 SKIP(同 ``pre_check`` 语义)。
+        在 ``pre_check`` 之前调用。默认实现直接返回 True。
         子类可覆盖做更细致的前置检查(例如特定分辨率校验)。
+
+        **保证游戏前台** 这个职责已经从 Python 层移走:
+            - 旧实现: ``CommonActions.ensure_game_in_foreground()``(在 Navigator 时代,
+              每个 task 调一次,防上一任务把游戏切到后台)
+            - 新实现: MaaFramework 的 merged.json pipeline 节点
+              (e.g. ``IsInHomePage`` 在 ``on_error`` 走 ``ForceBackToHome``)负责
+            - Python 端 pre_flight 不再 touch ADB
+
+        原因: 旧 `tasks.common_actions` 已删除(2026-07-15),且 MaaFramework 的
+        节点级 on_error 链比 Python pre_flight 更可靠(它有截图证据)。
         """
-        if ctx.common_actions is None:
-            return True
-        try:
-            return bool(ctx.common_actions.ensure_game_in_foreground())
-        except Exception as exc:
-            # 不阻断任务:log warning 后继续
-            logger.bind(task_id=self.task_id).warning(
-                "pre_flight raised (ignored): {}", exc,
-            )
-            return True
+        return True
 
     def pre_check(self, ctx: ExecutionContext) -> bool:  # noqa: D401
         """任务执行前的可行性检查。返回 False 会被 Scheduler 当作 SKIP。"""

@@ -342,7 +342,7 @@ GroupSigninTask (`task_id="group_signin"`, `name="组织签到"`, `category="dai
 > - `capture_shop_recruit.py` (移到 `C:\tmp\capture_shop_recruit_removed.py` 备份)
 > - `capture_one.py` (移到 `C:\tmp\capture_one_removed.py` 备份)
 > - `config/task_registry.yaml` 里的 `shop` 条目
-> - `schemes/daily.json` 里的 `"shop"` 任务 ID
+> - `config/schedule.json` 里的 `"shop"` 任务 ID
 > - `tasks/__init__.py` 里的 `shop_task` 引用
 > - `docs/operation_flows.md` 的 ShopTask 章节 (本节)
 > - `docs/COMPLETION_REPORT.md` 里的 ShopTask 部分
@@ -356,7 +356,7 @@ GroupSigninTask (`task_id="group_signin"`, `name="组织签到"`, `category="dai
 ### 任务名称
 RecruitTask (`task_id="recruit"`, `name="招募"`, `category="daily"`)
 
-> **当前实现状态:** Pipeline 已按规格搭好,RecruitTask 类已挂到 task_registry (`display_order=7`),`schemes/daily.json` 已加入 `recruit`。但 `recruit/*` 4 个专属模板未采集,因此当前以"best-effort SUCCESS"模式运行,实际不会进入招募页。
+> **当前实现状态:** Pipeline 已按规格搭好,RecruitTask 类已挂到 task_registry (`display_order=7`),`config/schedule.json` 已加入 `recruit`。但 `recruit/*` 4 个专属模板未采集,因此当前以"best-effort SUCCESS"模式运行,实际不会进入招募页。
 
 ### Step1
 **当前画面:** HOME
