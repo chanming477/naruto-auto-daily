@@ -199,8 +199,11 @@ def test_best_effort_after_retry(ctx):
 
 
 def test_run_report_best_effort_count():
-    """RunReport.best_effort_count 必须能区分"完美成功"和"降级成功"。"""
-    from core.scheduler import RunReport
+    """RunReport.best_effort_count 必须能区分"完美成功"和"降级成功"。
+
+    P2-6 (2026-07-18): RunReport 从 core.scheduler 移到 tasks.task_engine_maafw。
+    """
+    from tasks.task_engine_maafw import RunReport
     results = [
         TaskResult(task_id="a", status=TaskStatus.SUCCESS, message="ok"),
         TaskResult(task_id="b", status=TaskStatus.BEST_EFFORT, message="degraded"),

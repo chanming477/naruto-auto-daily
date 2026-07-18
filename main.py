@@ -5,11 +5,11 @@
 
 Phase 1 命令（保留, 调试用）：
     --init-config      生成默认 YAML（已存在不覆盖）
-    --smoke-test       无目标窗口也能跑：初始化所有 Manager + 调度器空跑
-    --list-windows     列出当前桌面所有顶层窗口
-    --activate-window  只查找并激活目标窗口
     --capture-test     截一张目标窗口的图保存到 screenshots/
     --debug / --quiet / --version
+
+P2-6 (2026-07-18): --smoke-test / --list-windows / --activate-window 已删
+(全死代码, 无用户)。仅 --capture-test 保留。
 
 MaaFramework 真实跑批（2026-07-14 统一入口）：
     --run-task <TASK_ID>     真机跑指定 task (从 TASK_MAPPING 20 个 task_id 选)
@@ -49,7 +49,6 @@ from core.base_task import ExecutionContext
 from core.config_manager import ConfigManager
 from core.logger import configure as configure_logger
 from core.logger import shutdown as shutdown_logger
-from core.scheduler import Scheduler
 from core.screenshot_manager import ScreenshotManager
 from core.state_machine import StateMachine, build_default_state_machine
 from core.window_manager import WindowManager
@@ -57,6 +56,7 @@ from core.window_manager import WindowManager
 # 注: Phase 2/4 的 ADBClient / TemplateMatcher / PageRecognizer / GameStateMachine /
 # RecoveryManager / RetryManager 等类已随旧 Navigator 框架删除或被 MaaFramework 取代,
 # 不再在 main.py 顶层 import。相关代码路径见 tasks/task_engine_maafw.py。
+# P2-6 (2026-07-18): Scheduler 也删除, --smoke-test 命令已删。
 
 __all__ = [
     "main", "build_context", "parse_args",
@@ -84,12 +84,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--init-config", action="store_true",
                         help="在 config/ 下生成默认 YAML 配置（已存在则跳过）")
-    parser.add_argument("--smoke-test", action="store_true",
-                        help="无目标窗口也能跑：初始化所有 Manager + 调度器空跑")
-    parser.add_argument("--list-windows", action="store_true",
-                        help="枚举并打印所有顶层窗口信息")
-    parser.add_argument("--activate-window", action="store_true",
-                        help="只查找并激活目标窗口，不执行任何任务")
+    # P2-6 (2026-07-18): --smoke-test / --list-windows / --activate-window 已删
+    # 只保留 --capture-test (调试真机截屏有用)
     parser.add_argument("--capture-test", action="store_true",
                         help="截一张目标窗口的图保存到 screenshots/ 用于验证")
     # ---- GUI 桌面客户端 ----
@@ -171,82 +167,6 @@ def cmd_init_config(project_root: Path) -> int:
         for p in created:
             print(f"  - {p}")
     return 0
-
-
-def cmd_smoke_test(ctx: ExecutionContext) -> int:
-    """无目标窗口也能跑：初始化所有 Manager + 调度器空跑。"""
-    print("=" * 60)
-    print("naruto-auto-daily · smoke-test")
-    print("=" * 60)
-
-    print(f"version       : {__version__}")
-    print(f"project root  : {ctx.config.project_root}")
-    print(f"config dir    : {ctx.config.config_dir}")
-    print(f"app config    : name={ctx.config.app.app.name} "
-          f"phase={ctx.config.app.app.phase}")
-    print(f"logger        : console={ctx.config.app.logger.console_level} "
-          f"file={ctx.config.app.logger.file_level}")
-    print(f"device profile: {ctx.config.device.active_profile} "
-          f"mode={ctx.config.device.active().match_mode}")
-    print(f"screenshot    : backend={ctx.config.app.screenshot.backend} "
-          f"gray={ctx.config.app.screenshot.to_grayscale}")
-    print(f"scheduler     : stop_on_failure={ctx.config.app.scheduler.stop_on_failure} "
-          f"timeout={ctx.config.app.scheduler.task_timeout_sec}s")
-    print(f"state machine : initial={ctx.config.app.state_machine.initial_state} "
-          f"current={ctx.state_machine.state}")
-    print()
-
-    # 列出可见窗口（仅 Windows）
-    if sys.platform == "win32":
-        wins = ctx.window_manager.list_visible()
-        print(f"visible top-level windows: {len(wins)}")
-        for w in wins[:8]:
-            print(f"  - hwnd={w.hwnd} pid={w.pid} proc='{w.process_name}' "
-                  f"title='{w.title[:40]}' class='{w.class_name}' "
-                  f"rect={w.rect.width}x{w.rect.height}")
-        if len(wins) > 8:
-            print(f"  ... ({len(wins) - 8} more)")
-    else:
-        print("non-Windows platform: skipping window enumeration")
-    print()
-
-    # 跑一次空调度（注册表为空）
-    scheduler = Scheduler(ctx)
-    report = scheduler.run()
-    print()
-    print(f"scheduler report: {report.summary()}")
-    print(f"final state machine: {ctx.state_machine.state}")
-    return 0
-
-
-def cmd_list_windows(ctx: ExecutionContext) -> int:
-    if sys.platform != "win32":
-        print("non-Windows platform: WindowManager unavailable")
-        return 0
-    wins = ctx.window_manager.list_visible()
-    print(f"visible top-level windows: {len(wins)}")
-    for w in wins:
-        print(f"  hwnd={w.hwnd:>8} pid={w.pid:>6} proc='{w.process_name:<24}' "
-              f"visible={w.is_visible} minimized={w.is_minimized} "
-              f"rect={w.rect.width}x{w.rect.height} title='{w.title}'")
-    return 0
-
-
-def cmd_activate_window(ctx: ExecutionContext) -> int:
-    if sys.platform != "win32":
-        print("non-Windows platform: WindowManager unavailable")
-        return 1
-    info = ctx.window_manager.find_target()
-    if info is None:
-        print("no target window matched by current device profile")
-        print(f"  profile={ctx.config.device.active_profile} "
-              f"mode={ctx.config.device.active().match_mode} "
-              f"keywords={ctx.config.device.active().match_keywords}")
-        return 2
-    print(f"target: {info}")
-    ok = ctx.window_manager.activate(info.hwnd)
-    print(f"activate: {'OK' if ok else 'FAILED'}")
-    return 0 if ok else 3
 
 
 def cmd_capture_test(ctx: ExecutionContext) -> int:
@@ -515,18 +435,14 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
             tasks = data.get("tasks", {}) or {}
             print(f"   PASS  注册了 {len(tasks)} 个任务")
             for tid, entry in tasks.items():
-                task_class_path = entry.get("task_class", "")
-                # 解析 "module.ClassName"
-                try:
-                    module_name, class_name = task_class_path.rsplit(".", 1)
-                    mod = __import__(module_name, fromlist=[class_name])
-                    cls = getattr(mod, class_name)
-                    enabled = entry.get("enabled", False)
-                    order = entry.get("display_order", "?")
-                    print(f"      [OK] {tid:18s} -> {class_name:25s}  enabled={enabled} order={order}")
-                except (ImportError, AttributeError, ValueError) as exc:
-                    print(f"      [FAIL] {tid:18s} -> {task_class_path}  FAIL: {exc}")
-                    issues.append(f"task {tid}: {exc}")
+                # V3 (2026-07-18): task_class 字段已删,任务入口由 MaaFramework pipeline 决定
+                # → 只校验元数据完整性 (enabled / display_order / category)
+                enabled = entry.get("enabled", False)
+                order = entry.get("display_order", "?")
+                category = entry.get("category", "?")
+                has_class = bool(entry.get("task_class", ""))
+                marker = "" if has_class else " (no task_class, pipeline-only)"
+                print(f"      [OK] {tid:18s}  enabled={enabled} order={order} category={category}{marker}")
     except Exception as exc:  # noqa: BLE001
         print(f"   FAIL  任务注册表解析失败: {exc}")
         issues.append(f"registry: {exc}")
@@ -639,14 +555,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.daily_all:
         return cmd_daily_all(PROJECT_ROOT, console_level=console_level)
 
-    # 其他 Phase 1 命令需要完整的 ExecutionContext
-    # 注: 2026-07-14 清理删掉 ``--daily-maafw`` / ``--maafw-task`` / ``--run`` /
-    # ``--task`` 4 个 argparse flag(走 --run-task <id> / --daily-all 统一入口),
-    # 不再判断 ``args.daily_maafw`` / ``args.maafw_task`` / ``args.run`` / ``args.task``。
-    no_action = not any([
-        args.smoke_test, args.list_windows,
-        args.activate_window, args.capture_test,
-    ])
+    # 调试命令只剩 --capture-test (P2-6 决策 B)
+    # --smoke-test / --list-windows / --activate-window 已删 (全死代码)
+    no_action = not args.capture_test
     if no_action:
         # 2026-07-11: 无参数时默认启动 MFAAvalonia 桌面客户端
         # (源码模式 + 打包 exe 模式 行为一致,均交给 _launch_mfaavalonia_gui)
@@ -656,14 +567,8 @@ def main(argv: list[str] | None = None) -> int:
     ctx = build_context(PROJECT_ROOT, console_level=console_level)
     rc = 0
     try:
-        if args.list_windows:
-            rc = cmd_list_windows(ctx)
-        elif args.activate_window:
-            rc = cmd_activate_window(ctx)
-        elif args.capture_test:
+        if args.capture_test:
             rc = cmd_capture_test(ctx)
-        elif args.smoke_test:
-            rc = cmd_smoke_test(ctx)
         logger.info("done in {:.2f}s", time.monotonic() - t0)
     except KeyboardInterrupt:
         logger.warning("interrupted by user")

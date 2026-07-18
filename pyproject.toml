@@ -19,7 +19,6 @@ dependencies = [
     "psutil>=5.9",
     "pywin32>=306 ; sys_platform == 'win32'",
     "opencv-python-headless>=4.9",
-    "onnxruntime>=1.18",  # recognition.ocr_matcher (DBNet + CRNN 本地 OCR)
     "maafw==5.10.4",
 ]
 
@@ -43,8 +42,6 @@ packages = [
     "device",
     "maafw_bridge",
     "recognition",
-    "recovery",
-    "state_machine",
     "tasks",
 ]
 

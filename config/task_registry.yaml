@@ -1,15 +1,14 @@
 # ============================================================
 # naruto-auto-daily · 任务注册表
 #
-# V2 修正: 删除 schedule_order。
-# 唯一排序来源是每个任务的 ``display_order`` 字段。
-# Scheduler._instantiate_tasks 按 display_order 升序排列所有
-# enabled=true 的任务;``enabled=false`` 的任务被跳过。
+# V3 修正 (2026-07-18): 删除 ``task_class`` 字段。
+# 任务入口由 MaaFramework pipeline merged.json 决定(entry 字符串),
+# 不再需要 Python 类引用。Scheduler 找不到 task_class 时回落到
+# Phase 1 _NoopTask 占位,保持向后兼容。
 #
 # 字段说明(按 task_id 为 key):
-#   task_class         : Python 类路径,格式 "module.ClassName"
 #   enabled            : bool, 是否默认启用
-#   display_order      : int, 排序键(Scheduler 按此升序执行)
+#   display_order      : int, 排序键
 #   category           : 分类字符串(daily / weekly / pvp / shop / mail ...)
 #   description        : 一句话说明
 #   estimated_time_sec : 预估耗时(仅展示用)
@@ -34,7 +33,7 @@
 
 tasks:
   daily_signin:
-    task_class: "tasks.daily_signin_task.DailySigninTask"
+    # 2026-07-18 删 task_class — MaaFramework pipeline 用 entry 字符串,不需 Python 类
     enabled: true
     display_order: 5
     category: "daily"
@@ -45,7 +44,6 @@ tasks:
     config_options: {}
 
   mail:
-    task_class: "tasks.mail_task.MailTask"
     enabled: true
     display_order: 2
     category: "daily"
@@ -56,7 +54,6 @@ tasks:
     config_options: {}
 
   liveness:
-    task_class: "tasks.liveness_task.LivenessTask"
     enabled: true
     display_order: 3
     category: "daily"
@@ -67,7 +64,6 @@ tasks:
     config_options: {}
 
   group_signin:
-    task_class: "tasks.group_signin_task.GroupSigninTask"
     enabled: true
     display_order: 4
     category: "daily"
@@ -78,7 +74,6 @@ tasks:
     config_options: {}
 
   recruit:
-    task_class: "tasks.recruit_task.RecruitTask"
     enabled: true
     display_order: 6
     category: "daily"
@@ -95,7 +90,6 @@ tasks:
   #   monthly_signin: 活动页"每月签到" tab,需要 OCR 引导。
   #   执行顺序追加: weekly_signin(7) → activity(8) → monthly_signin(9)
   weekly_signin:
-    task_class: "tasks.weekly_signin_task.WeeklySigninTask"
     enabled: true
     display_order: 7
     category: "weekly"
@@ -106,7 +100,6 @@ tasks:
     config_options: {}
 
   activity:
-    task_class: "tasks.activity_task.ActivityTask"
     enabled: true
     display_order: 8
     category: "weekly"
@@ -117,7 +110,6 @@ tasks:
     config_options: {}
 
   monthly_signin:
-    task_class: "tasks.monthly_signin_task.MonthlySigninTask"
     enabled: true
     display_order: 9
     category: "monthly"

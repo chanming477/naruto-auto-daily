@@ -12,7 +12,7 @@
 
     - ``MaaTaskEngine.run_daily(task_ids)``:
         - 顺序跑 task_ids,任务间调 ``_back_to_home`` 恢复主页
-        - 产出 ``core.scheduler.RunReport``(直接复用,P1-2 2026-07-11 合并)
+        - 产出 ``RunReport``(本地 dataclass, P2-6 2026-07-18 删 core.scheduler 后内联)
 
 CLI 入口:
     ``python main.py --daily-maafw`` 跑 config/schedule.json 的全部 task(走 maafw)
@@ -20,19 +20,72 @@ CLI 入口:
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from core.base_task import TaskResult, TaskStatus
-from core.scheduler import RunReport
 from maafw_bridge import (
     MaaEventSink,
     MaaTaskerSingleton,
     get_tasker,
     resolve_entry,
 )
+
+if TYPE_CHECKING:
+    from core.config_manager import ConfigManager
+
+
+_LOG = logger.bind(component="task_engine_maafw")
+
+
+# ----- RunReport (P2-6 2026-07-18 从 core.scheduler 移入) --------------------
+
+
+@dataclass
+class RunReport:
+    """单次 daily run 的统计报告。
+
+    P2-6: 从 core.scheduler.RunReport 移入(原模块已删)。字段保持向后兼容。
+    """
+
+    started_at: datetime
+    finished_at: datetime | None = None
+    task_results: list[TaskResult] = field(default_factory=list)
+    aborted: bool = False
+    abort_reason: str = ""
+
+    @property
+    def success_count(self) -> int:
+        return sum(1 for r in self.task_results if r.is_success)
+
+    @property
+    def fail_count(self) -> int:
+        return sum(1 for r in self.task_results if r.is_failure)
+
+    @property
+    def skip_count(self) -> int:
+        return sum(1 for r in self.task_results if r.is_skip)
+
+    @property
+    def best_effort_count(self) -> int:
+        return sum(1 for r in self.task_results if r.is_best_effort)
+
+    @property
+    def has_best_effort(self) -> bool:
+        return self.best_effort_count > 0
+
+    @property
+    def total_count(self) -> int:
+        return len(self.task_results)
+
+    @property
+    def duration_sec(self) -> float:
+        if not self.finished_at:
+            return 0.0
+        return (self.finished_at - self.started_at).total_seconds()
 
 if TYPE_CHECKING:
     from core.config_manager import ConfigManager

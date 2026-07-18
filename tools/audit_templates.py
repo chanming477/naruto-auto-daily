@@ -1,12 +1,18 @@
-"""tools.validate_templates — 校验所有 .py 代码中的模板引用完整性。
+"""tools.audit_templates — 校验所有 .py 代码中的模板引用完整性 (V2 复活版)。
+
+V2 修正 (2026-07-18):
+    旧实现引用已删的 ``resources/templates/actions/``, 现已迁移到
+    MaaFramework pipeline 用的真模板目录 ``resources/narutomobile/image/``。
+    工具从 validate_templates.py 改名 audit_templates.py, 强调
+    "审计 / 报告" 而非 "修复 (现在没人改模板了, 流水线直接用)"。
 
 职责:
     扫描 ``D:\\火影自动日常`` 下所有 .py 文件,提取形如
     ``"<subdir>/<filename>.png"`` 的字符串字面量,作为模板引用,
-    然后校验它们能否在 ``resources/templates/actions/`` 下找到对应文件。
+    然后校验它们能否在 ``resources/narutomobile/image/`` 下找到对应文件。
 
     同时检测:
-        - 引用了空目录 ``resources/templates/shared/`` 的代码(应改用 ``actions/shared/``)
+        - 引用了空目录 ``resources/templates/shared/`` 的代码(应改用 ``image/shared/``)
         - 引用了 ``SharedNode/`` 等老 narutomobile 路径(已归档,不应再用)
         - 模板文件存在但代码里完全没引用(可能是孤儿)
 
@@ -18,13 +24,13 @@
 
 用法:
     # 默认扫描整个项目
-    python tools/validate_templates.py
+    python tools/audit_templates.py
 
     # 指定项目根目录
-    python tools/validate_templates.py --project-root D:\\火影自动日常
+    python tools/audit_templates.py --project-root D:\\火影自动日常
 
     # 输出 JSON(给 CI/其他工具用)
-    python tools/validate_templates.py --json
+    python tools/audit_templates.py --json
 
 退出码:
     0 = 无 MISSING(可继续)
@@ -53,8 +59,8 @@ TEMPLATE_RE = re.compile(r"""['"](?P<path>[a-zA-Z_][a-zA-Z0-9_/.\-]*\.png)['"]""
 #   - SharedNode (narutomobile 老目录,模板已归档到 narutomobile_ref/)
 #   - 任何引用了 narutomobile_ref/ 下文件的代码(只读参考,不该在生产 pipeline)
 DEPRECATED_DIRS = {
-    "SharedNode",  # narutomobile 老目录,已归档到 resources/templates/narutomobile_ref/
-    "narutomobile_ref",  # 仅供 v1.2 节日参考,生产 pipeline 不应引用
+    "SharedNode",  # narutomobile 老目录,已归档
+    "_test_backups",  # 测试备份目录,生产 pipeline 不应引用
 }
 
 # 排除目录:这些目录里的 .py 不扫描
@@ -189,7 +195,7 @@ def collect_template_files(templates_root: Path) -> set[Path]:
 
 def validate(project_root: Path) -> ValidationReport:
     """执行完整校验。"""
-    templates_root = project_root / "resources" / "templates" / "actions"
+    templates_root = project_root / "resources" / "narutomobile" / "image"
     report = ValidationReport(
         project_root=project_root,
         templates_root=templates_root,

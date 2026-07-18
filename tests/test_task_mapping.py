@@ -73,9 +73,11 @@ def test_total_task_count_includes_new_tasks():
     items = data.get("TaskItems", [])
     assert items, "default.json TaskItems 不能为空"
 
-    expected = len(items)
+    # default.json 故意有 liveness_award 重复 (F0-5 收尾任务),TASK_MAPPING 按 name dedup
+    # → 24 items 但 23 unique names。比较用 unique 数,不写死。
+    expected = len({it["name"] for it in items if "name" in it})
     assert len(TASK_MAPPING) == expected, (
-        f"任务数应 = {expected} (从 default.json TaskItems 数出来),"
+        f"任务数应 = {expected} (从 default.json TaskItems 唯一 name 数出来),"
         f"实际 {len(TASK_MAPPING)}"
     )
 
@@ -90,8 +92,9 @@ def test_all_one_to_one_mappings_preserved():
         "一键助手": "easy_helper",
         "丰饶之间": "rich_room",
         "忍术对战": "ninja_book",
-        "赠送体力": "give_energy",
-        "领取体力": "use_energy",
+        # F0-3 (2026-07-18): 赠送体力 + 领取体力 合并成 send_energy_combined 入口
+        # → 赠送体力 task 已删,领取体力 现在 1:1 映射到 send_energy_combined
+        "领取体力": "send_energy_combined",
         "招财": "get_copper",
         "生存挑战": "survival_challenge",
     }
