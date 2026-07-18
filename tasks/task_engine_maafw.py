@@ -199,7 +199,7 @@ class MaaTaskEngine:
             stop_on_failure: 任一 task 失败时是否中止。
 
         Returns:
-            ``core.scheduler.RunReport``(2026-07-11 P1-2 合并,直接复用)。
+            ``RunReport`` (本地 dataclass, 见本模块顶部定义)。
         """
         if task_ids is None:
             # 2026-07-15 fix: 用 list_supported_entries 避免同 entry 重复运行

@@ -102,15 +102,8 @@ template_matching:
   # 多尺度缩放范围(占位)
   multi_scale_range: [0.95, 1.0, 1.05]
 
-# 游戏状态
-game_state:
-  # 启动时初始 GameState:HOME / POPUP / LOADING / UNKNOWN
-  initial_state: "UNKNOWN"
-  # 模板根目录(相对 project_root) — 2026-07-14 改用 narutomobile 自带 image/(MaaFramework 路径)
-  # 旧值 "resources/templates" 已被删除
-  templates_dir: "resources/narutomobile/image"
-  # recover() 调用 probe 的最大次数
-  recovery_probe_max: 3
+# game_state 段: P2-2 (2026-07-18) 删 — GameStateConfig 无 consumer
+# 模板根目录从 resources/templates 迁到 resources/narutomobile/image (cmd_check 已更新)
 
 # ============ Phase 8 新增 (2026-07-02) ============
 

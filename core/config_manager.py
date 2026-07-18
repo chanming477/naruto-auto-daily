@@ -72,23 +72,6 @@ class TemplateMatchingConfig(BaseModel):
     multi_scale_range: list[float] = Field(default_factory=lambda: [0.95, 1.0, 1.05])
 
 
-class GameStateConfig(BaseModel):
-    """GameStateMachine 配置。
-
-    Attributes:
-        initial_state: 启动时初始 GameState 字符串;由调用方在运行时用
-            ``GameState(value)`` 校验并 fallback(避免 core.config_manager 反向依赖 state 模块)。
-        templates_dir: 模板根目录(相对 project_root);默认 ``resources/templates``。
-        recovery_probe_max: ``recover()`` 时最多调用 probe 多少次(留给调用方参考)。
-    """
-
-    model_config = ConfigDict(extra="ignore")
-
-    initial_state: str = "UNKNOWN"
-    templates_dir: str = "resources/templates"
-    recovery_probe_max: int = Field(default=3, ge=1, le=20)
-
-
 # ============================================================
 # Phase 4 增量: Retry / Recovery / Logging 配置
 # ============================================================
@@ -221,7 +204,7 @@ class AppConfig(BaseModel):
     # ---- Phase 2 增量字段(向后兼容,缺失则用默认值)----
     adb: AdbConfig = Field(default_factory=AdbConfig)
     template_matching: TemplateMatchingConfig = Field(default_factory=TemplateMatchingConfig)
-    game_state: GameStateConfig = Field(default_factory=GameStateConfig)
+    # game_state: P2-2 (2026-07-18) 删 — GameStateConfig 无任何 consumer
     # ---- Phase 4 增量字段(向后兼容,缺失则用默认值)----
     retry: RetryConfig = Field(default_factory=RetryConfig)
     recovery: RecoveryConfig = Field(default_factory=RecoveryConfig)
@@ -375,10 +358,8 @@ template_matching:
   multi_scale: false
   multi_scale_range: [0.95, 1.0, 1.05]
 
-game_state:
-  initial_state: "UNKNOWN"   # HOME / POPUP / LOADING / UNKNOWN
-  templates_dir: "resources/templates"
-  recovery_probe_max: 3
+# game_state 段: P2-2 (2026-07-18) 删 — GameStateConfig 无 consumer, GameState 枚举也改 str
+# 模板根目录从 resources/templates 迁到 resources/narutomobile/image (cmd_check 已更新)
 
 # ============ Phase 4: 稳定性体系 ============
 retry:

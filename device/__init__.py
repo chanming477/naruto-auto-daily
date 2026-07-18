@@ -1,11 +1,11 @@
-"""device package · Phase 2 设备控制层。
+"""device package · 设备控制层 (V2 2026-07-18)。
 
-包含:
-    types        — ActionResult 数据类
-    adb_client   — ADBClient(ADB 子进程封装)
+仅留:
+    types        — ActionResult 数据类 (next_state 改 Optional[str])
 
-Phase 2 仅交付 ADBClient。Phase 3+ 才会扩展到其它设备后端。
+P2 删 (2026-07-18):
+    - adb_client  (MaaFramework 自带 ADB 绑定, 唯一引用 capture_template.py 已删)
 """
 
-__all__ = ["adb_client", "types"]
+__all__ = ["types"]
 __version__ = "0.7.0"

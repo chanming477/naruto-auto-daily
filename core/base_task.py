@@ -125,18 +125,15 @@ class ExecutionContext:
     task_results: list[TaskResult] = field(default_factory=list)
     current_task_id: str | None = None
     last_screenshot_path: str | None = None
-    #: Phase 4 增量: 业务级游戏状态(由 ``recovery.RecoveryManager`` / ``GameStateMachine`` 写入)。
+    #: 业务级游戏状态 (str, 例 "home" / "popup" / "loading" / "unknown")。
     #:
-    #: 与 ``state_machine`` 字段(运行级状态机)区别:
-    #:   - ``state_machine`` 是程序生命周期 (IDLE/RUNNING/COMPLETED/FAILED)
-    #:   - ``last_state`` 是游戏页面 (HOME/POPUP/LOADING/UNKNOWN)
-    #:
-    #: 任务执行过程中可读、可写,用于跨任务的状态传递。
+    #: P2-2 (2026-07-18): 原由 ``recovery.RecoveryManager`` / ``state_machine.GameStateMachine`` 写入,
+    #: 这两个模块已删。字段保留作为未来扩展点,目前无写入者。
     last_state: "Any | None" = None
-    #: Phase 4 增量: 最近一次业务级截图(ndarray BGR uint8)。
+    #: 最近一次业务级截图(ndarray BGR uint8)。
     #:
     #: ``last_screenshot_path`` 是文件路径(``capture_and_save`` 用);
-    #: 本字段是内存中的 ndarray(``RecoveryManager`` 内部传递用,避免重复截图)。
+    #: 本字段是内存中的 ndarray(预留,目前无业务模块使用)。
     last_screenshot: "Any | None" = None
 
     def target_window(self) -> WindowInfo | None:

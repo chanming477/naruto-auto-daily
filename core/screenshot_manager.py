@@ -396,7 +396,8 @@ class ScreenshotManager:
     ) -> Path | None:
         """归档一次状态切换的截图到 ``screenshots/transitions/``。
 
-        Phase 4: GameStateMachine 切换状态时调用,记录切换瞬间的视觉证据。
+        由调用方在状态切换时调用,记录切换瞬间的视觉证据。
+        P2-2 (2026-07-18): 原 GameStateMachine 模块已删,改为通用接口。
 
         Args:
             image: BGR uint8 ndarray。

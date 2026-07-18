@@ -54,16 +54,18 @@ from typing import Iterable
 TEMPLATE_RE = re.compile(r"""['"](?P<path>[a-zA-Z_][a-zA-Z0-9_/.\-]*\.png)['"]""")
 
 # 可疑路径模式:命中这些的引用视为"应改/应清"
-# 注意:模板根目录是 resources/templates/actions/,所以 "shared/" 是合法的子目录,
+# 注意:模板根目录是 resources/narutomobile/image/,所以 "shared/" 是合法的子目录,
 # 不算 SUSPECT。真正可疑的是:
-#   - SharedNode (narutomobile 老目录,模板已归档到 narutomobile_ref/)
-#   - 任何引用了 narutomobile_ref/ 下文件的代码(只读参考,不该在生产 pipeline)
+#   - SharedNode (narutomobile 老目录,模板已归档)
+#   - _test_backups (测试备份目录,生产 pipeline 不应引用)
 DEPRECATED_DIRS = {
     "SharedNode",  # narutomobile 老目录,已归档
     "_test_backups",  # 测试备份目录,生产 pipeline 不应引用
 }
 
 # 排除目录:这些目录里的 .py 不扫描
+# 注: tools/ 也排除,因为 audit_templates.py 自己的 docstring 有 "shared/x.png"
+#     这种例子,扫自己会 false-positive。
 EXCLUDE_DIRS = {
     "__pycache__",
     ".git",
@@ -75,6 +77,8 @@ EXCLUDE_DIRS = {
     "_archive",
     "_scratch",
     "_debug",
+    "tools",
+    "frontend",  # 第三方 C#/.NET 源码,不扫
 }
 
 
@@ -174,17 +178,17 @@ def resolve_template(templates_root: Path, ref_path: str) -> Path:
 def first_segment_is_suspect(ref_path: str) -> str | None:
     """检查 ref_path 的第一段是否在 DEPRECATED_DIRS 里。返回原因或 None。
 
-    注意:模板根目录是 ``resources/templates/actions/``,所以 "shared/" 等子目录是合法的,
-    本函数只标记真正过期的目录(如 SharedNode / narutomobile_ref)。
+    注意:模板根目录是 ``resources/narutomobile/image/``,所以 "shared/" 等子目录是合法的,
+    本函数只标记真正过期的目录(如 SharedNode)。
     """
     first = ref_path.split("/", 1)[0]
     if first == "SharedNode":
         return (
             "deprecated directory 'SharedNode' "
-            "(narutomobile 老目录,已归档到 resources/templates/narutomobile_ref/)"
+            "(narutomobile 老目录,已归档)"
         )
-    if first == "narutomobile_ref":
-        return "deprecated directory 'narutomobile_ref' " "(仅作 v1.2 节日参考,生产 pipeline 不应直接引用)"
+    if first == "_test_backups":
+        return "deprecated directory '_test_backups' (测试备份目录,生产 pipeline 不应直接引用)"
     return None
 
 

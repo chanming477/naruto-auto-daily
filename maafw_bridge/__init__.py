@@ -9,9 +9,9 @@
     - tasker.py         MaaFramework Tasker 单例(连接 ADB + 加载 resource + 启动)
 
 不在本模块做的事:
-    - GUI 显示(TaskEngine / main_window 负责)
-    - 任务元数据注册(沿用现有 BaseTask + task_registry.yaml)
-    - 调度决策(由 core.scheduler.Scheduler 负责)
+    - GUI 显示(MFAAvalonia 桌面客户端负责)
+    - 任务元数据注册(task_registry.yaml, MaaFramework 走 entry 字符串)
+    - 调度决策(由 tasks.task_engine_maafw.MaaTaskEngine 负责, P2-6 2026-07-18 core.scheduler 已删)
 """
 
 from __future__ import annotations

@@ -27,7 +27,8 @@ def test_run_context_module_does_not_import_business_modules():
 
     banned_modules = {
         "tasks", "state", "recovery", "state_machine", "device",
-        "recognizer", "recognition", "core.base_task", "core.scheduler",
+        "recognizer", "recognition", "core.base_task",
+        # core.scheduler (2026-07-18 P2-6 删)
     }
     found: list[str] = []
 

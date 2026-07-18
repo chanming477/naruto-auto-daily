@@ -6,12 +6,13 @@
     写一条结构化 INFO/SUCCESS 日志。
 
 设计要点 — Non-goals / Hard Limits(硬约束,不可违反):
-    1. **不** import tasks / state / recovery / state_machine 任何业务模块
+    1. **不** import tasks / recovery / 任何业务模块
        (本文件只允许 import core.logger、stdlib typing、time、loguru)。
     2. **不**修改任何外部状态 — 只通过 ``__exit__`` 写一条 loguru 日志。
     3. **不**引入第二套 ExecutionContext — ``task_id`` / ``state_before`` /
        ``state_after`` 只用于 ``loguru.bind`` 字段,不参与任何业务判断。
-    4. **不**调用 GameStateMachine / CommonActions / ADBClient / RecoveryManager。
+    4. **不**调用任何业务模块(原 GameStateMachine / CommonActions / ADBClient /
+       RecoveryManager 已全删, P2 2026-07-18)。
     5. **不**实现 ``state_before`` / ``state_after`` 的「自动推断」— 它们由
        调用方在 ``__enter__`` / ``__exit__`` 时显式传入或显式 set。
     6. **不**做任何 IO(不写文件、不截图、不发网络请求)。

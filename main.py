@@ -79,7 +79,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                "  python main.py --daily-all           # 顺序跑 config/schedule.json 全部 task\n"
                "  python main.py --list-tasks          # 打印 TASK_MAPPING 20 个 task_id\n"
                "  python main.py --init-config\n"
-               "  python main.py --smoke-test\n"
+               "  python main.py --capture-test        # 截一张目标窗口的图\n"
                "  python main.py --check               # P1-7 自检\n",
     )
     parser.add_argument("--init-config", action="store_true",
@@ -408,17 +408,19 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
     # ---- 2. 模板目录结构 ----
     print()
     print("[2/5] 模板目录结构…")
-    templates_root = get_resource_root() / "resources" / "templates" / "actions"
+    # 2026-07-18: 模板已迁到 resources/narutomobile/image/ (MaaFramework pipeline 真用的目录)
+    templates_root = get_resource_root() / "resources" / "narutomobile" / "image"
     if not templates_root.exists():
         print(f"   FAIL  模板根目录不存在: {templates_root}")
         issues.append("templates_root missing")
     else:
-        subdirs = ["shared", "mail", "group", "activity", "liveness"]
+        # 实际有 30+ 个子目录 (Activity/Advanture/Asura_instance/...),只列几个核心的做参考
+        subdirs = ["Group", "Activity", "Get_copper", "Give_energy", "Headhunt", "home", "shared"]
         present = [d for d in subdirs if (templates_root / d).is_dir()]
         missing = [d for d in subdirs if d not in present]
-        print(f"   PASS  模板根目录: {templates_root} ({len(present)}/{len(subdirs)} 子目录)")
+        print(f"   PASS  模板根目录: {templates_root} ({len(present)}/{len(subdirs)} 核心子目录)")
         if missing:
-            print(f"   WARN  缺少子目录: {missing} (不影响运行)")
+            print(f"   WARN  缺少核心子目录: {missing} (不影响运行)")
 
     # ---- 3. 任务注册表 → Python 类映射 ----
     print()

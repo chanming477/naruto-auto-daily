@@ -1,17 +1,16 @@
-"""core package · Phase 1 核心引擎层 + 日志上下文。
+"""core package · 核心引擎层 + 日志上下文 (V2 2026-07-18)。
 
-依赖方向（自上而下）：
-    main
-      └── core.scheduler
-            └── core.base_task
-                  ├── core.config_manager
-                  ├── core.logger
-                  ├── core.window_manager
-                  ├── core.screenshot_manager
-                  ├── core.state_machine
-                  └── core.run_context (Phase 4,从 logging_ext/ 迁移)
+模块清单 (P2 后剩):
+    base_task         — BaseTask / TaskResult / TaskStatus / ExecutionContext
+    config_manager    — ConfigManager (Pydantic 配置)
+    logger            — configure / shutdown
+    window_manager    — WindowManager (P2-6 决策 B: --capture-test 仍用)
+    screenshot_manager — ScreenshotManager (P2-6 决策 B: --capture-test 仍用)
+    state_machine     — 状态机 (P2-6 决策 B: --capture-test 链路需要)
+    run_context       — RunContext (Phase 4)
 
-Phase 1 仅交付以上 7 个模块 + main.py。
+P2 删 (2026-07-18):
+    - scheduler  (--smoke-test 命令已删, 0 prod 引用, RunReport 已内联到 task_engine_maafw)
 """
 
 __all__ = [
@@ -21,7 +20,6 @@ __all__ = [
     "screenshot_manager",
     "state_machine",
     "base_task",
-    "scheduler",
     "run_context",
 ]
 

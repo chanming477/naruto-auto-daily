@@ -1,17 +1,17 @@
 """core.state_machine — 程序生命周期状态机(运行级,线程安全)。
 
-V2 职责边界声明:
+V2 职责边界声明 (2026-07-18):
     本模块 **仅负责程序生命周期管理**:
         - IDLE / RUNNING / PAUSED / COMPLETED / FAILED / ABORTING / ABORTED
     本模块 **禁止处理游戏页面状态**(HOME / POPUP / LOADING / UNKNOWN),
-    那属于 ``state_machine.game_state_machine``。
+    业务级游戏状态 (P2-2 2026-07-18 已删 /state_machine/ 整目录后)
+    不再有专门模块,GameState 枚举也改 str 字段在
+    recognition.types.RecognitionResult.state / device.types.ActionResult.next_state。
 
-两个状态机的关系:
-    - ``core.state_machine`` (本模块) — 运行级:Scheduler / BaseTask 用它驱动
-      START/PAUSE/COMPLETE/FAILED/ABORT 转换。
-    - ``state_machine.game_state_machine`` — 业务级:CommonActions / PageRecognizer
-      用它记录当前游戏页面。
-    两者 **不互相 import、不互相调用、不维护同一状态**。
+使用方 (P2-6 决策 B 保留):
+    - main.py:build_context — 创建状态机装进 ExecutionContext
+    - core.base_task:BaseTask.execute — 驱动 START/COMPLETE/FAILED 转换
+    - core.window_manager / screenshot_manager — 状态转换事件订阅
 
 设计要点:
 - 不依赖第三方状态机库(transitions / statemachine),避免引入隐性行为。
