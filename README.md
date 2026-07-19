@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)]() [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)]() [![Tasks](https://img.shields.io/badge/Tasks-28-brightgreen)]() [![Templates](https://img.shields.io/badge/Templates-786-orange)]() [![GUI](https://img.shields.io/badge/GUI-MFAAvalonia-purple)]()
 
 **前端**:[MFAAvalonia v2.12.1](https://github.com/MaaXYZ/MaaFramework)(MaaFramework 官方 Avalonia 桌面客户端,2026-07-11 整合进 `frontend/MFAAvalonia/`)
-**后端**:本项目(MaaFramework 5.10.4 + narutomobile 模板引擎,Python CLI 跑批)
+**后端**:本项目(MaaFramework 5.10.4 + 模板匹配引擎,Python CLI 跑批)
 
 **启动 GUI**:双击 `start.bat`(首次运行会自动检测并安装 .NET 10 Desktop Runtime,需管理员权限)
 **启动 CLI**:双击 `start_cli.bat` 或 `python main.py --help`
@@ -42,10 +42,10 @@
 
 **Phase 8 — MFAAvalonia 前端整合 + PySide6 弃用 + 工程治理**
 
-- ✅ Phase 1-7: 核心引擎 + 28 task 全栈就绪(narutomobile v1.3.35 抄)
+- ✅ Phase 1-7: 核心引擎 + 28 task 全栈就绪(基于 MaaFramework pipeline)
 - ✅ Phase 8-A: **MFAAvalonia v2.12.1 接入** — 删 `ui/`(15 文件)+ 整合 MaaFramework 官方 Avalonia 桌面 UI
-- ✅ Phase 8-B: **OCR 模型去重** — `resources/ocr_models/` 合并到 `resources/narutomobile/model/ocr/`(省 15MB)
-- ✅ Phase 8-C: **LICENSE MIT → AGPL-3.0**(与 MaaFramework + narutomobile 模板授权兼容)
+- ✅ Phase 8-B: **OCR 模型去重** — 合并到 `resources/narutomobile/model/ocr/`(省 15MB)
+- ✅ Phase 8-C: **LICENSE MIT → AGPL-3.0**(与 MaaFramework + 模板授权兼容)
 - ✅ Phase 8-D: 工程治理(CHANGELOG 拆分 / PySide6 dep 清理 / 死代码清理 / 文档同步)
 - 🔄 阶段 2 真机回归(MuMu 12 端口 `127.0.0.1:5555`)
 
@@ -244,7 +244,7 @@ naruto-auto-daily/
 
 | 模板目录 | 数量 | 来源 |
 |---------|------|------|
-| `actions/` 主目录 | 56 子目录,786 PNG | narutomobile v1.3.35 merged.json 镜像 |
+| `actions/` 主目录 | 56 子目录,786 PNG | MaaFramework pipeline merged.json 镜像 |
 | `shared/` | 公共(主页 / 关闭 / 忍者指南 / 进忍法帖 等) | 含 `award_center_entry.png` / `headhunt.png` / `guide.png` |
 | `state/main_green_masked.png` | 主页绿通道标识 | narutomobile 权威 |
 | `startup/` | 启动页(`naruto_logo.png` / `start_game.png`) | 启动流程 |

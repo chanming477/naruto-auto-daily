@@ -259,10 +259,7 @@ def go_into_entry_by_guide_run(
     max_top_scroll: int = 10,
     max_search_swipes: int = 20,
 ) -> bool:
-    """GoIntoEntryByGuide 核心逻辑 — 完整版(narutomobile 算法 1:1 移植)。
-
-    设计来源:``D:\\自动日常源码带\\MaaAutoNaruto-win-x86_64-v1.3.35\\agent\\custom\\action.py``
-    的 ``GoIntoEntryByGuide`` 类。
+    """GoIntoEntryByGuide 核心逻辑 — 完整版(pipeline 算法移植)。
 
     算法流程:
         1. 截屏,OCR 查"回流"判定回归账号 → 选不同 ROI

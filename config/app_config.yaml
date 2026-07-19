@@ -27,30 +27,6 @@ logger:
   # 错误时是否自动截图（依赖 ScreenshotManager）
   auto_screenshot_on_error: true
 
-# 调度器
-scheduler:
-  # 是否在第一个任务失败后中止整个流水线
-  stop_on_failure: false
-  # 任务之间的间隔秒数（让屏幕稳定 / 动画结束）
-  inter_task_delay_sec: 1.0
-  # 启动前等待秒数（手动模式给用户切窗口的时间）
-  startup_warmup_sec: 3.0
-  # 每个任务的最长执行时间（秒），0 表示不限制
-  task_timeout_sec: 300
-  # 调度器心跳间隔（秒）
-  heartbeat_interval_sec: 30
-
-# 状态机
-state_machine:
-  # 启动时的初始状态
-  initial_state: "IDLE"
-  # 任务失败时的目标状态
-  failure_state: "FAILED"
-  # 任务全部成功时的目标状态
-  success_state: "COMPLETED"
-  # 是否在状态转换时打印日志
-  log_transitions: true
-
 # 截图
 screenshot:
   # 截图目录（相对项目根目录）

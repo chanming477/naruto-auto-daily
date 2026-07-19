@@ -1,7 +1,7 @@
 """main.py — naruto-auto-daily 的 CLI 入口。
 
-2026-07-14 精简: Phase 2/3/4 自研 demo + 旧 TaskEngine/Navigator + 27 个死 task 全部删除,
-统一走 MaaTaskEngine (MaaFramework 5.10.4 + narutomobile v1.3.35 merged.json 模板)。
+2026-07-19 OPT: P0/P2 死代码清理 + 老 7/14 精简统一走 MaaTaskEngine
+(MaaFramework pipeline + merged.json 模板)。CLI 仅保留调试/自检入口。
 
 Phase 1 命令（保留, 调试用）：
     --init-config      生成默认 YAML（已存在不覆盖）

@@ -31165,16 +31165,5 @@
     ],
     "pre_delay": 0,
     "post_delay": 0
-  },
-  "send_energy_combined": {
-    "next": [
-      "energy_entry",
-      "give_energy_done",
-      "use_energy_by_ninja_piece",
-      "[JumpBack]back_main_screen"
-    ],
-    "pre_delay": 0,
-    "post_delay": 0,
-    "focus": "[color:DeepSkyBlue]赠送+领取体力(合并)[/color]"
   }
 }

@@ -1,6 +1,6 @@
-# narutomobile 任务操作流程还原
+# MaaFramework pipeline 任务操作流程还原
 
-> 逆向对象: `D:\火影自动日常` (本地分支版 narutomobile)
+> 逆向对象: `D:\火影自动日常` (本地分支版 MaaFramework pipeline)
 > 还原依据:
 > - 任务源码: `tasks/*.py`
 > - 模板清单: `resources/templates/**` (按 `actions/<category>/<name>.png` 组织)
@@ -117,7 +117,7 @@ DailySigninTask (`task_id="daily_signin"`, `name="每日签到"`, `category="dai
 **寻找:**
 - 模板: `actions/shared/check_not_in_daily_award.png` (优先 — "未签到"状态,有红点/按钮高亮)
 - 备选: `actions/shared/check_in_daily_award.png` ("已签到"灰态)
-**所在区域:** `(37, 172, 130, 47)` (奖励中心左上角,沿用 narutomobile 原始 ROI)
+**所在区域:** `(37, 172, 130, 47)` (奖励中心左上角,沿用 MaaFramework pipeline 原始 ROI)
 **执行:** `ClickAction()` 点击每日签到入口, `post_delay_ms=1000`
 **成功标志:** 弹出签到面板 (日历 + 7 天奖励格)。
 **失败标志:** 模板未匹配 → `on_error → close_award_center` (跳过签到,直接关奖励中心)。

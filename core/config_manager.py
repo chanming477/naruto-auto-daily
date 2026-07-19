@@ -326,18 +326,8 @@ logger:
   compression: true
   auto_screenshot_on_error: true
 
-scheduler:
-  stop_on_failure: false
-  inter_task_delay_sec: 1.0
-  startup_warmup_sec: 3.0
-  task_timeout_sec: 300
-  heartbeat_interval_sec: 30
-
-state_machine:
-  initial_state: "IDLE"
-  failure_state: "FAILED"
-  success_state: "COMPLETED"
-  log_transitions: true
+# scheduler / state_machine 段: P2 + OPT-5 (2026-07-19) 删 — Scheduler / StateMachine
+# 模块全删 (OPT-1),配置保留 Pydantic 默认值即可
 
 screenshot:
   output_dir: "screenshots"
@@ -358,25 +348,9 @@ template_matching:
   multi_scale: false
   multi_scale_range: [0.95, 1.0, 1.05]
 
-# game_state 段: P2-2 (2026-07-18) 删 — GameStateConfig 无 consumer, GameState 枚举也改 str
-# 模板根目录从 resources/templates 迁到 resources/narutomobile/image (cmd_check 已更新)
-
-# ============ Phase 4: 稳定性体系 ============
-retry:
-  max_attempts: 3
-  delay_seconds: 1.0
-  exponential_backoff: true
-  max_delay_seconds: 30.0
-  retryable_exceptions: []  # 空 = 全部异常都重试;非空 = 只重试列出的异常类名
-
-recovery:
-  max_unknown_retries: 3
-  max_popup_retries: 3
-  max_loading_seconds: 60.0
-  adb_reconnect_attempts: 2
-
-# logging_ext 段: 原 logging_ext/ 包已合并到 core/run_context.py,配置段保留字段名便于向后兼容
-logging_ext: {}
+# retry / recovery / logging_ext 段: P2 + OPT-5 (2026-07-19) 删
+# — RetryManager / RecoveryManager / logging_ext 三个模块全删,
+#   对应 RetryConfig / RecoveryConfig / LoggingConfig 字段保留 (有 Pydantic 默认值)
 """
 
 _DEVICE_DEFAULT = """# 窗口 / 设备配置

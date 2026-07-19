@@ -59,7 +59,7 @@ naruto-auto-daily/
 1. **不重复犯相同错**(用户提醒过的事写进 memory)
 2. **best-effort SUCCESS ≠ 跑通**(从 2026-06-30 起:失败真报失败,不掩饰)
 3. **改任何代码前先问 user "入口路径"**,不要自己推断
-4. **narutomobile-main 是单一权威源**(`D:\自动日常源码带\narutomobile-main` 或 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\resource\base\pipeline\merged.json`)
+4. **pipeline 是单一权威源**(`D:\自动日常源码带\pipeline` 或 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\resource\base\pipeline\merged.json`)
 
 ## 3. 新增一个 Task
 
