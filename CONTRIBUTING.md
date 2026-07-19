@@ -15,35 +15,31 @@
 **禁止**的业务改动类型:
 - ❌ 修改识别算法 / ROI / threshold
 - ❌ 修改 Task 流程(节点 next/on_error)
-- ❌ 重构 TaskEngine / Navigator / RecoveryManager / RetryManager
-- ❌ 新增 task 但未走 `tasks/<tid>_task.py` 标准流程(应该用 `tools/gen_11_tasks.py` 模板)
+- ❌ 重构 task_engine_maafw / MaaFramework 桥接层
+- ❌ 新增 task 但未走 MFAAvalonia 桌面 GUI (CLI 端跑批已废,统一走 agent/custom/)
 
 ## 1. 目录速查
 
+```text
+naruto-auto-daily/                          (2026-07-19 OPT-1+OPT-2 精简后)
+├── main.py                # CLI 入口 (--gui / --check / --list-tasks / --init-config)
+├── core/                  # config_manager / logger / app_paths / run_context / task_result
+├── device/                # types (ActionResult)
+├── recognition/           # template_matcher + types
+├── maafw_bridge/          # MaaFramework 桥接 (event_sink / tasker / resource / _actions_core)
+├── agent/                 # MFAAvalonia Agent 自定义 action/recognition/sink
+├── tasks/                 # 业务 task (task_engine_maafw)
+├── tools/                 # dryrun / utility (audit_templates / find_and_tap / fake_green_detect / pre_gui_smoke)
+├── tests/                 # 单元测试
+├── frontend/MFAAvalonia/  # .NET 10 桌面客户端 (~235 MB, .gitignore)
+├── resources/narutomobile/  # MaaFramework 资源包 (pipeline/merged.json + image/ + model/)
+├── config/                # YAML (app_config.yaml + task_registry.yaml)
+├── logs/                  # 运行时日志
+└── docs/                  # 设计 spec (code-quality-optimization-plan, superpowers/specs/)
 ```
-naruto-auto-daily/
-├── core/                # Phase 1 核心引擎 + run_context(原 logging_ext/)
-├── device/              # ADB 客户端
-├── recognition/         # template_matcher + page_recognizer + types(含 recognizer/ 合并)
-├── state_machine/       # GameState 枚举 + 游戏状态机(含 state/ 合并)
-├── recovery/            # Phase 4 稳定性
-├── (ui/ 已删)            # 2026-07-11 改用 MFAAvalonia 官方 GUI
-├── frontend/MFAAvalonia/ # .NET 10 桌面客户端(interface.json → resources/narutomobile/)
-├── tasks/               # 28 个业务 task + 4 个核心(共 32 .py)
-│   ├── navigator.py / pipeline_runner.py / common_actions.py / task_engine.py  # 核心 4
-│   └── <task_id>_task.py ×28                                                  # 业务 28
-├── tools/               # dryrun_* × 30 / calibrate_*.py / find_and_tap.py / 等
-├── tests/               # 24 个 test_*.py
-├── resources/templates/ # 模板库(actions/ 是主目录, 56 子目录)
-├── docs/                # 文档
-│   ├── PROJECT_PLAN.md  # 阶段总览
-│   ├── standards/       # TASK_STANDARD / TASK_TEMPLATE / TEMPLATE_NAMING
-│   ├── game_wiki/       # 15 个游戏系统知识库
-│   ├── calibration/     # home_entry_paths / roi_calibration_log
-│   ├── collaboration/   # WORKGROUP(Mavis+DeepSeek 协作日志)
-│   └── CHANGELOG.md     # 版本变更(根目录链接)
-├── config/              # YAML + schedule.json
-├── logs/                # 运行时日志
+
+(2026-07-19 OPT-1+OPT-2 后: state_machine/ / recovery/ / tasks/<tid>_task.py 全删,
+统一走 MaaFramework pipeline + agent/custom/ 自定义 action)
 └── screenshots/         # 调试截图(calibration/ + failures/)
 ```
 
@@ -59,7 +55,7 @@ naruto-auto-daily/
 1. **不重复犯相同错**(用户提醒过的事写进 memory)
 2. **best-effort SUCCESS ≠ 跑通**(从 2026-06-30 起:失败真报失败,不掩饰)
 3. **改任何代码前先问 user "入口路径"**,不要自己推断
-4. **pipeline 是单一权威源**(`D:\自动日常源码带\pipeline` 或 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\resource\base\pipeline\merged.json`)
+4. **pipeline 是单一权威源**(`resources/narutomobile/pipeline/merged.json`,1554 节点,改它必跑 `python tools/fake_green_detect.py` 验无假绿)
 
 ## 3. 新增一个 Task
 

@@ -318,40 +318,6 @@ def test_supported_entries_includes_cli_and_mapping():
 
 
 # ============================================================
-# config/schedule.json 完整性
+# 2026-07-19 OPT-1: config/schedule.json 已删 (dead, --daily-all OPT-2 删了)
+# 2 个 test 同步删,无替代 (schedule.json 0 consumer)
 # ============================================================
-
-
-def test_daily_json_all_task_ids_valid():
-    """config/schedule.json 里的 task_id 必须都在 SUPPORTED_TASK_IDS 里。
-
-    防止 config/schedule.json 加新 task 但忘了注册 TASK_MAPPING(或反过来)。
-    2026-07-19 OPT-2 备注: --daily-all 命令已删, schedule.json 实际无 consumer,
-    但本测试保留 (文件仍在, schedule.json 未来给 MFAAvalonia 走用)。
-    """
-    daily_path = Path(__file__).resolve().parent.parent / "config" / "schedule.json"
-    assert daily_path.exists(), f"config/schedule.json 不存在: {daily_path}"
-
-    daily = json.loads(daily_path.read_text(encoding="utf-8"))
-    assert "task_ids" in daily, "daily.json 必须有 task_ids 字段"
-    task_ids: list[str] = daily["task_ids"]
-    assert task_ids, "daily.json task_ids 不能为空"
-
-    for tid in task_ids:
-        assert tid in SUPPORTED_TASK_IDS, (
-            f"daily.json 里的 task_id {tid!r} 没在 SUPPORTED_TASK_IDS 里"
-        )
-
-
-def test_daily_json_includes_get_copper_and_survival():
-    """"招财" 和 "生存挑战" 必须出现在 daily.json(2026-07-15 加进日常跑批)。
-
-    daily.json 用的 task_id 是 entry 名 (mail / get_copper / survival_challenge) 或
-    CLI 别名 (liveness / group_signin / daily_signin / recruit) — 输入空间全集。
-    """
-    daily_path = Path(__file__).resolve().parent.parent / "config" / "schedule.json"
-    daily = json.loads(daily_path.read_text(encoding="utf-8"))
-    task_ids = set(daily["task_ids"])
-    # entry 名直传
-    assert "get_copper" in task_ids, "招财 (get_copper) 必须出现在 daily.json"
-    assert "survival_challenge" in task_ids, "生存挑战 (survival_challenge) 必须出现在 daily.json"
