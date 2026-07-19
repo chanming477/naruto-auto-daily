@@ -120,7 +120,7 @@ A: 确保本项目根目录 `agent/` 下的四个文件为最新版本：`custom
 
 前端使用 [MFAAvalonia](https://github.com/MaaXYZ/MaaFramework)（MaaFramework 官方 Avalonia 桌面客户端）。
 
-项目在开发过程中参考了 [narutomobile](https://github.com/MaaXYZ/narutomobile) 的代码与设计。
+项目在开发过程中参考了 [narutomobile](https://github.com/duorua/narutomobile) 的代码与设计。
 
 ---
 
