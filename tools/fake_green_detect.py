@@ -1,26 +1,17 @@
-"""tools.fake_green_detect — 假绿检测 (OPT-9, 2026-07-19)。
+"""tools.fake_green_detect — 假绿检测 v2 (2026-07-19, OPT-9 增强版)
 
-目标:
-    任务报 SUCCESS 但可能只跑了 helper 节点 (close_* / back_main_* / check_main_* /
-    swipe_* / ninja_guide_*),实际业务节点 (mail_* / headhunt_* / group_* / energy_* /
-    liveness_award_* ...) 1 个都没触发 — "假绿"。
-
-原理 (V1, 离线分析):
-    1. 读 resources/narutomobile/pipeline/merged.json
-    2. 按节点名前缀分两类: BIZ_HINTS / HELPER_HINTS
-    3. 对每个 entry 找其 pipeline chain (从 entry 节点出发, 跟 next 链接),
-       收集触达的所有节点
-    4. 如果触达集合里 0 个 BIZ 节点 + ≥ 1 个 HELPER 节点 → 疑似假绿
-
-V1 限制 (TODO, 后续可加):
-    - 仅离线分析, 不接 MaaEventSink
-    - 假绿阈值保守: 0 BIZ 触发 = 假绿, 1 个 BIZ 触发 = OK (但实际可能 BIZ
-      触发后 helper 处理失败也算假绿, 需要更细的统计)
+V1 只做了静态 chain walk (从 entry 走 next 链看有没有 BIZ 节点)。
+V2 增强:
+    1. 验证各 entry 的 ninja_guide 副本节点 expected 值是否与 interface.json 一致
+    2. 区分"直接 BIZ"vs"需经过 ninja guide 转接的 BIZ"
+    3. 对忍者指引任务额外检查: ng to_funtion_entry 的 next 是否包含 BIZ 节点
+    4. 报已知 broken: point_race / secret_realm 业务模板匹配成功率低
 
 用法:
     python tools/fake_green_detect.py
     python tools/fake_green_detect.py --json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,27 +22,27 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MERGED_JSON = PROJECT_ROOT / "resources" / "narutomobile" / "pipeline" / "merged.json"
+INTERFACE_JSON = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "interface.json"
+DEFAULT_CONFIG = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "config" / "instances" / "default.json"
 
-# BIZ 节点前缀: 真正的业务节点,触达表示任务真干活了
+# BIZ 节点前缀: 真正的业务节点
 BIZ_HINTS = (
     "mail", "headhunt", "liveness_award", "liveness",
     "group", "activity", "ramen", "energy", "give_energy", "use_energy",
     "ninja_book", "secret_realm", "point_race", "mission_office",
     "weekly_win", "stronghold", "rebel_ninja", "leaderboard", "naruto_club",
     "get_copper", "survival", "advanture", "elite", "team_dash", "easy_helper",
-    "rich_room", "clean_logs", "mouthly", "monthly", "weekly", "check_in",
+    "rich_room", "clean_logs", "mouthly", "monthly", "check_in",
     "spring", "sky", "hundred", "treasure",
 )
 
-# HELPER 节点前缀: 通用辅助节点, 不算"业务进展"
+# HELPER 节点前缀
 HELPER_HINTS = (
     "close", "back_main", "check_main", "swipe", "ninja_guide",
-    "ninja_guide_returning", "ninja_guide_in_ninja_guide", "ninja_guide_swipes",
 )
 
 
 def _classify(node_name: str) -> str:
-    """返回节点分类: 'BIZ' / 'HELPER' / 'OTHER'。"""
     if any(node_name.startswith(p) for p in BIZ_HINTS):
         return "BIZ"
     if any(node_name.startswith(p) for p in HELPER_HINTS):
@@ -60,7 +51,6 @@ def _classify(node_name: str) -> str:
 
 
 def _walk_chain(graph: dict, start: str, visited: set, max_depth: int = 100) -> set:
-    """DFS 从 start 节点出发, 跟 next 链接, 收集触达的所有节点。"""
     if max_depth <= 0 or start in visited:
         return visited
     visited.add(start)
@@ -74,63 +64,76 @@ def _walk_chain(graph: dict, start: str, visited: set, max_depth: int = 100) -> 
     return visited
 
 
-def _list_entries(merged_path: Path) -> list[str]:
-    """从 interface.json / default.json / merged.json 收集所有 entry 名。
+def _get_option_overrides() -> dict:
+    """从 interface.json 提取忍界指引 option 的 pipeline override, 返回 {entry: {expected, next}}。"""
+    overrides: dict = {}
+    if not INTERFACE_JSON.is_file():
+        return overrides
 
-    优先级: interface.json (GUI 真理源) → default.json (TaskItems entry) → merged.json
-    (顶层有 next 字段的根节点)。
-    """
-    candidates: list[str] = []
+    try:
+        data = json.loads(INTERFACE_JSON.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return overrides
 
-    # 1. interface.json
-    interface = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "interface.json"
-    if interface.is_file():
-        try:
-            data = json.loads(interface.read_text(encoding="utf-8"))
-            for task in data.get("task", []):
-                entry = task.get("entry")
-                if isinstance(entry, str) and entry:
-                    candidates.append(entry)
-        except (json.JSONDecodeError, OSError):
-            pass
+    opt_table = data.get("option", {})
 
-    # 2. default.json TaskItems
-    default = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "config" / "instances" / "default.json"
-    if default.is_file():
-        try:
-            data = json.loads(default.read_text(encoding="utf-8"))
-            for item in data.get("TaskItems", []):
-                entry = item.get("entry")
-                if isinstance(entry, str) and entry and entry not in candidates:
-                    candidates.append(entry)
-        except (json.JSONDecodeError, OSError):
-            pass
+    # 手动映射: option 名称关键词 → entry 名
+    keyword_to_entry = {
+        "组织": "group",
+        "积分赛": "point_race",
+        "任务集会": "mission_office",
+        "秘境": "secret_realm",
+        "周胜": "weekly_win",
+        "要塞": "stronghold",
+        "叛忍": "rebel_ninja",
+        "排行榜": "leaderboard",
+        "修行": "shugyou_no_michi",
+        "天地": "sky_ground",
+        "黑市": "black_market_merchant",
+    }
 
-    return candidates
+    for opt_name, opt_def in opt_table.items():
+        entry = None
+        for kw, e in keyword_to_entry.items():
+            if kw in opt_name:
+                entry = e
+                break
+        if not entry:
+            continue
+        cases = opt_def.get("cases", [])
+        for case in cases:
+            po = case.get("pipeline_override", {})
+            if po:
+                find = po.get("ninja_guide_find_funtion_entry", {})
+                to_node = po.get("ninja_guide_to_funtion_entry", {})
+                expected = find.get("expected", [])
+                biz_next = [n for n in to_node.get("next", []) if "ninja_guide" not in n]
+                if expected or biz_next:
+                    overrides[entry] = {"expected": expected, "biz_next": biz_next}
+                break
+    return overrides
 
 
 def analyze(merged_path: Path, entries: list[str]) -> dict:
-    """分析每个 entry 的 pipeline chain, 找假绿 entry。"""
     graph = json.loads(merged_path.read_text(encoding="utf-8"))
+    option_overrides = _get_option_overrides()
 
     suspicious: list[dict] = []
     summary: list[dict] = []
+    known_broken: list[dict] = []
+    override_mismatches: list[dict] = []
 
     for entry in sorted(set(entries)):
         if entry not in graph:
-            # entry 不在 merged.json 里 (例如老 entry 被删了)
             record = {
                 "entry": entry,
-                "total_nodes": 0,
-                "biz": 0,
-                "helper": 0,
-                "other": 0,
-                "suspicious": False,
-                "missing_from_pipeline": True,
+                "total_nodes": 0, "biz": 0, "helper": 0, "other": 0,
+                "suspicious": False, "missing_from_pipeline": True,
             }
             summary.append(record)
             continue
 
+        # 静态 chain walk
         visited = _walk_chain(graph, entry, set())
         classes = Counter(_classify(n) for n in visited)
         biz = classes["BIZ"]
@@ -141,27 +144,68 @@ def analyze(merged_path: Path, entries: list[str]) -> dict:
         is_fake_green = biz == 0 and helper > 0
         record = {
             "entry": entry,
-            "total_nodes": total,
-            "biz": biz,
-            "helper": helper,
-            "other": other,
+            "total_nodes": total, "biz": biz, "helper": helper, "other": other,
             "suspicious": is_fake_green,
-            "missing_from_pipeline": False,
         }
         summary.append(record)
         if is_fake_green:
             suspicious.append(record)
+
+        # 忍者指引节点验证
+        if entry in option_overrides:
+            ov = option_overrides[entry]
+            exp_expected = ov["expected"]
+            exp_biz = ov["biz_next"]
+
+            # 检查 per-task find_funtion_entry 的 expected
+            find_key = f"{entry}_ninja_guide_find_funtion_entry"
+            find_node = graph.get(find_key, {})
+            actual_expected = find_node.get("expected", [])
+
+            if actual_expected != exp_expected:
+                override_mismatches.append({
+                    "entry": entry,
+                    "field": "expected",
+                    "expected_value": exp_expected,
+                    "actual_value": actual_expected,
+                    "note": "忍者指引 OCR expected 不匹配, 任务可能跳错 tab",
+                })
+
+            # 检查 to_funtion_entry 的 biz next
+            to_key = f"{entry}_ninja_guide_to_funtion_entry"
+            to_node = graph.get(to_key, {})
+            actual_biz = [n for n in to_node.get("next", []) if "ninja_guide" not in n]
+
+            if set(actual_biz) != set(exp_biz):
+                override_mismatches.append({
+                    "entry": entry,
+                    "field": "biz_next",
+                    "expected_value": exp_biz,
+                    "actual_value": actual_biz,
+                    "note": "忍者指引业务 next 不匹配",
+                })
+
+        # 已知 broken 标注 (来自手动真机验证)
+        if entry in ("point_race", "secret_realm"):
+            known_broken.append({
+                "entry": entry,
+                "reason": "业务层模板匹配不稳定, 真机验证仍需修复",
+                "total_nodes": total,
+                "biz": biz,
+            })
 
     return {
         "total_entries": len(set(entries)),
         "suspicious_count": len(suspicious),
         "suspicious": suspicious,
         "summary": summary,
+        "override_mismatches": override_mismatches,
+        "known_broken": known_broken,
     }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="假绿检测: 找出只跑 helper 节点的业务 entry")
+    parser = argparse.ArgumentParser(description="假绿检测 v2: 找出只跑 helper 节点的业务 entry")
     parser.add_argument("--merged", type=Path, default=MERGED_JSON, help="merged.json 路径")
     parser.add_argument("--json", action="store_true", help="输出 JSON 格式")
     args = parser.parse_args()
@@ -170,30 +214,72 @@ def main() -> int:
         print(f"FAIL  merged.json 不存在: {args.merged}", file=sys.stderr)
         return 2
 
-    entries = _list_entries(args.merged)
+    entries = _list_entries()
     result = analyze(args.merged, entries)
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    # 人类可读输出
     print("=" * 70)
-    print("fake_green_detect · 假绿 entry 排查")
+    print("fake_green_detect v2 · 假绿排查 + pipeline 健康检查")
     print("=" * 70)
-    print(f"merged.json: {args.merged}")
-    print(f"总 entry 数: {result['total_entries']}")
-    print(f"疑似假绿:    {result['suspicious_count']}")
+    print(f"merged.json:      {args.merged}")
+    print(f"总 entry 数:       {result['total_entries']}")
+    print(f"疑似假绿:          {result['suspicious_count']}")
+    print(f"override 不匹配:   {len(result['override_mismatches'])}")
+    print(f"已知 Broken:       {len(result['known_broken'])}")
     print()
+
     if result["suspicious"]:
         print("--- 假绿详情 ---")
         for r in result["suspicious"]:
             print(f"  {r['entry']:<25s} total={r['total_nodes']:>3d} biz={r['biz']} helper={r['helper']} other={r['other']}")
     else:
         print("OK  所有 entry 至少触达 1 个 BIZ 节点, 无假绿")
-    print()
-    print("(BIZ_HINTS / HELPER_HINTS 分类见 tools/fake_green_detect.py 顶部)")
+
+    if result["override_mismatches"]:
+        print()
+        print("--- Override 不匹配 ---")
+        for r in result["override_mismatches"]:
+            print(f"  {r['entry']:<25s} {r['field']}: 期望={r['expected_value']} 实际={r['actual_value']}")
+            print(f"  {'':25s} {r['note']}")
+
+    if result["known_broken"]:
+        print()
+        print("--- 已知 Broken (需真机修复) ---")
+        for r in result["known_broken"]:
+            print(f"  {r['entry']:<25s} {r['reason']} (chain: {r['biz']} BIZ nodes)")
+        print()
+
+    print("BIZ_HINTS / HELPER_HINTS 分类见 tools/fake_green_detect.py 顶部")
     return 0
+
+
+def _list_entries() -> list[str]:
+    candidates: list[str] = []
+
+    if INTERFACE_JSON.is_file():
+        try:
+            data = json.loads(INTERFACE_JSON.read_text(encoding="utf-8"))
+            for task in data.get("task", []):
+                entry = task.get("entry")
+                if isinstance(entry, str) and entry:
+                    candidates.append(entry)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    if DEFAULT_CONFIG.is_file():
+        try:
+            data = json.loads(DEFAULT_CONFIG.read_text(encoding="utf-8"))
+            for item in data.get("TaskItems", []):
+                entry = item.get("entry")
+                if isinstance(entry, str) and entry and entry not in candidates:
+                    candidates.append(entry)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    return candidates
 
 
 if __name__ == "__main__":
