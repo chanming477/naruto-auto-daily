@@ -1,6 +1,5 @@
 # ============================================================
 # naruto-auto-daily · .gitignore
-# 2026-06-30 — Mavis
 # ============================================================
 
 # Python
@@ -64,7 +63,10 @@ secrets.yaml
 # MaaFramework 运行时数据
 logs/maafw_data/
 
-# Frontend 二进制发布(MaaFramework 官方 MFAAvalonia,234 MB)
+# AI agent 本地配置(开发工具本地缓存,不入仓库)
+.claude/
+
+# Frontend 二进制发布(MaaFramework 官方 MFAAvalonia,~234 MB)
 # 用户首次运行前需手动从 GitHub releases 下载解压到 frontend/MFAAvalonia/
 # 详见 README §3 快速开始 + start.bat 启动时的下载提示
 frontend/MFAAvalonia/
@@ -75,8 +77,9 @@ data/
 *.db
 *.sqlite3
 
-# Mavis / 开发期临时产物(不参与发布)
-# - findings_*.json: Mavis 任务结束后的结构化诊断报告
-# - _test_backups/: 调试 merged.json 时留的 backup(不参与发布)
+# 调试期临时产物(本地分析报告,不入仓库)
 /findings_*.json
 /resources/narutomobile/_test_backups/
+
+# 内部 roadmap 草稿(开发期讨论记录,非用户文档)
+docs/superpowers/
