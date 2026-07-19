@@ -130,7 +130,7 @@ A: 确保本项目根目录 `agent/` 下的四个文件为最新版本：`custom
 
 本项目使用 **AGPL-3.0** 开源协议，详见 [LICENSE](./LICENSE)。
 
-聊天群：1047724031
+联系作者：<chanshiming@foxmail.com>
 
 ---
 
