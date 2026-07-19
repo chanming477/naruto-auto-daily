@@ -325,8 +325,9 @@ def test_supported_entries_includes_cli_and_mapping():
 def test_daily_json_all_task_ids_valid():
     """config/schedule.json 里的 task_id 必须都在 SUPPORTED_TASK_IDS 里。
 
-    防止 config/schedule.json 加新 task 但忘了注册 TASK_MAPPING(或反过来),
-    跑 --daily-all 时报"unknown task_id"。
+    防止 config/schedule.json 加新 task 但忘了注册 TASK_MAPPING(或反过来)。
+    2026-07-19 OPT-2 备注: --daily-all 命令已删, schedule.json 实际无 consumer,
+    但本测试保留 (文件仍在, schedule.json 未来给 MFAAvalonia 走用)。
     """
     daily_path = Path(__file__).resolve().parent.parent / "config" / "schedule.json"
     assert daily_path.exists(), f"config/schedule.json 不存在: {daily_path}"
@@ -338,8 +339,7 @@ def test_daily_json_all_task_ids_valid():
 
     for tid in task_ids:
         assert tid in SUPPORTED_TASK_IDS, (
-            f"daily.json 里的 task_id {tid!r} 没在 SUPPORTED_TASK_IDS 里,"
-            f"跑 --daily-all 会报 unknown task_id"
+            f"daily.json 里的 task_id {tid!r} 没在 SUPPORTED_TASK_IDS 里"
         )
 
 

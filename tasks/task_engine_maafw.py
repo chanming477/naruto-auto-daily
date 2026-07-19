@@ -6,7 +6,7 @@
     - ``MaaTaskEngine.run_task(task_id)``:
         1. ``resolve_entry(task_id)`` → narutomobile entry 名
         2. ``MaTaskerSingleton.run_task(entry)`` → job
-        3. ``MaaEventSink.to_task_result(success=...)`` → ``core.base_task.TaskResult``
+        3. ``MaaEventSink.to_task_result(success=...)`` → ``core.task_result.TaskResult``
         4. 失败时调 ``RecoveryManager.on_task_failed``
         5. 返回 TaskResult
 

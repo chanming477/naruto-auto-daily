@@ -4,7 +4,7 @@
     - ``MaaEventSink`` 继承 ``maa.context.ContextEventSink`` —
       ContextEventSink 接收每个节点的细粒度事件(recognition/action/wait_freezes)
     - 收集每节点结果到 ``self.nodes: list[dict]``
-    - ``to_task_result(success, error)`` 产 ``core.base_task.TaskResult`` —
+    - ``to_task_result(success, error)`` 产 ``core.task_result.TaskResult`` —
       让上层 TaskEngine 直接复用现有 RunReport / 调度链路
     - 可选 Qt Signal — GUI 监听进度时挂 signal hook
 
@@ -73,7 +73,7 @@ def _status_name(status: Any) -> str:
 
 
 class MaaEventSink(ContextEventSink if ContextEventSink else object):
-    """收集 MaaFramework 节点执行进度,产出 ``core.base_task.TaskResult``。
+    """收集 MaaFramework 节点执行进度,产出 ``core.task_result.TaskResult``。
 
     用法::
 
@@ -204,7 +204,7 @@ class MaaEventSink(ContextEventSink if ContextEventSink else object):
     # ----- public API ---------------------------------------------------------
 
     def to_task_result(self, success: bool, error: str = "") -> "TaskResult":
-        """产 ``core.base_task.TaskResult``。
+        """产 ``core.task_result.TaskResult``。
 
         Args:
             success: 任务整体是否成功(True/False/"stopped")。

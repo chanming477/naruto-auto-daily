@@ -17,8 +17,8 @@ Python 端只做 3 件事:
     - 不跑 pipeline (C# side)
     - 不收集 task 结果 (C# side)
 
-**Direct API 模式兼容**:
-    ``python main.py --run-task mail`` 走 ``maafw_bridge.tasker.MaaTaskerSingleton``,
-    Python 自己当 Tasker 主人,跟 agent 模式平行。两种模式共享 ``maafw_bridge._actions_core``
-    核心逻辑(方案 A 抽出来的)。
+**Direct API 模式兼容** (2026-07-19 OPT-2 后):
+    CLI 端 --run-task / --daily-all 已删,主入口是 MFAAvalonia 桌面 GUI 走 agent 模式。
+    Direct API 模式保留 ``maafw_bridge.tasker.MaaTaskerSingleton`` 给 unit test / 调试用,
+    跟 agent 模式共享 ``maafw_bridge._actions_core`` 核心逻辑(方案 A 抽出来的)。
 """
