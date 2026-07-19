@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from core.base_task import TaskResult, TaskStatus
+from core.task_result import TaskResult, TaskStatus
 from maafw_bridge import (
     MaaEventSink,
     MaaTaskerSingleton,

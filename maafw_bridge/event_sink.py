@@ -38,7 +38,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
-    from core.base_task import TaskResult
+    from core.task_result import TaskResult
 
 
 _LOG = logger.bind(component="maafw.sink")
@@ -223,7 +223,7 @@ class MaaEventSink(ContextEventSink if ContextEventSink else object):
             | False                 | FAIL       | 真失败(异常 / Status.failed)     |
         """
         # 延迟 import 避免模块顶层拉 core
-        from core.base_task import TaskResult, TaskStatus
+        from core.task_result import TaskResult, TaskStatus
 
         finished_at = datetime.now()
         duration = (finished_at - self.started_at).total_seconds()
