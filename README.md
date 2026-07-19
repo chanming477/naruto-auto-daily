@@ -9,7 +9,7 @@
 
 **启动 GUI**:双击 `start.bat`(首次运行会自动检测并安装 .NET 10 Desktop Runtime,需管理员权限)
 **启动 CLI**:双击 `start_cli.bat` 或 `python main.py --help`
-**后台跑任务**:`python main.py --daily-all`(纯 Python CLI,无需 .NET)
+**后台跑任务**: MFAAvalonia GUI 一键启动(无需 .NET CLI)
 
 ---
 
@@ -56,13 +56,10 @@
 CLI 用 task_id 跑批: `python main.py --list-tasks` 列出全部映射;真机跑指定 task 走 MFAAvalonia 桌面 GUI(双击启动)。
 
 按类别概览(24 个,详见 `default.json`):
-- **日常 (9)**: activity / mail / liveness_award / group / headhunt / ninja_book / get_copper / use_energy / give_energy
-- **周常 (3)**: weekly_win / activity / monthly_signin (后者按月)
-- **忍者指引 (8)**: group / mission_office / point_race / secret_realm / weekly_win / stronghold / rebel_ninja / leaderboard
-- **副本 (4)**: advanture / elite_instance / team_dash / survival_challenge
-- **其他 (3)**: easy_helper / rich_room / naruto_club / leaderboard / clean_logs
-
-> 2026-07-19 精简: 28 → 24 task,删 `shugyou_no_michi` / `more_gameplay` / `sky_ground` / `hundred_ninja` 4 个无 pipeline 入口的占位。
+- 日常 (5): activity / mail / liveness_award / headhunt / give_energy
+- 忍者指引 (8): group / mission_office / point_race / secret_realm / weekly_win / stronghold / rebel_ninja / leaderboard
+- 副本 (4): advanture / elite_instance / team_dash / survival_challenge
+- 其他 (7): easy_helper / rich_room / ninja_book / get_copper / naruto_club / use_energy / clean_logs
 
 ## 3. 快速开始
 
@@ -82,18 +79,10 @@ python main.py --init-config
 python main.py --check
 
 # 5. 真机跑任务(需 MuMu 12 模拟器 + 游戏在主页 + 1920x1080)
-python tools\dryrun_runner.py mail
-python tools\dryrun_runner.py monthly_signin
+#    双击 start.bat 启动 MFAAvalonia GUI,勾选任务后点"开始"
 
-# 6. 不连真机的 demo(任意机器能跑)
-python main.py --phase2-smoke
-
-# 7. 跑测试
+# 6. 跑测试
 python -m pytest tests -q
-
-# 8. 验证模板库
-python tools/validate_templates.py
-python tools/generate_template_manifest.py
 ```
 
 ## 4. 命令速查 (2026-07-19 大幅精简)
@@ -179,8 +168,8 @@ naruto-auto-daily/
 │   MaaTaskEngine / MaaEventSink                              │
 └──────────────────────────────────────────────────────────────┘
 │                  Pipeline Orchestration                     │
-│   scheduler → task_engine → pipeline_runner → navigator     │
-│   (BaseTask lifecycle: pre → enter → execute → verify)      │
+│   MaaTaskEngine → MaaTaskerSingleton → narutomobile pipeline│
+│   (merged.json 1554 nodes, OpenCV + OCR + custom actions)   │
 └────────────────────────┬─────────────────────────────────────┘
                          │
         ┌────────────────┼─────────────────┐
