@@ -3,14 +3,14 @@
 > 火影忍者手游日常任务全自动执行工具 — 基于 MaaFramework 前端 + narutomobile 参考实现
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
+[![License](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
 [![GUI](https://img.shields.io/badge/GUI-MFAAvalonia-purple)](https://github.com/MaaXYZ/MaaFramework)
 
 ---
 
 ## 快速开始
 
-在 [Releases](https://github.com/naruto-auto-daily/naruto-auto-daily/releases) 页面下载最新版本。
+在 [Releases](https://github.com/chanming477/naruto-auto-daily/releases) 页面下载最新版本。
 
 **模拟器设置**：分辨率调整为 **1920×1080（平板）**，锁定屏幕旋转为**横屏**以达到最佳运行效果。
 
@@ -19,7 +19,7 @@
 | 方式 | 说明 |
 |------|------|
 | GUI 启动（推荐） | 双击 `start.bat`，勾选任务后点击「开始」 |
-| CLI 启动 | `python main.py --help` |
+| CLI 启动 | 双击 `start_cli.bat` 或 `python main.py --help` |
 | CLI 自检 | `python main.py --check` |
 
 ---
@@ -81,7 +81,7 @@
                       ▼
 ┌──────────────────────────────────────────────┐
 │      资源层 — MaaFramework pipeline           │
-│  merged.json（1554 节点）+ 786 张 PNG 模板     │
+│  merged.json（1288 节点）+ 786 张 PNG 模板     │
 │  + OCR 模型（DBNet + CRNN）                   │
 └─────────────────────┬────────────────────────┘
                       │ Python maafw_bridge
