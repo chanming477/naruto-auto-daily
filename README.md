@@ -1,8 +1,8 @@
 # naruto-auto-daily
 
-> 火影手游本地自动化工具 — **Python CLI 后端** + **MFAAvalonia 官方 GUI** + **28 个真实日常任务**(2026-07-11 重大调整)。
+> 火影手游本地自动化工具 — **Python CLI 后端** + **MFAAvalonia 官方 GUI** + **24 个真实日常任务**(2026-07-19 大幅精简)。
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue)]() [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)]() [![Tasks](https://img.shields.io/badge/Tasks-28-brightgreen)]() [![Templates](https://img.shields.io/badge/Templates-786-orange)]() [![GUI](https://img.shields.io/badge/GUI-MFAAvalonia-purple)]()
+[![Python](https://img.shields.io/badge/Python-3.11+-blue)]() [![License](https://img.shields.io/badge/License-AGPL--3.0-blue)]() [![Tasks](https://img.shields.io/badge/Tasks-24-brightgreen)]() [![Templates](https://img.shields.io/badge/Templates-786-orange)]() [![GUI](https://img.shields.io/badge/GUI-MFAAvalonia-purple)]()
 
 **前端**:[MFAAvalonia v2.12.1](https://github.com/MaaXYZ/MaaFramework)(MaaFramework 官方 Avalonia 桌面客户端,2026-07-11 整合进 `frontend/MFAAvalonia/`)
 **后端**:本项目(MaaFramework 5.10.4 + 模板匹配引擎,Python CLI 跑批)
@@ -49,44 +49,20 @@
 - ✅ Phase 8-D: 工程治理(CHANGELOG 拆分 / PySide6 dep 清理 / 死代码清理 / 文档同步)
 - 🔄 阶段 2 真机回归(MuMu 12 端口 `127.0.0.1:5555`)
 
-## 2. 28 任务快速一览
+## 2. 24 任务清单
 
-| task_id | 中文名 | 类别 | 入口 | 备注 |
-|---------|--------|------|------|------|
-| **基础 7 task** | | | | |
-| `mail` | 邮件领取 | daily | 主页右上"邮件" | Phase 6 P0 |
-| `daily_signin` | 每日签到 | daily | 奖励中心 → 每日签到 | Phase 3 P0 |
-| `weekly_signin` | 每周签到 | weekly | 主页 → 每周签到入口 | Phase 6 P0 |
-| `liveness` | 活跃度奖励 | daily | 主页 → 活跃度 | Phase 6 P0 |
-| `recruit` | 招募 | daily | 主页 → 招募 | Phase 7 |
-| `activity` | 一乐外卖活动 | weekly | 主页 → 一乐拉面活动页 | Phase 6 |
-| `group_signin` | 组织祈福 | daily | 奖励中心 → 组织祈福 | Phase 6 P1 |
-| **月度签到类** | | | | |
-| `monthly_signin` | 每月签到 | monthly | 主页 → 活动 → 每月签到 | Phase 7 (2026-06-30) |
-| **战斗副本类** | | | | |
-| `rich_room` | 丰饶之间 | combat | 奖励中心 → 丰饶之间 | Phase 7 |
-| `team_dash` | 小队突袭 | combat | 奖励中心 → 小队突袭 | Phase 7 |
-| `secret_realm` | 秘境探险 | combat | 奖励中心 → 秘境探险 | Phase 7 |
-| `survival_challenge` | 生存挑战 | combat | 奖励中心 → 生存挑战 | Phase 7 |
-| `shugyou_no_michi` | 修行之路 | combat | 奖励中心 → 修行之路 | Phase 7 |
-| `stronghold` | 要塞 | combat | 奖励中心 → 组织 → 要塞 | Phase 7 |
-| `mission_office` | 任务集会所 | combat | 奖励中心 → 任务集会所 | Phase 7 |
-| `advanture` | 冒险 | combat | 主页右下"冒险"卷轴 | Phase 7 |
-| `elite_instance` | 精英副本 | combat | 主页 → 冒险 → 精英副本 | Phase 7 |
-| `point_race` | 积分赛 | combat | 奖励中心 → 积分赛 | Phase 7 |
-| `rebel_ninja` | 叛忍 | combat | 忍界指引 → 叛忍 | Phase 7 |
-| `use_energy` | 使用体力 | daily | 体力入口 → 一键扫荡 | Phase 7 |
-| `give_energy` | 赠送体力 | daily | 主页右上"送S忍" | Phase 7 |
-| **玩法/社交类** | | | | |
-| `leaderboard` | 排行榜点赞 | social | 忍者书 → 排行榜 | Phase 7 |
-| `more_gameplay` | 更多玩法 | combat | 奖励中心 → 更多玩法 | Phase 7 |
-| `ninja_book` | 忍者书奖励 | daily | 忍者书 → 9 类奖励 | Phase 7 |
-| `weekly_win` | 周胜 | combat | 奖励中心 → 周胜 | Phase 7 |
-| `sky_ground` | 天地 | combat | 忍界指引 → 天地 | Phase 7 |
-| `easy_helper` | 简单助手 | daily | 主页右下"简单助手" | Phase 7 |
-| `hundred_ninja` | 百忍 | combat | 主页右下"决斗场" | Phase 7 |
+**任务入口由 `frontend/MFAAvalonia/config/instances/default.json` 定义**(真理源)。
 
-> 详见 `config/task_registry.yaml`
+CLI 用 task_id 跑批: `python main.py --list-tasks` 列出全部映射;真机跑指定 task 走 MFAAvalonia 桌面 GUI(双击启动)。
+
+按类别概览(24 个,详见 `default.json`):
+- **日常 (9)**: activity / mail / liveness_award / group / headhunt / ninja_book / get_copper / use_energy / give_energy
+- **周常 (3)**: weekly_win / activity / monthly_signin (后者按月)
+- **忍者指引 (8)**: group / mission_office / point_race / secret_realm / weekly_win / stronghold / rebel_ninja / leaderboard
+- **副本 (4)**: advanture / elite_instance / team_dash / survival_challenge
+- **其他 (3)**: easy_helper / rich_room / naruto_club / leaderboard / clean_logs
+
+> 2026-07-19 精简: 28 → 24 task,删 `shugyou_no_michi` / `more_gameplay` / `sky_ground` / `hundred_ninja` 4 个无 pipeline 入口的占位。
 
 ## 3. 快速开始
 
@@ -120,76 +96,61 @@ python tools/validate_templates.py
 python tools/generate_template_manifest.py
 ```
 
-## 4. 命令速查
+## 4. 命令速查 (2026-07-19 大幅精简)
 
 | 命令 | 用途 |
 |---|---|
-| `--check` | **P1-7 自检**: ADB / Pydantic / 模板 / 任务注册表 |
-| `--phase2-smoke` | 不连 ADB,跑 Phase 2 识别闭环(默认行为改为启 MFAAvalonia GUI)|
-| `--phase2` | 尝试连真 ADB;失败自动 fallback |
-| `--phase3` / `--phase3-task <id>` | 任务系统 TaskEngine + DailySigninTask |
-| `--phase4` | 稳定性体系 RetryManager + RecoveryManager |
-| **GUI 启动** | 双击 `start.bat`(自动检测 .NET Runtime) |
-| **CLI 启动** | 双击 `start_cli.bat` 或 `python main.py --gui` |
-| `<task>-real` (28 个) | 真模拟器跑指定 task(需 MuMu 12 + 127.0.0.1:5555) |
-| `--daily-all` | 顺序跑 `config/schedule.json` 全部 task |
+| `--gui` (默认无参) | 启动 MFAAvalonia 桌面客户端(主入口) |
+| `--init-config` | 生成默认 config/ YAML(已存在则跳过) |
+| `--list-tasks` | 打印 task_id ↔ entry 映射表(不连 ADB) |
+| `--check` | **自检**: Pydantic 配置 / 模板目录 / 任务注册表 / ADB |
 | `--debug` / `--quiet` | 日志级别 DEBUG / WARNING |
 | `--version` | 打印版本号 |
 
-## 5. 目录结构
+**GUI 启动**: 双击 `frontend/MFAAvalonia/MFAAvalonia.exe`(已含 CLI 全部功能 + 任务管理 UI)。
+
+**已删除命令** (2026-07-19 OPT-1+OPT-2):
+- `--run-task` / `--daily-all` / `--capture-test` / `--smoke-test` / `--list-windows` / `--activate-window` / `--phase2/3/4` / `--<task>-real` (28 个) — 旧自研 CLI 全部下线
+- 业务跑批统一走 MFAAvalonia 桌面 GUI
+
+## 5. 目录结构 (2026-07-19 大幅精简)
 
 ```
 naruto-auto-daily/
-├── main.py                       # CLI 入口 + --gui 启动 MFAAvalonia
+├── main.py                       # CLI 入口 (--gui / --check / --list-tasks / --init-config)
 ├── pyproject.toml                # 项目元数据 + Ruff 配置 + dev deps
-├── requirements.txt              # 10 个运行时依赖
+├── requirements.txt              # 运行时依赖
 ├── README.md                     # 本文件
 ├── CHANGELOG.md                  # 版本变更日志
 ├── CONTRIBUTING.md               # 多 AI 协作开发规范
 ├── LICENSE                       # AGPL-3.0
-├── workgroup.md                  # Mavis+DeepSeek 协作日志
 │
-├── config/
-│   ├── app_config.yaml           # 全局 YAML
-│   ├── device_config.yaml
-│   └── task_registry.yaml        # 28 task 注册表
-│
-├── core/                         # Phase 1 核心引擎 + run_context(原 logging_ext/)
-├── device/                       # ADB 客户端
-├── recognition/                  # template_matcher + page_recognizer + types
-├── state_machine/                # GameState 枚举 + 游戏业务状态机(含 state/ 合并)
-├── recovery/                     # Phase 4 稳定性
-├── start.bat                     # GUI 启动器(自动检测 .NET Runtime)
-├── start_cli.bat                 # CLI 启动器
-├── tasks/                        # 28 业务 + 4 核心
-├── tools/                        # 39 dryrun/utility
-├── tests/                        # 24 测试
+├── config/                       # 默认配置 (app_config.yaml 等)
+├── core/                         # config_manager / logger / app_paths / run_context / task_result
+├── device/                       # types (ActionResult) — adb_client 2026-07-19 删
+├── recognition/                  # template_matcher + types — page_recognizer / ocr_matcher 删
+├── maafw_bridge/                 # MaaFramework 桥接 (event_sink / tasker / resource / _actions_core)
+├── agent/                        # MFAAvalonia Agent 自定义 action / reco / sink (注册 6+3+1)
+├── tasks/                        # 业务 task (task_engine_maafw)
+├── tools/                        # dryrun / utility (audit_templates / find_and_tap / bundle_python / fake_green_detect / pre_gui_smoke)
+├── tests/                        # 单元测试 (107 passed, 2 skipped)
 │
 ├── resources/
-│   └── narutomobile/             # MaaFramework 资源包(24.9 MB)
-│       ├── pipeline/merged.json  # 28 task pipeline 入口
+│   └── narutomobile/             # MaaFramework 资源包 (~25 MB)
+│       ├── pipeline/merged.json  # 1554 节点 pipeline
 │       ├── image/                # 786 张 PNG 模板
-│       └── model/ocr/            # DBNet + CRNN OCR 模型
+│       └── model/                 # OCR / 检测模型
 │
 ├── frontend/
-│   └── MFAAvalonia/              # ⚠️ 234 MB 二进制,**不 commit**(.gitignore)
-│       └── .gitkeep              # 占位 + 下载提示(见下方)
+│   └── MFAAvalonia/              # ⚠️ ~235 MB 二进制,**不 commit** (.gitignore)
 │
-│ 首次启动 GUI 前需手动从 MaaFramework releases 下载解压到此目录:
-│   https://github.com/MaaXYZ/MaaFramework/releases
-│   start.bat 启动时会检测 MFAAvalonia.exe 是否存在,缺失会打印下载链接
-│
-├── docs/
-│   ├── 项目准备.md
-│   ├── MAF_CONFIG_FIX.md         # MFAAvalonia 配置修复(option 块 + logo + icon)
-│   ├── superpowers/
-│   │   └── specs/                # 设计 spec (e.g. 2026-07-14-task-truthfulness)
-│   ├── standards/                # TASK_STANDARD / TASK_TEMPLATE / TEMPLATE_NAMING
-│   └── collaboration/            # WORKGROUP.md(Mavis+DeepSeek)
+├── docs/                         # 设计 spec + 标准
+│   ├── code-quality-optimization-plan.md
+│   ├── superpowers/specs/        # 2026-07-18 / 2026-07-19 design specs
+│   ├── standards/                # TEMPLATE_NAMING 等
 │
 ├── screenshots/                  # 调试截图
-├── logs/                         # 运行时日志(按日期分)
-└── config/schedule.json          # 任务方案 JSON(从 schemes/daily.json 迁移)
+└── logs/                         # 运行时日志(按日期分)
 ```
 
 ## 6. 架构图
