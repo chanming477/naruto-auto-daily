@@ -17,7 +17,8 @@
     "活跃奖励<|||>liveness_award",
     "赠送体力<|||>send_energy_combined",
     "排行榜<|||>leaderboard",
-    "火影情报社<|||>naruto_club"
+    "火影情报社<|||>naruto_club",
+    "每日分享<|||>share"
   ],
   "TaskItems": [
     {
@@ -67,6 +68,12 @@
       "entry": "ninja_book",
       "default_check": false,
       "description": "忍术对战日常"
+    },
+    {
+      "name": "每日分享",
+      "entry": "share",
+      "default_check": true,
+      "description": "微信/QQ 分享得奖励 (ref narutomobile v1.3.35, 2026-07-20 加)"
     },
     {
       "name": "冒险副本",

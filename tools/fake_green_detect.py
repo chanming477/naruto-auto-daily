@@ -33,7 +33,7 @@ BIZ_HINTS = (
     "weekly_win", "stronghold", "rebel_ninja", "leaderboard", "naruto_club",
     "get_copper", "survival", "advanture", "elite", "team_dash", "easy_helper",
     "rich_room", "clean_logs", "mouthly", "monthly", "check_in",
-    "spring", "sky", "hundred", "treasure",
+    "spring", "sky", "hundred", "treasure", "share", "try_share", "wechat",
 )
 
 # HELPER 节点前缀
