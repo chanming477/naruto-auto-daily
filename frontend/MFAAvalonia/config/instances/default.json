@@ -15,7 +15,7 @@
     "招财<|||>get_copper",
     "生存挑战<|||>survival_challenge",
     "活跃奖励<|||>liveness_award",
-    "赠送体力<|||>give_energy",
+    "赠送体力<|||>send_energy_combined",
     "排行榜<|||>leaderboard",
     "火影情报社<|||>naruto_club"
   ],
@@ -148,7 +148,7 @@
     },
     {
       "name": "赠送体力",
-      "entry": "give_energy",
+      "entry": "send_energy_combined",
       "default_check": true,
       "description": "好友体力赠送"
     },
