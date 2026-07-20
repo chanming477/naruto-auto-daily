@@ -101,12 +101,16 @@ jobs:
       # --------------------------------------------------------------
       # 4. Test gate: pytest must pass before we build (v2 强制)
       # --------------------------------------------------------------
-      # build-time Python 只需要 pytest,不要装项目运行时依赖(maafw/opencv 等 ~500MB)
-      # runtime 依赖由 tools/bundle_python.py 装到嵌入的 Python 3.12
+      # build-time Python 装项目完整依赖 + 测试框架
+      # (测试代码会 import 业务代码,业务代码 import maafw/loguru/cv2 等,
+      #  必须装 requirements.txt 否则 pytest 收集都过不去)
       - name: Install test deps
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
+          # 项目运行时依赖(loguru / opencv-python-headless / numpy / Pillow / maafw / mss 等)
+          python -m pip install -r requirements.txt
+          # 测试框架
           python -m pip install pytest pytest-asyncio
 
       - name: Run tests
