@@ -24,6 +24,20 @@
 
 ---
 
+## 已知问题
+
+### Windows Defender 误报
+
+本工具的 zip 包未做代码签名（代码签名证书年费 $200–500），部分 Windows Defender
+会将 `MFAAvalonia.exe` 或 `python.exe` 标记为「未知发布者」。
+
+**解决方法**：
+1. 弹出 Defender 警告时，点「更多信息」→「仍要运行」
+2. 提前将解压目录加入 Defender 排除列表：
+   `设置 → Windows 安全 → 病毒防护 → 排除项 → 添加排除项 → 文件夹`
+
+---
+
 ## 主要功能
 
 ### 日常

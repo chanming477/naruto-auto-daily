@@ -62,3 +62,11 @@ select = ["E", "F", "I", "W", "B", "UP"]
 addopts = [
     "--ignore=frontend",
 ]
+
+# ============================================================
+# 项目自定义配置 (2026-07-20 CI/CD 加)
+# ============================================================
+[tool.naruto-auto-daily]
+# MFAAvalonia 独立版本(与 maafw 解耦,从 MaaXYZ/MFAAvalonia releases 取)
+# CI 工作流 step 2 解析此字段拼下载 URL
+mfaavalonia-version = "2.12.2"

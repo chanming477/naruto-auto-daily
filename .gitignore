@@ -66,10 +66,48 @@ logs/maafw_data/
 # AI agent 本地配置(开发工具本地缓存,不入仓库)
 .claude/
 
-# Frontend 二进制发布(MaaFramework 官方 MFAAvalonia,~234 MB)
-# 用户首次运行前需手动从 GitHub releases 下载解压到 frontend/MFAAvalonia/
-# 详见 README §3 快速开始 + start.bat 启动时的下载提示
-frontend/MFAAvalonia/
+# ============================================================
+# Frontend (MFAAvalonia) — 部分追踪,部分 ignore (2026-07-20 CI/CD 重构)
+# ============================================================
+# git 追踪(任务编排 + 配置):
+#   frontend/MFAAvalonia/interface.json
+#   frontend/MFAAvalonia/appsettings.json
+#   frontend/MFAAvalonia/config/instances/default.json
+# CI/CD: GitHub Actions 在打 release 时从 MaaXYZ/MaaFramework releases 下载
+#   MFAAvalonia 主程序,再用 git 里的配置文件覆盖默认。
+
+# Frontend 二进制主体(MaaFramework 官方 ~235MB,本地开发用,CI 自动下载)
+frontend/MFAAvalonia/MFAAvalonia.exe
+frontend/MFAAvalonia/MFAAvalonia.dll
+frontend/MFAAvalonia/MFAAvalonia.deps.json
+frontend/MFAAvalonia/MFAAvalonia.runtimeconfig.json
+frontend/MFAAvalonia/libloader.dll
+frontend/MFAAvalonia/DependencySetup_依赖库安装_win.bat
+frontend/MFAAvalonia/dependencySetup_*.bat
+frontend/MFAAvalonia/runtimes/
+frontend/MFAAvalonia/python/
+frontend/MFAAvalonia/libs/
+frontend/MFAAvalonia/plugins/
+frontend/MFAAvalonia/agent/
+frontend/MFAAvalonia/resource/
+frontend/MFAAvalonia/Resource/
+frontend/MFAAvalonia/resources/
+frontend/MFAAvalonia/ThirdParty/
+frontend/MFAAvalonia/backup/
+frontend/MFAAvalonia/debug/
+frontend/MFAAvalonia/logs/
+frontend/MFAAvalonia/temp/
+# .bak 备份文件(本地开发残留,不入库)
+frontend/MFAAvalonia/interface.json.bak
+frontend/MFAAvalonia/config/instances/*.bak
+frontend/MFAAvalonia/*.bak
+# 上游默认配置(MFAAvalonia 自带,不需要我们追踪)
+frontend/MFAAvalonia/config/config.json
+frontend/MFAAvalonia/config/maa_option.json
+frontend/MFAAvalonia/config/maa_pi_config.json
+# 平台相关 native 库(Windows-only,本项目只发布 Windows)
+frontend/MFAAvalonia/*.so
+frontend/MFAAvalonia/*.dylib
 
 # 项目数据
 data/

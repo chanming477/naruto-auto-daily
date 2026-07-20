@@ -1,0 +1,270 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Manual release version (e.g., 0.7.1-test). Leave empty to use pyproject.toml version.'
+        required: false
+        default: ''
+
+# Concurrency lock: prevent multiple tag pushes from racing (v2 强制).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # 允许创建/上传 release
+
+jobs:
+  build:
+    name: Build Windows release zip
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      # --------------------------------------------------------------
+      # 0. Pre-flight: ensure required files exist before doing anything
+      # --------------------------------------------------------------
+      - name: Pre-flight checks
+        shell: pwsh
+        run: |
+          $required = @(
+            "pyproject.toml",
+            "tools/bundle_python.py",
+            "frontend/MFAAvalonia/interface.json",
+            "frontend/MFAAvalonia/appsettings.json",
+            "frontend/MFAAvalonia/config/instances/default.json"
+          )
+          foreach ($f in $required) {
+            if (-not (Test-Path $f)) {
+              Write-Error "Required file missing: $f"
+              exit 1
+            }
+          }
+          Write-Host "Pre-flight OK: all required files present"
+
+      # --------------------------------------------------------------
+      # 1. Checkout source
+      # --------------------------------------------------------------
+      - name: Checkout (full history, for git checkout restore later)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # --------------------------------------------------------------
+      # 2. Extract versions from pyproject.toml
+      # --------------------------------------------------------------
+      - name: Extract versions from pyproject.toml
+        id: version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const toml = fs.readFileSync('pyproject.toml', 'utf8');
+
+            // Manual override via workflow_dispatch input
+            const manual = (context.payload.inputs && context.payload.inputs.version) || '';
+
+            // project version
+            const projectMatch = toml.match(/^version\s*=\s*"([^"]+)"/m);
+            if (!projectMatch) throw new Error('Cannot parse project version from pyproject.toml');
+            const projectVersion = manual || projectMatch[1];
+
+            // maafw version (look for "maafw==X.Y.Z" or "maafw>=X.Y.Z" etc.)
+            const maafwMatch = toml.match(/maafw\s*[=><~!]+\s*([\d.]+)/);
+            if (!maafwMatch) throw new Error('Cannot parse maafw version from pyproject.toml');
+            const maafwVersion = maafwMatch[1];
+
+            // MFAAvalonia version (独立版本,from [tool.naruto-auto-daily] 块)
+            // 例: mfaavalonia-version = "2.12.2"
+            const mfaMatch = toml.match(/mfaavalonia-version\s*=\s*"([^"]+)"/);
+            if (!mfaMatch) throw new Error('Cannot parse mfaavalonia-version from [tool.naruto-auto-daily] in pyproject.toml');
+            const mfaVersion = mfaMatch[1];
+
+            core.setOutput('project_version', projectVersion);
+            core.setOutput('maafw_version', maafwVersion);
+            core.setOutput('mfaavalonia_version', mfaVersion);
+            core.notice(`project=${projectVersion}, maafw=${maafwVersion}, mfaavalonia=${mfaVersion}`);
+
+      # --------------------------------------------------------------
+      # 3. Setup Python 3.11 (build-time only, runtime Python is bundled)
+      # --------------------------------------------------------------
+      - name: Set up Python 3.11 (build-time)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # --------------------------------------------------------------
+      # 4. Test gate: pytest must pass before we build (v2 强制)
+      # --------------------------------------------------------------
+      - name: Install test deps
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          if (Test-Path "requirements.txt") {
+            python -m pip install -r requirements.txt
+          }
+
+      - name: Run tests
+        shell: pwsh
+        run: python -m pytest tests -q
+
+      # --------------------------------------------------------------
+      # 5. Download MFAAvalonia from MaaFramework releases
+      # --------------------------------------------------------------
+      - name: Download MFAAvalonia
+        id: download
+        shell: pwsh
+        run: |
+          $mfaVer = "${{ steps.version.outputs.mfaavalonia_version }}"
+          # URL 来源:MaaXYZ/MFAAvalonia repo (与 MaaFramework 是独立项目)
+          $url = "https://github.com/MaaXYZ/MFAAvalonia/releases/download/v$mfaVer/MFAAvalonia-v$mfaVer-win-x64.zip"
+          $zip = "mfaavalonia.zip"
+          Write-Host "Downloading $url ..."
+          Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+          Write-Host "Extracting to frontend/MFAAvalonia/ ..."
+          Expand-Archive -Path $zip -DestinationPath frontend/MFAAvalonia/ -Force
+          Remove-Item $zip
+          Write-Host "Downloaded + extracted OK"
+
+      # --------------------------------------------------------------
+      # 5.5 Restore OUR committed configs (download overwrote them)
+      # --------------------------------------------------------------
+      - name: Restore committed MFAAvalonia configs
+        shell: pwsh
+        run: |
+          git checkout -- frontend/MFAAvalonia/interface.json
+          git checkout -- frontend/MFAAvalonia/appsettings.json
+          git checkout -- frontend/MFAAvalonia/config/instances/default.json
+          Write-Host "Restored our custom configs over upstream defaults"
+
+      # --------------------------------------------------------------
+      # 6. Download Python tarball (cached per maafw version)
+      # --------------------------------------------------------------
+      - name: Download Python embeddable tarball (with cache)
+        id: pbs_cache
+        shell: pwsh
+        run: |
+          $tarballName = "cpython-3.12.9+20250317-x86_64-pc-windows-msvc-install_only.tar.gz"
+          $cacheDir = ".cache/python-build-standalone"
+          $tarballPath = "$cacheDir/$tarballName"
+          New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+          if (-not (Test-Path $tarballPath)) {
+            $url = "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/$tarballName"
+            Write-Host "Downloading $url ..."
+            Invoke-WebRequest -Uri $url -OutFile $tarballPath -UseBasicParsing
+          } else {
+            Write-Host "Tarball already present at $tarballPath"
+          }
+          Write-Host "Tarball ready: $((Get-Item $tarballPath).Length / 1MB) MB"
+
+      - name: Cache Python tarball
+        uses: actions/cache@v4
+        with:
+          path: .cache/python-build-standalone
+          key: pbs-${{ runner.os }}-3.12.9-20250317
+          # fallback if exact key misses: any pbs- cache for this OS
+          restore-keys: pbs-${{ runner.os }}-
+
+      # --------------------------------------------------------------
+      # 7. Bundle Python (embeds runtime + deps into frontend/MFAAvalonia/python/)
+      # --------------------------------------------------------------
+      - name: Bundle Python runtime
+        shell: pwsh
+        run: |
+          $tarball = Get-ChildItem -Path .cache/python-build-standalone -Filter "cpython-*.tar.gz" | Select-Object -First 1
+          if (-not $tarball) {
+            Write-Error "Python tarball not found in .cache/python-build-standalone"
+            exit 1
+          }
+          python tools/bundle_python.py --local-tarball $tarball.FullName
+
+      # --------------------------------------------------------------
+      # 8. Init default YAML configs (if main.py supports it)
+      # --------------------------------------------------------------
+      - name: Init default configs (best-effort)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          if (Test-Path "main.py") {
+            python main.py --init-config 2>&1 | Tee-Object -FilePath init-config.log
+          } else {
+            Write-Host "No main.py, skipping --init-config"
+          }
+
+      # --------------------------------------------------------------
+      # 9. Install 7zip + pack release zip
+      # --------------------------------------------------------------
+      - name: Install 7zip
+        shell: pwsh
+        run: choco install 7zip -y --no-progress
+
+      - name: Pack release zip
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.project_version }}"
+          $zipName = "naruto-auto-daily-v$version.zip"
+          Write-Host "Packing into $zipName ..."
+          # Exclude: source control, CI config, tests, debug logs, large caches
+          $excludes = @(
+            ".git", ".github", "tests",
+            "screenshots", "logs", "data", "findings_*.json",
+            ".venv", "venv", ".pytest_cache", ".cache",
+            "__pycache__", "*.pyc", "*.bak", "~$*",
+            "*.egg-info", "build", "dist",
+            "frontend/MFAAvalonia/backup",
+            "frontend/MFAAvalonia/debug",
+            "frontend/MFAAvalonia/logs",
+            "frontend/MFAAvalonia/temp",
+            "frontend/MFAAvalonia/interface.json.bak",
+            "frontend/MFAAvalonia/config/instances/*.bak",
+            "init-config.log"
+          )
+          $excludeArgs = @()
+          foreach ($e in $excludes) { $excludeArgs += "-xr!$e" }
+          & "C:\Program Files\7-Zip\7z.exe" a $zipName . @excludeArgs
+          if ($LASTEXITCODE -ne 0) { Write-Error "7z failed"; exit 1 }
+          $size = (Get-Item $zipName).Length
+          Write-Host "[OK] Packed $zipName ($([math]::Round($size/1MB, 1)) MB)"
+
+      # --------------------------------------------------------------
+      # 10. Upload to GitHub Release
+      # --------------------------------------------------------------
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 'naruto-auto-daily v${{ steps.version.outputs.project_version }}'
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-test') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
+          generate_release_notes: true
+          files: |
+            naruto-auto-daily-v${{ steps.version.outputs.project_version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --------------------------------------------------------------
+      # 11. Echo summary (visible in workflow log)
+      # --------------------------------------------------------------
+      - name: Summary
+        shell: pwsh
+        if: always()
+        run: |
+          $version = "${{ steps.version.outputs.project_version }}"
+          $zip = "naruto-auto-daily-v$version.zip"
+          if (Test-Path $zip) {
+            $size = (Get-Item $zip).Length
+            Write-Host "=================================================="
+            Write-Host "Release built: $zip"
+            Write-Host "Size: $([math]::Round($size/1MB, 1)) MB"
+            Write-Host "Tag: ${{ github.ref_name }}"
+            Write-Host "Project version: $version"
+            Write-Host "=================================================="
+          } else {
+            Write-Host "No release zip produced (job may have failed earlier)"
+          }
