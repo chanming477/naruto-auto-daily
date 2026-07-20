@@ -25,6 +25,13 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
 
+    # Job-level env:所有 step 继承
+    # 强制 Python 用 UTF-8,避免 Windows console charmap 编码失败
+    # (历史教训:Bubble Python step 单加 env 没用,其他跑 Python 的 step 也会挂)
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: '1'
+
     steps:
       # --------------------------------------------------------------
       # 1. Checkout source (必须先 checkout,否则后续 Test-Path 找不到文件)
@@ -211,11 +218,7 @@ jobs:
       # --------------------------------------------------------------
       - name: Bundle Python runtime
         shell: pwsh
-        env:
-          # 强制 Python stdout 用 UTF-8 编码,避免 charmap codec 报错
-          # (Windows runner 默认 console codepage 是 cp1252,中文 f-string 触发 UnicodeEncodeError)
-          PYTHONIOENCODING: utf-8
-          PYTHONUTF8: '1'
+        # UTF-8 env 在 job 级别设置,所有 step 继承
         run: |
           $tarball = Get-ChildItem -Path .cache/python-build-standalone -Filter "cpython-*.tar.gz" | Select-Object -First 1
           if (-not $tarball) {
