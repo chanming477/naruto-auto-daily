@@ -54,7 +54,7 @@
 | 2 | `frontend/MFAAvalonia/interface.json` | **git add**（从本地） |
 | 3 | `frontend/MFAAvalonia/appsettings.json` | **git add**（从本地） |
 | 4 | `frontend/MFAAvalonia/config/instances/default.json` | **git add**（从本地） |
-| 5 | `.github/workflows/release.yml` | **新增**（11 步） |
+| 5 | `.github/workflows/release.yml` | **新增**（16 步,review 后修正） |
 | 6 | `README.md` | **改**: 加 Defender 误报段落 |
 | 7 | `docs/2026-07-20-cicd-release-design.md` | **新增**（本文档） |
 
@@ -66,22 +66,25 @@
 
 ## 工作流结构
 
-`.github/workflows/release.yml` 11 步：
+`.github/workflows/release.yml` 16 步（review 后修正版）：
 
 ```
-0  Pre-flight       验证必需文件存在
-1  Checkout         actions/checkout@v4 (depth=0)
-2  Version parse    actions/github-script 读 pyproject.toml → project + maafw + mfaavalonia
-3  Setup Python 3.11 build-time Python
-4  Test gate        pytest tests -q  (v2 强制)
-5  Download MFA     从 MaaXYZ/MFAAvalonia releases 下 MFAAvalonia-v{ver}-win-x64.zip
-5.5 Restore configs git checkout 还原我们的 3 个配置
-6  Cache + Download .cache/python-build-standalone/  tarball
-7  bundle_python    python tools/bundle_python.py --local-tarball
-8  Init config      python main.py --init-config (best-effort)
-9  Pack zip         choco install 7zip + 7z a ... (排除 .git/.github/tests/...)
-10 Upload release   softprops/action-gh-release@v2
-11 Summary          echo size + version
+ 0  Checkout         actions/checkout@v4 (fetch-depth=1,index 即可)
+ 1  Pre-flight       验证必需文件存在(checkout 后)
+ 2  Version parse    actions/github-script 读 pyproject.toml → project + maafw + mfaavalonia
+ 3  Setup Python 3.11 build-time Python
+ 4  Install test deps 只需 pytest(不装项目运行时依赖,避免 ~500MB 无用 wheel)
+ 5  Test gate        pytest tests -q  (v2 强制)
+ 6  Download MFA     从 MaaXYZ/MFAAvalonia releases 下 MFAAvalonia-v{ver}-win-x64.zip
+ 7  Restore configs  git checkout 还原我们 3 个 config(覆盖上游默认)
+ 8  Download tarball .cache/python-build-standalone/  cpython-3.12.9 tarball
+ 9  Cache tarball    actions/cache@v4 (key: pbs-os-3.12.9-20250317)
+10  bundle_python    python tools/bundle_python.py --local-tarball
+11  Init config      python main.py --init-config (best-effort,继续即忽略)
+12  Install 7zip     choco install 7zip -y
+13  Pack zip         7z a ... (排除 .git/.github/tests/config/*.yaml/...)
+14  Upload release   softprops/action-gh-release@v2
+15  Summary          echo size + version
 ```
 
 **触发**：
