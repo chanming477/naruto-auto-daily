@@ -92,9 +92,9 @@ def test_all_one_to_one_mappings_preserved():
         "一键助手": "easy_helper",
         "丰饶之间": "rich_room",
         "忍术对战": "ninja_book",
-        # 2026-07-19: 赠送体力 task 已删 (F0-3 spec 写合并 send_energy_combined,
-        # 但 default.json 实际只有领取体力→use_energy, 1:1 保留)
-        "领取体力": "use_energy",
+        # 2026-07-20: 领取体力 + 赠送体力 合并成 1 个 send_energy_combined task
+        # (F0-3 spec 合并 give_energy → use_energy 顺序链, 2026-07-20 真机回归重写)
+        "领取体力": "send_energy_combined",
         "招财": "get_copper",
         "生存挑战": "survival_challenge",
     }
