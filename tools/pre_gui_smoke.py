@@ -75,7 +75,7 @@ def main() -> int:
 
     print()
     print("[5/5] default.json vs TASK_MAPPING 同步…")
-    default_json = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "config" / "instances" / "default.json"
+    default_json = PROJECT_ROOT / "config" / "instances" / "default.json"
     import json
     dj = json.loads(default_json.read_text(encoding="utf-8"))
     truth = {it["name"]: it["entry"] for it in dj.get("TaskItems", []) if "name" in it and "entry" in it}

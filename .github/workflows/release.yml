@@ -50,9 +50,9 @@ jobs:
           $required = @(
             "pyproject.toml",
             "tools/bundle_python.py",
-            "frontend/MFAAvalonia/interface.json",
-            "frontend/MFAAvalonia/appsettings.json",
-            "frontend/MFAAvalonia/config/instances/default.json"
+            "interface.json",
+            "appsettings.json",
+            "config/instances/default.json"
           )
           foreach ($f in $required) {
             if (-not (Test-Path $f)) {
@@ -142,12 +142,12 @@ jobs:
           $url = "https://github.com/MaaXYZ/MFAAvalonia/releases/download/v$mfaVer/MFAAvalonia-v$mfaVer-win-x64.zip"
           $zip = "$env:RUNNER_TEMP\mfaavalonia.zip"
           $tmpDir = "$env:RUNNER_TEMP\mfaavalonia_extract"
-          $targetDir = "frontend/MFAAvalonia"
+          $targetDir = "."
 
           Write-Host "Downloading $url ..."
           Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
 
-          # 解压到临时目录,避免污染 frontend/MFAAvalonia/
+          # 解压到临时目录,避免污染项目根
           Write-Host "Extracting to temp dir ..."
           if (Test-Path $tmpDir) { Remove-Item -Recurse -Force $tmpDir }
           New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
@@ -155,8 +155,7 @@ jobs:
           Remove-Item $zip
 
           # 检测 zip 是否有单顶层目录(GitHub release zip 常见模式,例:MFAAvalonia-v2.12.2-win-x64/...)
-          # 有则扁平化,避免 frontend/MFAAvalonia/MFAAvalonia-v2.12.2-win-x64/... 这种嵌套
-          New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+          # 有则扁平化,避免 ./MFAAvalonia-v2.12.2-win-x64/... 这种嵌套
           $items = Get-ChildItem -Path $tmpDir -Force
           if ($items.Count -eq 1 -and $items[0].PSIsContainer) {
             Write-Host "Flattening: zip has single root dir '$($items[0].Name)'"
@@ -171,7 +170,7 @@ jobs:
             }
           }
           Remove-Item -Recurse -Force $tmpDir
-          Write-Host "[OK] MFAAvalonia extracted to $targetDir"
+          Write-Host "[OK] MFAAvalonia extracted to project root"
 
       # --------------------------------------------------------------
       # 5.5 Restore OUR committed configs (download overwrote them)
@@ -179,9 +178,9 @@ jobs:
       - name: Restore committed MFAAvalonia configs
         shell: pwsh
         run: |
-          git checkout -- frontend/MFAAvalonia/interface.json
-          git checkout -- frontend/MFAAvalonia/appsettings.json
-          git checkout -- frontend/MFAAvalonia/config/instances/default.json
+          git checkout -- interface.json
+          git checkout -- appsettings.json
+          git checkout -- config/instances/default.json
           Write-Host "Restored our custom configs over upstream defaults"
 
       # --------------------------------------------------------------
@@ -277,13 +276,13 @@ jobs:
             "*.egg-info", "build", "dist",
             # 运行时 init-config 生成的默认 YAML(用户首次启动 start.bat 会重新生成)
             "config/*.yaml", "config/*.yml", "config/*.example",
-            "frontend/MFAAvalonia/backup",
-            "frontend/MFAAvalonia/debug",
-            "frontend/MFAAvalonia/logs",
-            "frontend/MFAAvalonia/temp",
-            "frontend/MFAAvalonia/interface.json.bak",
-            "frontend/MFAAvalonia/config/instances/*.bak",
-            "init-config.log"
+            # 扁平化后运行时目录
+            "backup", "debug", "temp",
+            "interface.json.bak",
+            "config/instances/*.bak",
+            "init-config.log",
+            # 旧的嵌套结构残留(过渡期容忍)
+            "frontend"
           )
           $excludeArgs = @()
           foreach ($e in $excludes) { $excludeArgs += "-xr!$e" }

@@ -1,10 +1,14 @@
 # naruto-auto-daily
 
-> 火影忍者手游日常任务全自动执行工具 — 基于 MaaFramework 前端 + narutomobile 参考实现
+> 火影忍者手游日常任务全自动执行工具 — 基于 MaaFramework 前端 + MaaAutoNaruto 参考实现
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](https://www.gnu.org/licenses/agpl-3.0.html)
-[![GUI](https://img.shields.io/badge/GUI-MFAAvalonia-purple)](https://github.com/MaaXYZ/MaaFramework)
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white">
+  <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blueviolet">
+  <img alt="license" src="https://img.shields.io/badge/License-AGPL--3.0--only-blue">
+  <img alt="GUI" src="https://img.shields.io/badge/GUI-MFAAvalonia-purple?logo=avalonia&logoColor=white">
+</p>
 
 ---
 
@@ -76,7 +80,7 @@
 - 日志清理
 - 关闭火影
 
-> 完整任务列表见 `frontend/MFAAvalonia/config/instances/default.json`。
+> 完整任务列表见 `config/instances/default.json`。
 
 ### 已知限制
 
@@ -134,7 +138,16 @@ A: 确保本项目根目录 `agent/` 下的四个文件为最新版本：`custom
 
 前端使用 [MFAAvalonia](https://github.com/MaaXYZ/MaaFramework)（MaaFramework 官方 Avalonia 桌面客户端）。
 
-项目在开发过程中参考了 [narutomobile](https://github.com/duorua/narutomobile) 的代码与设计。
+项目在开发过程中参考了 [MaaAutoNaruto](https://github.com/duorua/MaaAutoNaruto) 的代码与设计。
+
+## 贡献者
+
+[![Contributors](https://contrib.rocks/image?repo=chanming477/naruto-auto-daily)](https://github.com/chanming477/naruto-auto-daily/graphs/contributors)
+
+## 联系方式
+
+- 提 Issue：[GitHub Issues](https://github.com/chanming477/naruto-auto-daily/issues)
+- 详细联系方式见 [CONTACT](CONTACT)
 
 ---
 

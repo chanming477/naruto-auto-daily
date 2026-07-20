@@ -22,8 +22,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MERGED_JSON = PROJECT_ROOT / "resources" / "narutomobile" / "pipeline" / "merged.json"
-INTERFACE_JSON = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "interface.json"
-DEFAULT_CONFIG = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "config" / "instances" / "default.json"
+INTERFACE_JSON = PROJECT_ROOT / "interface.json"
+DEFAULT_CONFIG = PROJECT_ROOT / "config" / "instances" / "default.json"
 
 # BIZ 节点前缀: 真正的业务节点
 BIZ_HINTS = (

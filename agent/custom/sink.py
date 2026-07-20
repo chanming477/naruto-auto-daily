@@ -3,7 +3,7 @@
 AspectRatioChecker: 任务启动时检测模拟器分辨率是否为 16:9,
 如果不是则停止任务。
 
-来源: MaaAutoNaruto v1.3.35 ``agent/custom/sink.py``。
+来源: MaaAutoNaruto v1.3.41 ``agent/custom/sink.py``。
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover
     _MAAFW_AVAILABLE = False
 
 from agent.utils.logger import get_agent_logger
+from agent.custom.utils import send_notification
 
 _log = get_agent_logger()
 
@@ -112,4 +113,31 @@ if _MAAFW_AVAILABLE and AgentServer is not None:
                     width, height,
                 )
 
-    _log.info("Agent 模式 tasker sink 已注册: AspectRatioChecker")
+
+    @AgentServer.tasker_sink()
+    class NotificationSink(TaskerEventSink):
+        """任务完成/失败时发 Windows 桌面通知 (移植自 narutomobile 1.3.41)"""
+
+        def on_tasker_task(  # type: ignore[override]
+            self,
+            tasker: Any,
+            noti_type: Any,
+            detail: Any,
+        ) -> None:
+            entry = getattr(detail, "entry", "")
+            task_id = getattr(detail, "task_id", "?")
+
+            if noti_type == NotificationType.Succeeded:
+                _log.info("TaskSucceeded: {} ({})", task_id, entry)
+                send_notification(
+                    f"✅ {task_id} 完成",
+                    f"任务已成功执行 ({entry})"
+                )
+            elif noti_type == NotificationType.Failed:
+                _log.warning("TaskFailed: {} ({})", task_id, entry)
+                send_notification(
+                    f"❌ {task_id} 失败",
+                    f"任务执行失败, 请查看日志 ({entry})"
+                )
+
+    _log.info("Agent 模式 tasker sink 已注册: AspectRatioChecker, NotificationSink")

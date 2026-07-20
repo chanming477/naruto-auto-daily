@@ -4,7 +4,7 @@
 
 ## 1. 目录命名
 
-**禁止大小写混合**(例如 `Activity/` 和 `activity/` 并存)。2026-06-30 现状是 narutomobile 镜像(大小写混合),后续 task 引用都按现状,**未来**逐步统一为小写 snake_case。
+**禁止大小写混合**(例如 `Activity/` 和 `activity/` 并存)。2026-06-30 现状是 MaaAutoNaruto 镜像(大小写混合),后续 task 引用都按现状,**未来**逐步统一为小写 snake_case。
 
 | 现有目录 | 现状 | 建议 |
 |---------|------|------|
@@ -65,7 +65,7 @@
 ## 5. 不要做
 
 - ❌ 同一个对象**多个名字**(例 `mail_envelope.png` + `Mail/email.png` 共存)
-- ❌ 路径含中文(只允许 ASCII — narutomobile 路径全是 ASCII)
+- ❌ 路径含中文(只允许 ASCII — MaaAutoNaruto 路径全是 ASCII)
 - ❌ 模板带 `_v1` / `_v2_final` / `_v2_real_v3` 这种版本号贪多
 - ❌ 把模板放在 `resources/templates/` 顶层(已经全部移到 `actions/<task>/`)
 - ❌ 在 `scripts/` 或 `docs/` 里放 PNG(只能用 `resources/templates/`)

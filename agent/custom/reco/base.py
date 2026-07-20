@@ -1,11 +1,11 @@
 """agent.custom.reco — CustomRecognition 注册 (Agent 模式)。
 
-注册 3 个 CustomRecognition,全部来自 MaaAutoNaruto v1.3.35:
+注册 3 个 CustomRecognition,全部来自 MaaAutoNaruto v1.3.41:
     - IsInNinjaGuide: 检测是否在忍者指引界面
     - IsCounterOverflow: 计数器溢出检测 (积分赛/秘境/周胜重复次数限制)
     - MissionOfficeStrategy: 集会所贪心策略 (是否刷新任务)
 
-来源: MaaAutoNaruto v1.3.35 ``agent/custom/reco.py``。
+来源: MaaAutoNaruto v1.3.41 ``agent/custom/reco.py``。
 """
 
 from __future__ import annotations
@@ -83,7 +83,7 @@ if _MAAFW_AVAILABLE and AgentServer is not None:
         模板匹配 ``in_ninja_guide`` 节点 (SharedNode/in_ninja_guide.png)。
         命中返回 dummy box,未命中返回空 box。
 
-        来源: MaaAutoNaruto v1.3.35。
+        来源: MaaAutoNaruto v1.3.41。
         """
 
         def analyze(
@@ -110,7 +110,7 @@ if _MAAFW_AVAILABLE and AgentServer is not None:
         每次执行计数器 +1,超过 max_hit 时返回未命中 (阻止继续)。
         用于积分赛挑战次数 / 秘境重复挑战 / 周胜再打一把 等场景。
 
-        来源: MaaAutoNaruto v1.3.35。
+        来源: MaaAutoNaruto v1.3.41。
         """
 
         def analyze(
@@ -154,7 +154,7 @@ if _MAAFW_AVAILABLE and AgentServer is not None:
         公式: (刷新上限 - 9) * 1.5 >= 可接取数 → 继续刷新
         否则 → 停止刷新 (安全策略)
 
-        来源: MaaAutoNaruto v1.3.35。
+        来源: MaaAutoNaruto v1.3.41。
         """
 
         MAX_RESOURCE_ROI = [1004, 614, 27, 27]

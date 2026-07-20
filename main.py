@@ -94,18 +94,17 @@ def _launch_mfaavalonia_gui(project_root: Path) -> int:
     """启动 MFAAvalonia 桌面客户端。
 
     需要 .NET 10 Desktop Runtime,首次运行请先执行:
-        frontend\\MFAAvalonia\\DependencySetup_依赖库安装_win.bat
+        DependencySetup_依赖库安装_win.bat
     """
     import subprocess
 
-    exe = project_root / "frontend" / "MFAAvalonia" / "MFAAvalonia.exe"
+    exe = project_root / "MFAAvalonia.exe"
     if not exe.is_file():
         print("MFAAvalonia.exe 未找到,请先下载前端包。")
         print("  下载地址: https://github.com/MaaXYZ/MaaFramework/releases")
-        print("  解压到: frontend\\MFAAvalonia\\")
+        print("  解压到项目根目录")
         return 1
-    # 以 frontend/MFAAvalonia/ 为工作目录启动(所有相对路径以此为根)
-    subprocess.Popen([str(exe)], cwd=str(exe.parent))
+    subprocess.Popen([str(exe)], cwd=str(project_root))
     print("MFAAvalonia 已启动。关闭此窗口不影响 GUI 运行。")
     return 0
 

@@ -462,7 +462,7 @@ def clean_logs_run(
 
     project_root = _find_project_root()
     logs_dir = project_root / "logs"
-    maafw_debug = project_root / "frontend" / "MFAAvalonia" / "debug"
+    maafw_debug = project_root / "debug"
 
     total_freed = 0
     detail: list[str] = []

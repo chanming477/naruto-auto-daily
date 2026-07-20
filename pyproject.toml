@@ -1,7 +1,7 @@
 [project]
 name = "naruto-auto-daily"
 version = "0.7.0"
-description = "火影忍者手游日常任务自动化工具 — 基于 MaaFramework + narutomobile 模板引擎"
+description = "火影忍者手游日常任务自动化工具 — 基于 MaaFramework + MaaAutoNaruto 模板引擎"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "AGPL-3.0-only" }
@@ -10,16 +10,18 @@ authors = [
 ]
 
 dependencies = [
-    "loguru>=0.7.3",
-    "pydantic>=2.7",
-    "PyYAML>=6.0",
-    "numpy>=2.0",
-    "Pillow>=10.0",
-    "mss>=9.0",
-    "psutil>=5.9",
-    "pywin32>=306 ; sys_platform == 'win32'",
-    "opencv-python-headless>=4.9",
+    "loguru==0.7.3",
+    "pydantic==2.13.4",
+    "PyYAML==6.0.3",
+    "numpy==2.4.4",
+    "Pillow==12.2.0",
+    "mss==10.2.0",
+    "psutil==7.2.2",
+    "pywin32==312 ; sys_platform == 'win32'",
+    "opencv-python-headless==4.13.0.92",
     "maafw==5.10.4",
+    "onnxruntime==1.27.0",
+    "notify-py==0.3.43",
 ]
 
 [dependency-groups]

@@ -67,47 +67,48 @@ logs/maafw_data/
 .claude/
 
 # ============================================================
-# Frontend (MFAAvalonia) — 部分追踪,部分 ignore (2026-07-20 CI/CD 重构)
+# Frontend (MFAAvalonia) — 扁平化 (2026-07-20 目录扁平化重构)
 # ============================================================
 # git 追踪(任务编排 + 配置):
-#   frontend/MFAAvalonia/interface.json
-#   frontend/MFAAvalonia/appsettings.json
-#   frontend/MFAAvalonia/config/instances/default.json
+#   interface.json
+#   appsettings.json
+#   config/instances/default.json
 # CI/CD: GitHub Actions 在打 release 时从 MaaXYZ/MaaFramework releases 下载
 #   MFAAvalonia 主程序,再用 git 里的配置文件覆盖默认。
 
 # Frontend 二进制主体(MaaFramework 官方 ~235MB,本地开发用,CI 自动下载)
-frontend/MFAAvalonia/MFAAvalonia.exe
-frontend/MFAAvalonia/MFAAvalonia.dll
-frontend/MFAAvalonia/MFAAvalonia.deps.json
-frontend/MFAAvalonia/MFAAvalonia.runtimeconfig.json
-frontend/MFAAvalonia/libloader.dll
-frontend/MFAAvalonia/DependencySetup_依赖库安装_win.bat
-frontend/MFAAvalonia/dependencySetup_*.bat
-frontend/MFAAvalonia/runtimes/
-frontend/MFAAvalonia/python/
-frontend/MFAAvalonia/libs/
-frontend/MFAAvalonia/plugins/
-frontend/MFAAvalonia/agent/
-frontend/MFAAvalonia/resource/
-frontend/MFAAvalonia/Resource/
-frontend/MFAAvalonia/resources/
-frontend/MFAAvalonia/ThirdParty/
-frontend/MFAAvalonia/backup/
-frontend/MFAAvalonia/debug/
-frontend/MFAAvalonia/logs/
-frontend/MFAAvalonia/temp/
+MFAAvalonia.exe
+MFAAvalonia.dll
+MFAAvalonia.deps.json
+MFAAvalonia.runtimeconfig.json
+libloader.dll
+DependencySetup_依赖库安装_win.bat
+dependencySetup_*.bat
+runtimes/
+python/
+libs/
+plugins/
+agent/                  # 默认 ignore 所有 agent/ 子目录 (如 frontend 残留)
+!/agent/                 # 例外: 重新包含根 agent/ 源码
+resource/
+Resource/
+resources/
+ThirdParty/
+backup/
+debug/
+logs/
+temp/
 # .bak 备份文件(本地开发残留,不入库)
-frontend/MFAAvalonia/interface.json.bak
-frontend/MFAAvalonia/config/instances/*.bak
-frontend/MFAAvalonia/*.bak
+interface.json.bak
+config/instances/*.bak
+*.bak
 # 上游默认配置(MFAAvalonia 自带,不需要我们追踪)
-frontend/MFAAvalonia/config/config.json
-frontend/MFAAvalonia/config/maa_option.json
-frontend/MFAAvalonia/config/maa_pi_config.json
+config/config.json
+config/maa_option.json
+config/maa_pi_config.json
 # 平台相关 native 库(Windows-only,本项目只发布 Windows)
-frontend/MFAAvalonia/*.so
-frontend/MFAAvalonia/*.dylib
+*.so
+*.dylib
 
 # 项目数据
 data/
@@ -118,6 +119,9 @@ data/
 # 调试期临时产物(本地分析报告,不入仓库)
 /findings_*.json
 /resources/narutomobile/_test_backups/
+
+# 目录扁平化重构时的备份(如果还在可以删掉,不要 commit)
+/frontend.bak.*/
 
 # 内部 roadmap 草稿(开发期讨论记录,非用户文档)
 docs/superpowers/

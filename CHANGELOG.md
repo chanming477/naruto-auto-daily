@@ -98,7 +98,7 @@
 
 ### Fixed (2026-07-14 跟进)
 - **MFAAvalonia `interface.json` option 块缺失** — 跑批时 4 张 on_error 截图(`up_swipe_for_ninja_guide_find_funtion_entry` × 3 + `energy_entry` × 1),任务报告"成功"但实际走 swipe 兜底,OCR 找不到"装备"等默认文字
-  - 根因: 上游 MaaAutoNaruto v1.3.35 的 `interface.json` 138 KB,本项目 2.3 KB 缺 `option` 块(`merged.json` 和模板完全相同)
+  - 根因: 上游 MaaAutoNaruto v1.3.41 的 `interface.json` 138 KB,本项目 2.3 KB 缺 `option` 块(`merged.json` 和模板完全相同)
   - 修复: 选择性复制 10 个相关 option(覆盖 19 个 task 中的 9 个),`ninja_guide_find_funtion_entry.expected` 从默认 `["装备"]` 动态覆盖为实际任务入口文字(如 `["组织"]` / `["积分赛"]` / `["秘境"]` 等)
 
 ### Changed (2026-07-14 全面清理 — 用户审计 18 项 P0/P1/P2/P3)
@@ -139,14 +139,14 @@
 - **依赖**: 删 `rapidocr-onnxruntime`(无用户), 加 `onnxruntime>=1.18`(ocr_matcher 真用)
 - **测试**: 192/192 pass, 0 fail, 0 引用死代码
 - **CLI 兼容**: `--run-task <id>` 替代 6 个 `--<task>-real` + `cmd_weekly_signin_real`; `--list-tasks` 替代 `--maafw-list` 重复
-  - 来源: `https://github.com/duorua/narutomobile` v1.3.35 (AGPL-3.0,与本项目许可证兼容)
+  - 来源: `https://github.com/duorua/MaaAutoNaruto` v1.3.41 (AGPL-3.0,与本项目许可证兼容)
   - 详见 `docs/MAF_CONFIG_FIX.md`
   - **注意**: `frontend/MFAAvalonia/interface.json` 在 `.gitignore` 内 (234 MB 二进制),此修复为本地操作,重装 MFAAvalonia 时需重新应用
 
 ## [0.7.0] - 2026-06-30 (Phase 7 完成)
 
 ### Added
-- **28 个业务 task**(从 `MaaAutoNaruto-win-x86_64-v1.3.35` 全抄):
+- **28 个业务 task**(从 `MaaAutoNaruto-win-x86_64-v1.3.41` 全抄):
   - **基础 7 任务**:mail / daily_signin / weekly_signin / liveness / recruit / activity / group_signin
   - **新增 21 任务**:monthly_signin / rich_room / team_dash / secret_realm / survival_challenge / shugyou_no_michi / stronghold / mission_office / advanture / elite_instance / point_race / rebel_ninja / use_energy / give_energy / leaderboard / more_gameplay / ninja_book / weekly_win / sky_ground / easy_helper / hundred_ninja
 - **`tools/gen_11_tasks.py`** — 批量 task 生成器(统一 ROI / 模板 / 8 节点 pipeline)
@@ -163,7 +163,7 @@
 - **`dryrun_runner.py` line 28** — `SERIAL` 从 `127.0.0.1:16384` 改为 `127.0.0.1:5555`(MuMu 端口变化)
 - **`config/app_config.yaml`** — `default_serial` 从 7555 备注为 5555
 - **`main.py` header** — 从 "Phase 6 真实日常任务接入" → "Phase 7 narutomobile 全抄 + 工程治理"
-- **`tasks/*.py`** — 加 "生成日期:2026-06-30 + 来源:narutomobile v1.3.35" 注释
+- **`tasks/*.py`** — 加 "生成日期:2026-06-30 + 来源:MaaAutoNaruto v1.3.41" 注释
 - **`tasks/pipeline_runner.py`** — 所有 task 的 on_error 不再 silent `verify_done`(失败真报)
 
 ### Deprecated
@@ -183,7 +183,7 @@
 - 临时 dryrun_v2.py / dryrun_v3.py
 
 ### Verified
-- 680 个 narutomobile v1.3.35 模板复制覆盖到位(`batch_copy.py`)
+- 680 个 MaaAutoNaruto v1.3.41 模板复制覆盖到位(`batch_copy.py`)
 - 18 个关键 ROI 与旧版 `narutomobile-main` 一致
 
 ## [0.6.0] - 2026-06-27

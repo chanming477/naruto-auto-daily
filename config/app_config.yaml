@@ -85,11 +85,11 @@ template_matching:
 
 # MaaFramework 桥接 (替代自研识别/导航引擎)
 # 路径留空 = 默认 {project_root}/resources/narutomobile/
-# 也可填绝对路径指向外部 narutomobile 安装目录
+# 也可填绝对路径指向外部 MaaAutoNaruto 安装目录
 # 优先级: CLI --maafw-resource > 本字段 > 默认项目内
 maafw:
-  # narutomobile resource 路径(留空 = 项目内 resources/narutomobile)
-  # 复制源: D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\resource\base
+  # MaaAutoNaruto resource 路径(留空 = 项目内 resources/narutomobile)
+  # 复制源: D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.41\resource\base
   narutomobile_resource_path: ""
   # maafw Toolkit 初始化目录(log + cache 落盘)
   data_dir: "logs/maafw_data"

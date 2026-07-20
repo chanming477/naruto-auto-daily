@@ -38,7 +38,7 @@ def fake_context():
 
 @pytest.fixture
 def project_sandbox(tmp_path, monkeypatch):
-    """模拟一个项目根目录(含 logs/ + frontend/MFAAvalonia/debug/)。
+    """模拟一个项目根目录(含 logs/ + debug/)。
 
     patch ``_find_project_root`` 返回 sandbox 根,
     patch ``__file__`` 让 ``Path(__file__).resolve().parent`` 走真实路径
@@ -46,7 +46,7 @@ def project_sandbox(tmp_path, monkeypatch):
     """
     sandbox = tmp_path
     (sandbox / "logs").mkdir()
-    (sandbox / "frontend" / "MFAAvalonia" / "debug").mkdir(parents=True)
+    (sandbox / "debug").mkdir(parents=True)
     monkeypatch.setattr(_actions_core, "_find_project_root", lambda: sandbox)
     return sandbox
 
@@ -198,7 +198,7 @@ def test_missing_logs_dir(tmp_path, monkeypatch, fake_context, argv_with):
     """logs/ 不存在时直接跳过(不崩),仍然处理 debug/。"""
     sandbox = tmp_path
     # 注意:不建 logs/
-    debug_dir = sandbox / "frontend" / "MFAAvalonia" / "debug"
+    debug_dir = sandbox / "debug"
     debug_dir.mkdir(parents=True)
     (debug_dir / "maafw.bak.1.log").write_text("bak")
 
@@ -212,7 +212,7 @@ def test_missing_logs_dir(tmp_path, monkeypatch, fake_context, argv_with):
 
 
 def test_missing_maafw_debug_dir(tmp_path, monkeypatch, fake_context, argv_with):
-    """frontend/MFAAvalonia/debug/ 不存在时直接跳过,仍然处理 logs/。"""
+    """debug/ 不存在时直接跳过,仍然处理 logs/。"""
     sandbox = tmp_path
     (sandbox / "logs").mkdir()
     # 不建 debug/
@@ -236,7 +236,7 @@ def test_missing_maafw_debug_dir(tmp_path, monkeypatch, fake_context, argv_with)
 
 def test_maafw_bak_log_matching(project_sandbox, fake_context, argv_with):
     """maafw.bak.*.log 才删,maafw.log / something.bak.log / maafw.bak.foo 都保留。"""
-    dbg = project_sandbox / "frontend" / "MFAAvalonia" / "debug"
+    dbg = project_sandbox / "debug"
     (dbg / "maafw.bak.1.log").write_text("bak 1")
     (dbg / "maafw.bak.2.log").write_text("bak 2")
     (dbg / "maafw.bak.foo").write_text("not .log")  # 缺 .log 后缀,保留
@@ -261,7 +261,7 @@ def test_maafw_bak_log_matching(project_sandbox, fake_context, argv_with):
 
 def test_on_error_recursive_delete(project_sandbox, fake_context, argv_with):
     """on_error/ 下的嵌套目录和文件全部递归删除。"""
-    on_err = project_sandbox / "frontend" / "MFAAvalonia" / "debug" / "on_error"
+    on_err = project_sandbox / "debug" / "on_error"
     on_err.mkdir(parents=True)
     (on_err / "img1.png").write_bytes(b"x" * 100)
     (on_err / "nested").mkdir()

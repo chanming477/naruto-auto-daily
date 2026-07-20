@@ -67,7 +67,7 @@ def test_total_task_count_includes_new_tasks():
     import json
 
     project_root = Path(__file__).resolve().parent.parent
-    default_json = project_root / "frontend" / "MFAAvalonia" / "config" / "instances" / "default.json"
+    default_json = project_root / "config" / "instances" / "default.json"
     assert default_json.exists(), f"真理源不存在: {default_json}"
     data = json.loads(default_json.read_text(encoding="utf-8"))
     items = data.get("TaskItems", [])
@@ -92,9 +92,8 @@ def test_all_one_to_one_mappings_preserved():
         "一键助手": "easy_helper",
         "丰饶之间": "rich_room",
         "忍术对战": "ninja_book",
-        # 2026-07-20: 领取体力 + 赠送体力 合并成 1 个 send_energy_combined task
-        # (F0-3 spec 合并 give_energy → use_energy 顺序链, 2026-07-20 真机回归重写)
-        "领取体力": "send_energy_combined",
+        # 2026-07-20: 赠送体力 = give_energy (既送又领, use_energy 实际是刷碎片)
+        "赠送体力": "give_energy",
         "招财": "get_copper",
         "生存挑战": "survival_challenge",
     }
@@ -139,7 +138,7 @@ def test_default_json_is_source_of_truth():
     验证: 读 default.json,跟 TASK_MAPPING 逐项匹配。
     """
     project_root = Path(__file__).resolve().parent.parent
-    default_json = project_root / "frontend" / "MFAAvalonia" / "config" / "instances" / "default.json"
+    default_json = project_root / "config" / "instances" / "default.json"
     assert default_json.exists(), f"真理源不存在: {default_json}"
     data = json.loads(default_json.read_text(encoding="utf-8"))
     items = data.get("TaskItems", [])

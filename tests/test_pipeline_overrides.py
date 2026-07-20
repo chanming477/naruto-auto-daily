@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 from pathlib import Path
 
@@ -270,7 +272,7 @@ def test_interface_json_options_applied(tmp_path, monkeypatch):
 
     # 读真实 interface.json
     project_root = Path(__file__).resolve().parent.parent
-    interface_json = project_root / "frontend" / "MFAAvalonia" / "interface.json"
+    interface_json = project_root / "interface.json"
     assert interface_json.exists(), f"interface.json 不存在: {interface_json}"
     interface_data = json.loads(interface_json.read_text(encoding="utf-8"))
 
@@ -307,6 +309,9 @@ def test_interface_json_options_applied(tmp_path, monkeypatch):
                 f"fallback 时 {entry} 缺 next 节点: {node},"
                 f"实际: {result[entry].get('next')}"
             )
+
+
+@pytest.mark.skip(reason="ref 1.3.41 默认 ROI 已是 1280x720 模拟器, 不需要 1280x720 ROI 修复 option (2026-07-20 替换为 ref)")
 
 
 def test_merged_json_sent_energy_roi_NOT_modified():

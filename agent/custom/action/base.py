@@ -92,7 +92,7 @@ if _MAAFW_AVAILABLE and CustomAction is not None and AgentServer is not None:
 
         给当前 task_id 在内存中的计数器 +1,用于 IsCounterOverflow
         检测是否超过 max_hit 限制。
-        来源: MaaAutoNaruto v1.3.35。
+        来源: MaaAutoNaruto v1.3.41。
         """
 
         def run(  # type: ignore[override]
@@ -114,7 +114,7 @@ if _MAAFW_AVAILABLE and CustomAction is not None and AgentServer is not None:
         """StopTaskList (Agent 模式) — 停止当前及后续任务。
 
         调用 tasker.post_stop() 终止整个任务队列。
-        来源: MaaAutoNaruto v1.3.35。
+        来源: MaaAutoNaruto v1.3.41。
         """
 
         def run(  # type: ignore[override]
@@ -135,7 +135,7 @@ if _MAAFW_AVAILABLE and CustomAction is not None and AgentServer is not None:
 
         在重试前截屏 + 记录状态,方便调试。实际重试逻辑由
         merged.json 的 [JumpBack] 机制处理。
-        来源: MaaAutoNaruto v1.3.35。
+        来源: MaaAutoNaruto v1.3.41。
         """
 
         def run(  # type: ignore[override]

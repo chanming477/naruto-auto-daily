@@ -125,13 +125,13 @@ assert len(TASK_MAPPING) == expected
 
 ### OPT-7 · 代码注释统一
 
-**操作**：清理代码中残留的 `narutomobile v1.3.35 抄`、`MaaAutoNaruto` 等注释。
+**操作**：清理代码中残留的 `MaaAutoNaruto v1.3.41 抄`、`MaaAutoNaruto` 等注释。
 
 **不改**：`resources/narutomobile/` 目录名、`maafw_bridge/` 中的技术引用。
 
 涉及文件：
-- `maafw_bridge/task_mapping.py` — docstring 中 `narutomobile entry` → `pipeline entry`
-- `maafw_bridge/tasker.py` — docstring 中 `narutomobile` → `pipeline`
+- `maafw_bridge/task_mapping.py` — docstring 中 `MaaAutoNaruto entry` → `pipeline entry`
+- `maafw_bridge/tasker.py` — docstring 中 `MaaAutoNaruto` → `pipeline`
 - `maafw_bridge/resource.py` — 同上
 - `maafw_bridge/_actions_core.py` — 参考路径注释 `D:\自动日常源码带\...` → 删
 - `tasks/task_engine_maafw.py` — docstring 清理

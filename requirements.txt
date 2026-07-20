@@ -1,15 +1,18 @@
-# naruto-auto-daily 运行时依赖
+# naruto-auto-daily 运行时依赖（全部精确锁定版本）
 # Python 3.11+
 # 安装: pip install -r requirements.txt
 # 或:   pip install .
 
-loguru>=0.7.3
-pydantic>=2.7
-PyYAML>=6.0
-numpy>=2.0
-Pillow>=10.0
-mss>=9.0
-psutil>=5.9
-pywin32>=306 ; sys_platform == "win32"
-opencv-python-headless>=4.9
+loguru==0.7.3
+pydantic==2.13.4
+PyYAML==6.0.3
+numpy==2.4.4
+Pillow==12.2.0
+mss==10.2.0
+psutil==7.2.2
+pywin32==312 ; sys_platform == 'win32'
+opencv-python-headless==4.13.0.92
 maafw==5.10.4
+onnxruntime==1.27.0
+# notify-py==0.3.43 强依赖 loguru<=0.6.0, 跟 loguru==0.7.3 冲突
+# 用 `pip install --no-deps notify-py==0.3.43` 单独装 (运行时 loguru 0.7.3 API 兼容)

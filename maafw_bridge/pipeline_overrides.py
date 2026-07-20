@@ -36,8 +36,8 @@ import json
 from pathlib import Path
 from typing import Any, Final
 
-# 前端配置根
-_FRONTEND_DIR: Final[Path] = Path(__file__).parent.parent / "frontend" / "MFAAvalonia"
+# 前端配置根 (扁平化后 interface.json + config/instances/default.json 在项目根)
+_FRONTEND_DIR: Final[Path] = Path(__file__).parent.parent
 _INTERFACE_JSON: Final[Path] = _FRONTEND_DIR / "interface.json"
 _DEFAULT_JSON: Final[Path] = _FRONTEND_DIR / "config" / "instances" / "default.json"
 

@@ -17,7 +17,7 @@
 
 ## 根因
 
-对比 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\interface.json` (141 KB) 与本项目 `frontend/MFAAvalonia/interface.json` (2.3 KB):
+对比 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.41\interface.json` (141 KB) 与本项目 `frontend/MFAAvalonia/interface.json` (2.3 KB):
 
 - **merged.json**: 完全相同 (708,915 字节, 模板/ROI/pipeline 全对得上)
 - **image/ 模板**: 完全相同
@@ -78,7 +78,7 @@
 
 ## 关联文档
 
-- 完整根因分析: `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\interface.json` line 838-1145 (10 个相关 option)
+- 完整根因分析: `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.41\interface.json` line 838-1145 (10 个相关 option)
 - 项目 pipeline: `resources/narutomobile/pipeline/merged.json` line 20322-20460 (ninja_guide_* 节点定义)
 - 项目 README: §6 架构图 (Background Layer)
 - AGPL-3.0 同许可证合规: LICENSE + pyproject.toml license 字段

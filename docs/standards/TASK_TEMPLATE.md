@@ -19,7 +19,7 @@ TASKS = [..., make_task(...), ...]  # 每任务一个配置字典
 | `cname` | 中文显示名(如 `丰饶之间`) |
 | `category` | 分类(`daily` / `weekly` / `monthly` / `combat` / `social`) |
 | `cname_desc` | 中间描述文字 |
-| `flow_doc` | 流程描述(从 narutomobile 抄) |
+| `flow_doc` | 流程描述(从 MaaAutoNaruto 抄) |
 | `entry_node` | 第 1 关节点名(进任务入口) |
 | `entry_desc` | 入口说明 |
 | `card_node/roi_py/templates/action_node/fight_node/win_node` | 5 个核心节点的配置 |
@@ -44,12 +44,12 @@ TASKS = [..., make_task(...), ...]  # 每任务一个配置字典
 
 ## 3. ROI 来源
 
-**唯一权威源**: `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\resource\base\pipeline\merged.json`
+**唯一权威源**: `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.41\resource\base\pipeline\merged.json`
 
 提取方式:
 ```python
 import json
-with open(r'D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.35\resource\base\pipeline\merged.json') as f:
+with open(r'D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.41\resource\base\pipeline\merged.json') as f:
     data = json.load(f)
 # 例如:找 rich_room 入口
 v = data['rich_room_ac_entry_undone']
@@ -59,7 +59,7 @@ print(v['roi'], v['template'])
 
 **禁止**:
 - ❌ 自己推断 ROI(总是错)
-- ❌ 用 `cv2.imread`(narutomobile PNG iCCP chunks 不规范会让 headless cv2 报 can't open/read file)
+- ❌ 用 `cv2.imread`(MaaAutoNaruto PNG iCCP chunks 不规范会让 headless cv2 报 can't open/read file)
 - ✅ 用 `recognition.template_matcher.load_template`(用 `cv2.imdecode` + PIL fallback)
 
 ## 4. 新增一个 Task 的步骤
@@ -96,7 +96,7 @@ on_error=['verify_done'],  # 仅当 back_main_screen 也通过回主页 ROI 才 
 |------|------|------|
 | 文件名 | `<tid>_task.py` snake_case | `rich_room_task.py` |
 | 类名 | PascalCase + Task 后缀 | `RichRoomTask` |
-| task_id | snake_case,narutomobile 同名 | `rich_room` |
+| task_id | snake_case,MaaAutoNaruto 同名 | `rich_room` |
 | category | 枚举:`daily`/`weekly`/`monthly`/`combat`/`social` | `combat` |
 | name | 中文显示名 | `丰饶之间` |
 

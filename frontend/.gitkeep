@@ -1,4 +1,0 @@
-MFAAvalonia/ 在 .gitignore 中(234 MB 二进制不进 git)。
-用户首次使用前需手动从 MaaFramework releases 下载解压到此目录:
-    https://github.com/MaaXYZ/MaaFramework/releases
-解压到 frontend/MFAAvalonia/ 后,双击 start.bat 即可启动 GUI。

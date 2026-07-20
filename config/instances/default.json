@@ -1,0 +1,1006 @@
+{
+  "Resource": "官服",
+  "CurrentTasks": [
+    "启动游戏<|||>start_up",
+    "一键助手<|||>easy_helper",
+    "轻松赛季<|||>easy_season",
+    "招财<|||>get_copper",
+    "排行榜<|||>leaderboard",
+    "赠送体力<|||>give_energy",
+    "每日分享<|||>share",
+    "组织签到<|||>group",
+    "积分赛<|||>point_race",
+    "修行之路<|||>shugyou_no_michi",
+    "生存挑战<|||>survival_challenge",
+    "小队突袭<|||>team_dash",
+    "招募<|||>headhunt",
+    "每日签到<|||>activity",
+    "刷碎片<|||>use_energy",
+    "集会所<|||>mission_office",
+    "丰饶之间<|||>rich_room",
+    "忍术对战<|||>ninja_book",
+    "周胜<|||>weekly_win",
+    "火影情报社<|||>naruto_club",
+    "邮件领取<|||>mail",
+    "活跃奖励<|||>liveness_award",
+    "秘境<|||>secret_realm",
+    "二级密码<|||>secondary_password_open",
+    "商店一键<|||>shop",
+    "购买体力<|||>buy_energy",
+    "切换账号<|||>switch_account",
+    "退出火影<|||>exit_naruto",
+    "要塞<|||>stronghold",
+    "天空之地<|||>sky_ground",
+    "叛忍<|||>rebel_ninja",
+    "冒险副本<|||>advanture",
+    "精英副本<|||>elite_instance",
+    "修罗副本<|||>asura_instance",
+    "更多玩法<|||>more_gameplay",
+    "小游戏<|||>mini_game",
+    "欢乐会员<|||>joy_club",
+    "黑市商人<|||>black_market_merchant",
+    "调试<|||>debug",
+    "清理备份<|||>cleanup_maafw_bak_logs",
+    "收尾<|||>complete",
+    "activity",
+    "mail",
+    "liveness_award",
+    "group",
+    "headhunt",
+    "easy_helper",
+    "rich_room",
+    "ninja_book",
+    "advanture",
+    "elite_instance",
+    "team_dash",
+    "mission_office",
+    "point_race",
+    "weekly_win",
+    "rebel_ninja",
+    "stronghold",
+    "secret_realm",
+    "get_copper",
+    "survival_challenge",
+    "cleanup_maafw_bak_logs",
+    "give_energy",
+    "leaderboard",
+    "naruto_club",
+    "share"
+  ],
+  "TaskItems": [
+    {
+      "name": "启动游戏",
+      "entry": "start_up",
+      "default_check": false,
+      "description": "软件会关闭公告气泡;连点器任务可能不兼容**雷电模拟器**;如果此任务经常失败可以在[开始游戏按钮界面]或者[无公告游戏主界面]开启任务",
+      "option": [
+        {
+          "name": "设置启动超时时间",
+          "index": 0
+        },
+        {
+          "name": "启动超时后行为",
+          "index": 0
+        },
+        {
+          "name": "账号属性",
+          "index": 0
+        },
+        {
+          "name": "允许MAN管理qq和火影信息",
+          "index": 0
+        },
+        {
+          "name": "拒绝qq获取火影信息",
+          "index": 0
+        },
+        {
+          "name": "am_start启动",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "一键助手",
+      "entry": "easy_helper",
+      "default_check": true,
+      "option": [
+        {
+          "name": "轻松助手扫荡",
+          "index": 0
+        },
+        {
+          "name": "秘境翻饰品牌",
+          "index": 0
+        },
+        {
+          "name": "秘境翻忍具牌",
+          "index": 0
+        },
+        {
+          "name": "秘境忍具每次只翻一张",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "轻松赛季",
+      "entry": "easy_season",
+      "default_check": false,
+      "option": [
+        {
+          "name": "轻松季扫荡",
+          "index": 0
+        },
+        {
+          "name": "秘境翻饰品牌",
+          "index": 0
+        },
+        {
+          "name": "秘境翻忍具牌",
+          "index": 0
+        },
+        {
+          "name": "秘境忍具每次只翻一张",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "招财",
+      "entry": "get_copper",
+      "default_check": true,
+      "description": "需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "金币招财",
+          "index": 0
+        },
+        {
+          "name": "按轮招财",
+          "index": 0,
+          "sub_options": [
+            {
+              "name": "招财轮次",
+              "index": null,
+              "data": {
+                "招财轮次": "1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "按次招财",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "排行榜",
+      "entry": "leaderboard",
+      "default_check": true,
+      "option": [
+        {
+          "name": "忍界指引寻找排行榜",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "赠送体力",
+      "entry": "give_energy",
+      "default_check": true,
+      "option": [
+        {
+          "name": "选择账号好友送体力",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "每日分享",
+      "entry": "share",
+      "default_check": true,
+      "description": "由于社交软件版本多,设备延迟差异大.分享任务可能需要你调整选项到自己适合的配置,或者让拉起的社交软件是横版(平板版)并使用加速策略",
+      "option": [
+        {
+          "name": "主页面进行每日分享",
+          "index": 0
+        },
+        {
+          "name": "分享后直接返回游戏",
+          "index": 0
+        },
+        {
+          "name": "分享策略",
+          "index": 0,
+          "sub_options": [
+            {
+              "name": "分享等待社交软件启动时间",
+              "index": null,
+              "data": {
+                "等待时间": "5000"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "组织签到",
+      "entry": "group",
+      "default_check": true,
+      "description": "包含祈福签到和领奖，追击晓组织领奖。",
+      "option": [
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找组织",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "积分赛",
+      "entry": "point_race",
+      "default_check": true,
+      "description": "领取当日奖励,挑战逻辑是挑战战力比自己低的,并不保证取胜",
+      "option": [
+        {
+          "name": "积分赛强制战斗",
+          "index": 0
+        },
+        {
+          "name": "积分赛跨服",
+          "index": 0
+        },
+        {
+          "name": "积分赛挑战次数",
+          "index": 0,
+          "data": {
+            "积分赛挑战次数": "1"
+          }
+        },
+        {
+          "name": "积分赛失败后再战",
+          "index": 0
+        },
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找积分赛",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "修行之路",
+      "entry": "shugyou_no_michi",
+      "default_check": false,
+      "description": "推关无法处理自动战斗不起效,时间停止等bug",
+      "option": [
+        {
+          "name": "修行之路自动推关",
+          "index": 0
+        },
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找修行之路",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "生存挑战",
+      "entry": "survival_challenge",
+      "default_check": true
+    },
+    {
+      "name": "小队突袭",
+      "entry": "team_dash",
+      "default_check": true,
+      "description": "需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "小队突袭四倍奖励",
+          "index": 0
+        },
+        {
+          "name": "借组织助战",
+          "index": 0
+        },
+        {
+          "name": "小队突袭处理自动战斗",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "招募",
+      "entry": "headhunt",
+      "default_check": true
+    },
+    {
+      "name": "每日签到",
+      "entry": "activity",
+      "default_check": true
+    },
+    {
+      "name": "刷碎片",
+      "entry": "use_energy",
+      "default_check": false,
+      "option": [
+        {
+          "name": "精英副本一键全选",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "集会所",
+      "entry": "mission_office",
+      "default_check": true,
+      "description": "遇到忍者不足无法出发,这种情况不好安排超影刷新,会进入结束任务流程,建议忍者少的检查一下",
+      "option": [
+        {
+          "name": "任务集会所超影处理(beta)",
+          "index": 0
+        },
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找任务集会所",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "丰饶之间",
+      "entry": "rich_room",
+      "default_check": true,
+      "option": [
+        {
+          "name": "丰饶开大",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "忍术对战",
+      "entry": "ninja_book",
+      "default_check": true,
+      "description": "微信忍法帖分享部分设备可能会出现无法退出的情况,这种情况不保证能正常处理由于社交软件版本多,设备延迟差异大.分享任务可能需要你调整选项到自己适合的配置,或者让拉起的社交软件是横版(平板版)并使用加速策略",
+      "option": [
+        {
+          "name": "领取体验卡宝箱",
+          "index": 0
+        },
+        {
+          "name": "是否领取奖励",
+          "index": 0
+        },
+        {
+          "name": "分享后直接返回游戏",
+          "index": 0
+        },
+        {
+          "name": "分享策略",
+          "index": 0,
+          "sub_options": [
+            {
+              "name": "分享等待社交软件启动时间",
+              "index": null,
+              "data": {
+                "等待时间": "5000"
+              }
+            }
+          ]
+        },
+        {
+          "name": "跳过分享",
+          "index": 0
+        },
+        {
+          "name": "宝匣挑战",
+          "index": 0
+        },
+        {
+          "name": "忍法帖礼盒",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "周胜",
+      "entry": "weekly_win",
+      "default_check": true,
+      "description": "请在主页开始任务,请尽量不要滥用这个功能影响其他人游戏体验;该功能**不支持雷电模拟器**,与之有关的问题也不会被受理",
+      "option": [
+        {
+          "name": "忍界指引寻找周胜",
+          "index": 0
+        },
+        {
+          "name": "打排位",
+          "index": 0
+        },
+        {
+          "name": "何时退出",
+          "index": 0,
+          "data": {
+            "周胜胜利次数": "999"
+          }
+        },
+        {
+          "name": "周胜开大",
+          "index": 0
+        },
+        {
+          "name": "领取周胜奖励",
+          "index": 0
+        },
+        {
+          "name": "清周胜过期宝箱",
+          "index": 0
+        },
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        },
+        {
+          "name": "出现提示时重启任务",
+          "index": 0
+        },
+        {
+          "name": "周胜不攻击",
+          "index": 0
+        },
+        {
+          "name": "串行连点器(beta)",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "火影情报社",
+      "entry": "naruto_club",
+      "default_check": true,
+      "description": "该任务并不稳定,如遇卡顿可能需要人工接管",
+      "option": [
+        {
+          "name": "跳过情报社点赞",
+          "index": 0
+        },
+        {
+          "name": "喂豚豚",
+          "index": 0
+        },
+        {
+          "name": "金币助手",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "邮件领取",
+      "entry": "mail",
+      "default_check": true
+    },
+    {
+      "name": "活跃奖励",
+      "entry": "liveness_award",
+      "default_check": true
+    },
+    {
+      "name": "秘境",
+      "entry": "secret_realm",
+      "default_check": true,
+      "description": "请在主页开始任务,连点器任务可能不兼容**雷电模拟器**",
+      "option": [
+        {
+          "name": "秘境赢几次",
+          "index": 0,
+          "data": {
+            "秘境胜利次数": "1"
+          }
+        },
+        {
+          "name": "秘境翻饰品牌",
+          "index": 0
+        },
+        {
+          "name": "秘境翻忍具牌",
+          "index": 0
+        },
+        {
+          "name": "秘境忍具每次只翻一张",
+          "index": 0
+        },
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        },
+        {
+          "name": "有挑战卷的时候才挑战",
+          "index": 0
+        },
+        {
+          "name": "串行连点器(beta)",
+          "index": 0
+        },
+        {
+          "name": "烈炎秘境",
+          "index": 0
+        },
+        {
+          "name": "罡体秘境",
+          "index": 0
+        },
+        {
+          "name": "水牢秘境",
+          "index": 0
+        },
+        {
+          "name": "落岩秘境",
+          "index": 0
+        },
+        {
+          "name": "毒风秘境",
+          "index": 0
+        },
+        {
+          "name": "雷霆秘境",
+          "index": 0
+        },
+        {
+          "name": "阴阳秘境",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找秘境",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "二级密码",
+      "entry": "secondary_password_open",
+      "default_check": false,
+      "description": "开启后会输入二级密码需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "二级密码",
+          "index": 0,
+          "data": {
+            "二级密码": "0"
+          }
+        },
+        {
+          "name": "买体力触发二级密码",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "商店一键",
+      "entry": "shop",
+      "default_check": false,
+      "description": "测试商店日常兑换,该功能暂时不受理bug上报玉石商店需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "玉石商店",
+          "index": 0
+        },
+        {
+          "name": "生存商店",
+          "index": 0
+        },
+        {
+          "name": "积分赛商店",
+          "index": 0
+        },
+        {
+          "name": "组织商店",
+          "index": 0
+        },
+        {
+          "name": "商店结束不返回主页面",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "招财",
+      "entry": "get_copper",
+      "default_check": false,
+      "description": "需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "金币招财",
+          "index": 0
+        },
+        {
+          "name": "按轮招财",
+          "index": 0,
+          "sub_options": [
+            {
+              "name": "招财轮次",
+              "index": null,
+              "data": {
+                "招财轮次": "1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "按次招财",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "购买体力",
+      "entry": "buy_energy",
+      "default_check": false,
+      "description": "需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "购买体力次数",
+          "index": 0,
+          "data": {
+            "购买次数": "1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "小队突袭",
+      "entry": "team_dash",
+      "default_check": false,
+      "description": "需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "小队突袭四倍奖励",
+          "index": 0
+        },
+        {
+          "name": "借组织助战",
+          "index": 0
+        },
+        {
+          "name": "小队突袭处理自动战斗",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "切换账号",
+      "entry": "switch_account",
+      "default_check": false,
+      "description": "请在主页开始任务;需要拉起的qq是横版(平板版)界面;微信在模拟器上登录会封微信账号,只能扫码登录,所以不支持切微信账号",
+      "option": [
+        {
+          "name": "账号切换范围",
+          "index": 0
+        },
+        {
+          "name": "目标区",
+          "index": 0,
+          "data": {
+            "区序号": "1"
+          }
+        },
+        {
+          "name": "目标社交媒体账号",
+          "index": 0,
+          "data": {
+            "账号名/账号": "naruto-auto-daily"
+          }
+        },
+        {
+          "name": "允许MAN管理qq和火影信息",
+          "index": 0
+        },
+        {
+          "name": "账号属性",
+          "index": 0
+        },
+        {
+          "name": "拒绝qq获取火影信息",
+          "index": 0
+        },
+        {
+          "name": "切换账号后行为",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "退出火影",
+      "entry": "exit_naruto",
+      "default_check": false
+    },
+    {
+      "name": "要塞",
+      "entry": "stronghold",
+      "default_check": true,
+      "description": "默认前往火要塞;打其他要塞,点进对应要塞内开始任务",
+      "option": [
+        {
+          "name": "要塞玩法未开启时退出",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找要塞",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "天空之地",
+      "entry": "sky_ground",
+      "default_check": false,
+      "description": "非常建议不要开挑战和额外奖励柱子,如果人多会很超雄,可能导致巨大压力",
+      "option": [
+        {
+          "name": "天地选择战场",
+          "index": 0
+        },
+        {
+          "name": "守擂后游走避战",
+          "index": 0
+        },
+        {
+          "name": "你的名字",
+          "index": 0,
+          "data": {
+            "你的名字": "naruto-auto-daily"
+          }
+        },
+        {
+          "name": "天地选择额外奖励柱子",
+          "index": 0
+        },
+        {
+          "name": "天地挑战",
+          "index": 0
+        },
+        {
+          "name": "无限循环找柱子",
+          "index": 0
+        },
+        {
+          "name": "天地玩法未开启时退出",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找天地",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "叛忍",
+      "entry": "rebel_ninja",
+      "default_check": true,
+      "description": "尽量开启只显示自己,防止目标被遮挡,可以在叛忍地图打开;部分选项是首领功能,需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "叛忍敌人等级",
+          "index": 0
+        },
+        {
+          "name": "叛忍只显示自己",
+          "index": 0
+        },
+        {
+          "name": "叛忍难度",
+          "index": 0
+        },
+        {
+          "name": "叛忍开双倍",
+          "index": 0
+        },
+        {
+          "name": "叛忍玩法未开启时退出",
+          "index": 0
+        },
+        {
+          "name": "忍界指引寻找叛忍",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "冒险副本",
+      "entry": "advanture",
+      "default_check": true,
+      "description": "不会打高级关卡,忍者不要特效太多的(包括大招文字)",
+      "option": [
+        {
+          "name": "冒险副本一直推关",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "精英副本",
+      "entry": "elite_instance",
+      "default_check": true,
+      "description": "不是体力刷碎片的功能,这个用来开荒的,忍者不要特效太多的"
+    },
+    {
+      "name": "修罗副本",
+      "entry": "asura_instance",
+      "default_check": false,
+      "description": "忍者不要特效太多的"
+    },
+    {
+      "name": "更多玩法",
+      "entry": "more_gameplay",
+      "default_check": false,
+      "description": "需要已经适配的主题或者在决斗场页面开启任务;也可以开启从奖励中心进入;目前适配百忍,绝迹和大蛇丸",
+      "option": [
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        },
+        {
+          "name": "百忍",
+          "index": 0
+        },
+        {
+          "name": "绝迹战场",
+          "index": 0
+        },
+        {
+          "name": "大蛇丸试炼",
+          "index": 0
+        },
+        {
+          "name": "更多玩法打满奖励停止",
+          "index": 0
+        },
+        {
+          "name": "百忍打满任务停止",
+          "index": 0
+        },
+        {
+          "name": "打满奖励停止并领取奖励",
+          "index": 0
+        },
+        {
+          "name": "百忍未开放时操作",
+          "index": 0
+        },
+        {
+          "name": "百忍是否使用连点器战斗",
+          "index": 0
+        },
+        {
+          "name": "更多玩法在开战页面开始",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "小游戏",
+      "entry": "mini_game",
+      "default_check": false,
+      "description": "小游戏可以主页进,也可以从有小游戏名的功能入口界面进",
+      "option": [
+        {
+          "name": "选择小游戏",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "欢乐会员",
+      "entry": "joy_club",
+      "default_check": false,
+      "description": "只会领取游戏内的周度礼包"
+    },
+    {
+      "name": "黑市商人",
+      "entry": "black_market_merchant",
+      "default_check": false,
+      "description": "这个黑市商人是奸商,你需要在战力指导的陪同下使用这个功能;可以调一下只显示自己,关闭称号等,防止黑市商人被遮挡;需要二级密码,你需要非常小心,naruto-auto-daily不会对任何损失负责",
+      "option": [
+        {
+          "name": "黑市忍具之尘购买数量",
+          "index": 0,
+          "data": {
+            "购买数量": "1"
+          }
+        },
+        {
+          "name": "忍界指引寻找黑市商人",
+          "index": 0
+        },
+        {
+          "name": "从奖励中心进入",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "调试",
+      "entry": "debug",
+      "default_check": false,
+      "description": "用于调试，<b>日常使用请勿开启！</b>",
+      "option": [
+        {
+          "name": "display_pointer_location",
+          "index": 0
+        },
+        {
+          "name": "display_touch",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "清理备份",
+      "entry": "cleanup_maafw_bak_logs",
+      "default_check": true,
+      "description": "清理多余的日志文件,节省空间;考虑到方便debug,不会删除MFA日志;可以使用MFA清理缓存功能代替",
+      "option": [
+        {
+          "name": "保留备份日志个数",
+          "index": 0,
+          "data": {
+            "保留日志数": "3"
+          }
+        },
+        {
+          "name": "清理agent图像",
+          "index": 0
+        },
+        {
+          "name": "清理agent日志",
+          "index": 0
+        },
+        {
+          "name": "清理报错图像",
+          "index": 0
+        },
+        {
+          "name": "清理调试图像",
+          "index": 0
+        }
+      ]
+    },
+    {
+      "name": "收尾",
+      "entry": "complete",
+      "default_check": false,
+      "description": "用于标记任务已经完成,方便和auto_mas项目配合,https://github.com/AUTO-MAS-Project/AUTO-MAS"
+    }
+  ],
+  "InstanceName": "默认配置",
+  "CurrentControllerName": "连接模拟器",
+  "CurrentController": 2,
+  "ResourceOptionItems": {},
+  "AdbDevice": {
+    "InfoHandle": {
+      "value": 2496687483296
+    },
+    "Name": "不符闪光知名-MuMuPlayer12 v5",
+    "AdbPath": "D:/LenovoSoftstore/软件/MuMuPlayer-12.0/nx_main/adb.exe",
+    "AdbSerial": "127.0.0.1:16384",
+    "ScreencapMethods": 64,
+    "InputMethods": 18446744073709551607,
+    "Config": "{\"extras\":{\"mumu\":{\"enable\":true,\"index\":0,\"path\":\"D:/LenovoSoftstore/软件/MuMuPlayer-12.0\"}}}",
+    "AgentPath": "./MaaAgentBinary"
+  }
+}

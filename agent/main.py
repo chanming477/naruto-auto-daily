@@ -20,7 +20,7 @@ def _find_project_root() -> Path:
 
     支持两种部署:
         - 源码 dev: ``D:\\火影自动日常\\agent\\main.py`` → 1 层 = project root
-        - 部署: ``D:\\火影自动日常\\frontend\\MFAAvalonia\\agent\\main.py`` → 2 层 = project root
+        - 部署: ``D:\\火影自动日常\\agent\\main.py`` → 1 层 = project root
 
     找不到时报错(让用户知道 agent/ 复制位置不对)。
     """
@@ -45,6 +45,14 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 def main() -> int:
     """Agent 入口 — 启动 AgentServer 等 MFAAvalonia IPC 调用。"""
+    # 强制 stdout UTF-8 编码（防止 Windows charmap 编码错误）
+    # 2026-07-20 加 — narutomobile 1.3.41 的做法
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+
     from agent.utils.logger import setup_agent_logger
     log = setup_agent_logger()
 

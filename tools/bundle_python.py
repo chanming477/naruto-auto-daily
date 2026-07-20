@@ -52,16 +52,51 @@ URL = (
 
 # 项目根
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-TARGET = PROJECT_ROOT / "frontend" / "MFAAvalonia" / "python"
+TARGET = PROJECT_ROOT / "python"
 
-# Agent 模式需要的依赖 (跟 requirements.txt 同步,只列必须的)
-DEPS = [
-    "maafw==5.10.4",
-    "loguru>=0.7.3",
-    "numpy>=2.0",
-    "Pillow>=10.0",
-    "onnxruntime>=1.18",
-]
+# Agent 模式需要的依赖 (从 pyproject.toml 动态读取)
+# 这样升级 pyproject.toml 不会忘记同步 bundle_python.py, 避免版本漂移
+def _read_deps_from_pyproject() -> list[str]:
+    """从 pyproject.toml 读取嵌入 Python 需要的依赖。
+
+    过滤规则:
+        - 只保留 agent 模式实际需要的包
+        - 跳过 Windows-only 标记的 (pywin32, 在嵌入 Python 中用不到)
+        - 跳过纯 CLI/桌面无关的 (mss, psutil)
+    """
+    import re
+    pyproject = PROJECT_ROOT / "pyproject.toml"
+    if not pyproject.exists():
+        raise FileNotFoundError(f"pyproject.toml 不存在: {pyproject}")
+    content = pyproject.read_text(encoding="utf-8")
+
+    deps_section = re.search(r"dependencies\s*=\s*\[(.*?)\]", content, re.DOTALL)
+    if not deps_section:
+        raise ValueError("无法从 pyproject.toml 解析 dependencies")
+
+    # agent 模式需要的包名清单
+    AGENT_PKGS = {"maafw", "loguru", "numpy", "Pillow", "onnxruntime", "notify-py"}
+
+    deps = []
+    for line in deps_section.group(1).splitlines():
+        # 去除前后的引号、逗号、空白
+        line = line.strip().strip(',').strip()
+        if (line.startswith('"') and line.endswith('"')) or (line.startswith("'") and line.endswith("'")):
+            line = line[1:-1].strip()
+        if not line or line.startswith("#"):
+            continue
+        if "; sys_platform" in line:
+            continue
+        # 提取包名: "maafw==5.10.4" -> 包名 "maafw"
+        pkg_name = re.match(r"([a-zA-Z_][a-zA-Z0-9_.-]*)", line)
+        if pkg_name and pkg_name.group(1) in AGENT_PKGS:
+            deps.append(line)
+    if not deps:
+        raise ValueError("pyproject.toml dependencies 中未找到 agent 需要的包")
+    return deps
+
+
+DEPS = _read_deps_from_pyproject()
 
 
 # ============================================================
@@ -137,13 +172,23 @@ def install_deps(pip: Path) -> None:
         - ``maa.define`` 依赖 ``strenum`` (PyPI 包,不是 stdlib 的 enum.StrEnum)
         - ``loguru`` 依赖 ``win32_setctime`` (Windows 专属)
     漏装这些导致脚本 import 失败。让 pip 自动处理依赖更安全。
+
+    **2026-07-20 修**: notify-py==0.3.43 强依赖 loguru<=0.6.0, 跟 loguru==0.7.3 冲突。
+    notify-py 单独用 --no-deps 装, 运行时 loguru 0.7.3 API 兼容。
     """
-    print(f"安装依赖 ({len(DEPS)} 个,含 transitive 依赖) ...")
-    # 一次性装全部,让 pip 解析依赖关系
+    main_deps = [d for d in DEPS if not d.startswith("notify-py")]
+    print(f"安装主依赖 ({len(main_deps)} 个,含 transitive 依赖) ...")
     subprocess.run(
-        [str(pip), "-m", "pip", "install", *DEPS, "--quiet"],
+        [str(pip), "-m", "pip", "install", *main_deps, "--quiet"],
         check=True,
     )
+    notify_deps = [d for d in DEPS if d.startswith("notify-py")]
+    if notify_deps:
+        print(f"单独装通知依赖 ({len(notify_deps)} 个, --no-deps 绕过 loguru 版本约束) ...")
+        subprocess.run(
+            [str(pip), "-m", "pip", "install", "--no-deps", *notify_deps, "--quiet"],
+            check=True,
+        )
     print("[OK] 依赖安装完成")
 
 
@@ -221,8 +266,9 @@ def main() -> int:
     pip = TARGET / "python.exe"
     install_deps(pip)
 
-    # 3. 复制 agent/ 源
-    copy_agent_source(PROJECT_ROOT, TARGET)
+    # 3. agent/ 已在项目根目录，不需要复制
+    #    (MFAAvalonia.exe 在根目录启动，cwd=根目录，
+    #     agent.child_args=["-u", "agent/main.py"] 直接找到 agent/)
 
     # 4. 验证
     print()
@@ -232,12 +278,10 @@ def main() -> int:
         "import maa; import loguru; import numpy; import PIL; import onnxruntime; "
         "import agent.main; print('all imports OK')"
     )
-    # agent/ 复制到 TARGET.parent(即 frontend/MFAAvalonia/agent/),不是 TARGET
-    # 所以 verify 的 cwd 也必须是 TARGET.parent,才能 import agent
-    # (MFAAvalonia 启动时 workdir 也是 MFAAvalonia/,所以这跟运行时行为一致)
+    # 扁平化后 agent/ 在项目根, MFAAvalonia 启动时 cwd 也是项目根
     rc = subprocess.run(
         [str(pip), "-c", verify_script],
-        cwd=str(TARGET.parent),
+        cwd=str(PROJECT_ROOT),
     ).returncode
     if rc == 0:
         print("[OK] Python 捆绑验证通过 (maafw + agent 全部 import 成功)")

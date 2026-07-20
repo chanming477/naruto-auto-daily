@@ -39,10 +39,9 @@ import json
 from pathlib import Path
 from typing import Final
 
-# 前端配置根 — MFAAvalonia GUI 实际读这个文件
-# (frontend/MFAAvalonia/MFAAvalonia.exe 启动时也读它)
+# 前端默认任务列表 (扁平化后直接在项目根 config/instances/ 下)
 _FRONTEND_DEFAULT_JSON: Final[Path] = Path(
-    __file__).parent.parent / "frontend" / "MFAAvalonia" / "config" / "instances" / "default.json"
+    __file__).parent.parent / "config" / "instances" / "default.json"
 
 
 # ============================================================
