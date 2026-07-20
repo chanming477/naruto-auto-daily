@@ -229,9 +229,12 @@ def main() -> int:
         "import maa; import loguru; import numpy; import PIL; import onnxruntime; "
         "import agent.main; print('all imports OK')"
     )
+    # agent/ 复制到 TARGET.parent(即 frontend/MFAAvalonia/agent/),不是 TARGET
+    # 所以 verify 的 cwd 也必须是 TARGET.parent,才能 import agent
+    # (MFAAvalonia 启动时 workdir 也是 MFAAvalonia/,所以这跟运行时行为一致)
     rc = subprocess.run(
         [str(pip), "-c", verify_script],
-        cwd=str(TARGET),
+        cwd=str(TARGET.parent),
     ).returncode
     if rc == 0:
         print("[OK] Python 捆绑验证通过 (maafw + agent 全部 import 成功)")
