@@ -133,13 +133,38 @@ jobs:
           $mfaVer = "${{ steps.version.outputs.mfaavalonia_version }}"
           # URL 来源:MaaXYZ/MFAAvalonia repo (与 MaaFramework 是独立项目)
           $url = "https://github.com/MaaXYZ/MFAAvalonia/releases/download/v$mfaVer/MFAAvalonia-v$mfaVer-win-x64.zip"
-          $zip = "mfaavalonia.zip"
+          $zip = "$env:RUNNER_TEMP\mfaavalonia.zip"
+          $tmpDir = "$env:RUNNER_TEMP\mfaavalonia_extract"
+          $targetDir = "frontend/MFAAvalonia"
+
           Write-Host "Downloading $url ..."
           Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-          Write-Host "Extracting to frontend/MFAAvalonia/ ..."
-          Expand-Archive -Path $zip -DestinationPath frontend/MFAAvalonia/ -Force
+
+          # 解压到临时目录,避免污染 frontend/MFAAvalonia/
+          Write-Host "Extracting to temp dir ..."
+          if (Test-Path $tmpDir) { Remove-Item -Recurse -Force $tmpDir }
+          New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+          Expand-Archive -Path $zip -DestinationPath $tmpDir -Force
           Remove-Item $zip
-          Write-Host "Downloaded + extracted OK"
+
+          # 检测 zip 是否有单顶层目录(GitHub release zip 常见模式,例:MFAAvalonia-v2.12.2-win-x64/...)
+          # 有则扁平化,避免 frontend/MFAAvalonia/MFAAvalonia-v2.12.2-win-x64/... 这种嵌套
+          New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+          $items = Get-ChildItem -Path $tmpDir -Force
+          if ($items.Count -eq 1 -and $items[0].PSIsContainer) {
+            Write-Host "Flattening: zip has single root dir '$($items[0].Name)'"
+            Get-ChildItem -Path $items[0].FullName -Force | ForEach-Object {
+              Move-Item -Path $_.FullName -Destination $targetDir -Force
+            }
+            Remove-Item -Recurse -Force $items[0].FullName
+          } else {
+            Write-Host "Flat zip: moving $($items.Count) items"
+            $items | ForEach-Object {
+              Move-Item -Path $_.FullName -Destination $targetDir -Force
+            }
+          }
+          Remove-Item -Recurse -Force $tmpDir
+          Write-Host "[OK] MFAAvalonia extracted to $targetDir"
 
       # --------------------------------------------------------------
       # 5.5 Restore OUR committed configs (download overwrote them)
@@ -153,32 +178,33 @@ jobs:
           Write-Host "Restored our custom configs over upstream defaults"
 
       # --------------------------------------------------------------
-      # 6. Download Python tarball (cached per maafw version)
+      # 6. Cache Python tarball (MUST come before download, otherwise
+      #    first run always misses cache)
       # --------------------------------------------------------------
-      - name: Download Python embeddable tarball (with cache)
-        id: pbs_cache
-        shell: pwsh
-        run: |
-          $tarballName = "cpython-3.12.9+20250317-x86_64-pc-windows-msvc-install_only.tar.gz"
-          $cacheDir = ".cache/python-build-standalone"
-          $tarballPath = "$cacheDir/$tarballName"
-          New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
-          if (-not (Test-Path $tarballPath)) {
-            $url = "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/$tarballName"
-            Write-Host "Downloading $url ..."
-            Invoke-WebRequest -Uri $url -OutFile $tarballPath -UseBasicParsing
-          } else {
-            Write-Host "Tarball already present at $tarballPath"
-          }
-          Write-Host "Tarball ready: $((Get-Item $tarballPath).Length / 1MB) MB"
-
       - name: Cache Python tarball
+        id: pbs_cache
         uses: actions/cache@v4
         with:
           path: .cache/python-build-standalone
           key: pbs-${{ runner.os }}-3.12.9-20250317
           # fallback if exact key misses: any pbs- cache for this OS
           restore-keys: pbs-${{ runner.os }}-
+
+      # --------------------------------------------------------------
+      # 6.5 Download Python tarball (only if cache miss)
+      # --------------------------------------------------------------
+      - name: Download Python embeddable tarball (cache miss)
+        if: steps.pbs_cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $tarballName = "cpython-3.12.9+20250317-x86_64-pc-windows-msvc-install_only.tar.gz"
+          $cacheDir = ".cache/python-build-standalone"
+          $tarballPath = "$cacheDir/$tarballName"
+          New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+          $url = "https://github.com/astral-sh/python-build-standalone/releases/download/20250317/$tarballName"
+          Write-Host "Cache miss. Downloading $url ..."
+          Invoke-WebRequest -Uri $url -OutFile $tarballPath -UseBasicParsing
+          Write-Host "Downloaded: $(([math]::Round((Get-Item $tarballPath).Length / 1MB, 1))) MB"
 
       # --------------------------------------------------------------
       # 7. Bundle Python (embeds runtime + deps into frontend/MFAAvalonia/python/)
@@ -204,15 +230,27 @@ jobs:
       # --------------------------------------------------------------
       # 8. Init default YAML configs (if main.py supports it)
       # --------------------------------------------------------------
-      - name: Init default configs (best-effort)
+      - name: Init default configs
         shell: pwsh
-        continue-on-error: true
+        timeout-minutes: 2
         run: |
-          if (Test-Path "main.py") {
-            python main.py --init-config 2>&1 | Tee-Object -FilePath init-config.log
-          } else {
+          if (-not (Test-Path "main.py")) {
             Write-Host "No main.py, skipping --init-config"
+            exit 0
           }
+          Write-Host "Running --init-config (cwd=$PWD)"
+          python main.py --init-config 2>&1 | Tee-Object -FilePath init-config.log
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::--init-config returned $LASTEXITCODE"
+          }
+          # 验证 config/ 是否生成 — 失败则 build fail
+          if (-not (Test-Path "config/app_config.yaml")) {
+            Write-Host "::error::--init-config did not generate config/app_config.yaml"
+            Write-Host "--- init-config.log ---"
+            Get-Content init-config.log -ErrorAction SilentlyContinue | Select-Object -Last 30
+            exit 1
+          }
+          Write-Host "[OK] Default configs generated"
 
       # --------------------------------------------------------------
       # 9. Install 7zip + pack release zip

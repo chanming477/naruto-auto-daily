@@ -91,6 +91,8 @@ def download_and_extract(url: str, target: Path) -> None:
         raise
 
     _extract_and_flatten(tarball, target)
+    # 只删自己下载的临时 tarball(不删调用方传入的,避免破坏 CI actions/cache)
+    tarball.unlink()
 
 
 def _extract_and_flatten(tarball: Path, target: Path) -> None:
@@ -122,7 +124,8 @@ def _extract_and_flatten(tarball: Path, target: Path) -> None:
                 else:
                     dest.unlink()
             shutil.move(str(f), str(dest))
-    tarball.unlink()
+    # 注意: tarball.unlink() 已从此处移除 — 调用方负责删除传入的 tarball
+    # (CI 路径用 --local-tarball 传入 cache 里的文件,不能在此删,否则 cache 失效)
     print(f"[OK] 捆绑完成: {target} ({dir_size(target) / 1024 / 1024:.0f} MB)")
 
 
