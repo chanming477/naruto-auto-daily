@@ -4,6 +4,36 @@
 
 ## [Unreleased] - 2026-07-21 (narutomobile v1.3.36 同步)
 
+### 2026-07-21 22:12 反馈合入 (TemplateMatch 替代 OCR 处理退队弹窗)
+- **新增 image template**: `resources/narutomobile/image/SharedNode/confirm_quit_team.png`
+  - user 提供的"是否确定要离开队伍?" 弹窗截图 (1280x720)
+  - Mavis **自动裁** 160x90 "确定" 按钮热区 (符合 user.md "粗裁可" 原则, UI 元素不算游戏场景)
+  - 自动裁原因: TemplateMatch 模板必须 ≤ ROI size, user 提供的整张弹窗 1280x720 远大于 ROI
+- **close_team_dash_out_team_sign 改 OCR → TemplateMatch**:
+  - 旧 (Round 4): `OCR` + `expected: ["确定"]` + ROI `[300, 350, 680, 250]` — OCR 引擎差异导致漂移识别失败
+  - 新: `TemplateMatch` + `SharedNode/confirm_quit_team.png` + ROI `[380, 450, 240, 140]` (覆盖 160x90 template + 容错 ±40px) + `threshold: [0.85, 0.9]`
+  - 原理: 不再依赖 OCR 引擎, 直接比对图像特征, UI 漂移容忍度更高
+- **close_team_dash_without_out_team_sign 保持 OCR inverse**:
+  - 该节点需要"没出现确定按钮"的判断, TemplateMatch 不擅长 inverse, OCR inverse 更合适
+- **原理说明** (回答 user 22:07 问题"为什么你点不中 narutomobile 能点中"):
+  - 不是"单纯按 ROI 点击" — 我跟 narutomobile 一样用 OCR 找"确定" + click bbox 中心
+  - 真实差异: OCR 引擎在不同字体/抗锯齿下识别率不同, narutomobile 训练环境干净, 我们用户真机有差异
+  - TemplateMatch 直接比图像, 不依赖 OCR 引擎, 更稳
+
+### 2026-07-21 22:03 反馈合入 (小队突袭设置隐藏 + 默认不借组织)
+- **team_dash task options 清空** (设置项全部隐藏):
+  - 旧: `['借组织助战', '小队突袭处理自动战斗']`
+  - 新: `[]`
+  - task 还在 (28 task 集合保留), 但 GUI 没设置可调
+- **借组织助战 default 改 No** (撤销 round 4 改动):
+  - 旧 (round 4): default_case=Yes, 跟 v1.3.41 一致
+  - 新: default_case=No, cases 顺序翻转 [No, Yes]
+  - 跟 v1.3.41 / v1.3.36 行为**反向** (user-driven 偏离)
+- **含义**:
+  - team_dash task 还在, 但跑 batch 时 user 没法在 GUI 调"借组织助战"
+  - 默认不借组织, 4× 体验关闭
+  - 跟 round 5 (出战前取消 4×) 一起: 不借组织 + 取消 4× = 安全模式
+
 ### 2026-07-21 21:56 反馈合入 (积分赛容错 + 强制从奖励中心)
 - **积分赛不出战就结束任务 修复** (narutomobile v1.3.41 自身也有这 bug):
   - 真因: `wait_for_select_opponent` 节点 TemplateMatch `Point_race/select_opponent.png` 漂移匹配不到 → 走 `back_main_screen_and_stop` 结束任务

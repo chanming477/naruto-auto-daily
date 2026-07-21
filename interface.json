@@ -35,10 +35,7 @@
     {
       "name": "小队突袭",
       "entry": "team_dash",
-      "option": [
-        "借组织助战",
-        "小队突袭处理自动战斗"
-      ],
+      "option": [],
       "default_check": false,
       "description": "组织里有人用和自己一样忍者时,建议关闭借组织助战"
     },
@@ -953,16 +950,6 @@
       "type": "switch",
       "cases": [
         {
-          "name": "Yes",
-          "pipeline_override": {
-            "team_dash_invite_page": {
-              "next": [
-                "team_dash_invite_ninja"
-              ]
-            }
-          }
-        },
-        {
           "name": "No",
           "pipeline_override": {
             "team_dash_invite_page": {
@@ -971,9 +958,19 @@
               ]
             }
           }
+        },
+        {
+          "name": "Yes",
+          "pipeline_override": {
+            "team_dash_invite_page": {
+              "next": [
+                "team_dash_invite_ninja"
+              ]
+            }
+          }
         }
       ],
-      "default_case": "Yes"
+      "default_case": "No"
     },
     "小队突袭处理自动战斗": {
       "type": "switch",

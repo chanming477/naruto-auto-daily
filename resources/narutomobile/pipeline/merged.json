@@ -28748,25 +28748,29 @@
     "focus": "[color:DeepSkyBlue]关闭小队突袭[/color]"
   },
   "close_team_dash_out_team_sign": {
-    "recognition": "OCR",
+    "recognition": "TemplateMatch",
     "roi": [
-      300,
-      350,
-      680,
-      250
+      380,
+      450,
+      240,
+      140
     ],
-    "expected": [
-      "确定"
+    "template": "SharedNode/confirm_quit_team.png",
+    "method": 10001,
+    "threshold": [
+      0.85,
+      0.9
     ],
+    "pre_wait_freezes": 500,
     "pre_delay": 0,
     "action": "Click",
     "post_wait_freezes": 500,
-    "post_delay": 0,
+    "post_delay": 300,
     "next": [
       "close_team_dash_without_out_team_sign",
       "close_team_dash_out_team_sign"
     ],
-    "focus": "[color:DeepSkyBlue]确认退队[/color]"
+    "focus": "[color:DeepSkyBlue]确认退队(模板匹配)"
   },
   "close_team_dash_without_out_team_sign": {
     "recognition": "OCR",
