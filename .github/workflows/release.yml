@@ -300,11 +300,36 @@ jobs:
       # --------------------------------------------------------------
       # 10. Upload to GitHub Release
       # --------------------------------------------------------------
+      - name: Generate release body
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.release_version }}"
+          $body = @"
+          ## naruto-auto-daily v$version
+
+          — 火影忍者手游自动日常脚本工具 —
+
+          ### 📦 使用方式
+          1. 下载 zip 并解压
+          2. 双击 \`start.bat\` 启动（首次会自动下载 MaaFramework 等依赖）
+          3. 在 GUI 中配置 adb 设备和游戏路径即可运行
+
+          ### ⚠️ 注意
+          - 使用前**必须关闭游戏二级密码**，否则部分功能（如积分赛）会卡住
+          - 首次启动时 MaaFramework GUI 会自动执行初始化配置
+          - 各任务在 \`config/tasks/\` 下按需启用/禁用
+
+          详情见 [README](https://github.com/chanming477/naruto-auto-daily#readme)。
+          "@
+          Set-Content -Path release_body.md -Value $body -Encoding UTF8
+          Write-Host "Release body written to release_body.md"
+
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: 'naruto-auto-daily v${{ steps.version.outputs.release_version }}'
+          body_path: release_body.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-test') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
           generate_release_notes: true
