@@ -42,16 +42,12 @@ from maafw_bridge.task_mapping import (
 # ============================================================
 
 
-def test_get_copper_and_survival_challenge_registered():
-    """招财 + 生存挑战 必须在 TASK_MAPPING 里(2026-07-15 新增)。
+def test_survival_challenge_registered():
+    """生存挑战 必须在 TASK_MAPPING 里(2026-07-15 新增)。
 
-    TASK_MAPPING 是 Chinese name → entry 映射 (从 default.json 读),
-    所以用 "招财" / "生存挑战" 查 key,验证 entry 是 "get_copper" / "survival_challenge"。
+    2026-07-21 update: 招财 (get_copper) 被用户移除(2026-07-21 20:47 反馈 —
+    需要二级密码, 不在界面里), 此 test 不再断言。
     """
-    assert "招财" in TASK_MAPPING, "招财 (Chinese name) 没在 TASK_MAPPING 里"
-    assert TASK_MAPPING["招财"] == "get_copper", (
-        f"招财 应映射到 get_copper entry,实际: {TASK_MAPPING['招财']!r}"
-    )
     assert "生存挑战" in TASK_MAPPING, "生存挑战 (Chinese name) 没在 TASK_MAPPING 里"
     assert TASK_MAPPING["生存挑战"] == "survival_challenge", (
         f"生存挑战 应映射到 survival_challenge entry,实际: {TASK_MAPPING['生存挑战']!r}"
@@ -88,14 +84,15 @@ def test_all_one_to_one_mappings_preserved():
     TASK_MAPPING 是 Chinese name → entry 映射,key 是 Chinese name。
     """
     one_to_one = {
-        "邮件领取": "mail",        # mail entry
-        "一键助手": "easy_helper",
+        "邮箱": "mail",            # mail entry (v1.3.36 命名, 原来是 '邮件领取')
+        "轻松助手": "easy_helper",  # v1.3.36 命名, 原来是 '一键助手'
         "丰饶之间": "rich_room",
-        "忍术对战": "ninja_book",
-        # 2026-07-20: 赠送体力 = give_energy (既送又领, use_energy 实际是刷碎片)
-        "赠送体力": "give_energy",
-        "招财": "get_copper",
+        "忍法帖": "ninja_book",    # v1.3.36 命名, 原来是 '忍术对战'
+        # 2026-07-20: 送体力 = give_energy (既送又领, use_energy 实际是刷碎片)
+        # 2026-07-21: v1.3.36 命名 '送体力' (原来是 '赠送体力')
+        "送体力": "give_energy",
         "生存挑战": "survival_challenge",
+        # 2026-07-21 update: 招财 (get_copper) 被用户移除, 不再断言
     }
     for chinese_name, expected_entry in one_to_one.items():
         assert chinese_name in TASK_MAPPING, (
@@ -170,23 +167,29 @@ def test_cli_aliases_preserved():
 
 
 def test_resolve_entry_chinese_name():
-    """resolve_entry 支持 Chinese name (从 default.json 读到的 key)。"""
+    """resolve_entry 支持 Chinese name (从 default.json 读到的 key)。
+
+    2026-07-21: 跟 v1.3.36 同步后, Chinese name 改成 v1.3.36 命名:
+      - 月签到和一乐拉面 (原 每日签到)
+      - 邮箱 (原 邮件领取)
+      - 组织 (原 组织签到)
+    """
     # 这些 Chinese name 来自 default.json TaskItems
-    assert resolve_entry("每日签到") == "activity"
-    assert resolve_entry("邮件领取") == "mail"
-    assert resolve_entry("组织签到") == "group"
-    assert resolve_entry("招财") == "get_copper"
+    assert resolve_entry("月签到和一乐拉面") == "activity"
+    assert resolve_entry("邮箱") == "mail"
+    assert resolve_entry("组织") == "group"
     assert resolve_entry("生存挑战") == "survival_challenge"
     # 同样支持英文 entry 直传
     assert resolve_entry("activity") == "activity"
-    assert resolve_entry("get_copper") == "get_copper"
+    # 2026-07-21 update: 招财 (get_copper) 被用户移除, resolve_entry 不再识别
 
 
 def test_resolve_task_id_prefers_cli_alias():
     """resolve_task_id 优先返回 CLI 英文别名(命令行 user 习惯),没有别名时返 Chinese name。
 
-    例: headhunt → recruit (不是 "招募"),activity → daily_signin (不是 "每日签到"),
-        mail → 邮件领取 (没有 CLI 别名,只能用 Chinese name)。
+    例: headhunt → recruit (不是 "免费招募"),activity → daily_signin (不是 "月签到和一乐拉面"),
+        mail → 邮箱 (没有 CLI 别名,只能用 Chinese name)。
+    2026-07-21: 跟 v1.3.36 同步, Chinese name 改 (每日签到→月签到和一乐拉面, 邮件领取→邮箱)。
     """
     # 有 CLI 别名 → 用别名
     assert resolve_task_id("headhunt") == "recruit"
@@ -194,9 +197,9 @@ def test_resolve_task_id_prefers_cli_alias():
     assert resolve_task_id("liveness_award") == "liveness"
     assert resolve_task_id("activity") == "daily_signin"
     # 没 CLI 别名 → 用 Chinese name
-    assert resolve_task_id("mail") == "邮件领取"
-    assert resolve_task_id("get_copper") == "招财"
+    assert resolve_task_id("mail") == "邮箱"
     assert resolve_task_id("survival_challenge") == "生存挑战"
+    # 2026-07-21 update: 招财 (get_copper) 被用户移除, resolve_task_id 不再识别
 
 
 # ============================================================
@@ -205,16 +208,19 @@ def test_resolve_task_id_prefers_cli_alias():
 
 
 def test_resolve_entry_known_task():
-    """已知 task_id 翻译成 entry(CLI 别名 + Chinese name 都覆盖)。"""
+    """已知 task_id 翻译成 entry(CLI 别名 + Chinese name 都覆盖)。
+
+    2026-07-21: 跟 v1.3.36 同步, Chinese name 改 (邮件领取→邮箱)。
+    """
     # CLI 别名
     assert resolve_entry("recruit") == "headhunt"
     assert resolve_entry("group_signin") == "group"
     assert resolve_entry("liveness") == "liveness_award"
     # Chinese name (从 default.json)
-    assert resolve_entry("招财") == "get_copper"
     assert resolve_entry("生存挑战") == "survival_challenge"
     # 1:1 Chinese name
-    assert resolve_entry("邮件领取") == "mail"
+    assert resolve_entry("邮箱") == "mail"
+    # 2026-07-21 update: 招财 (get_copper) 被用户移除, 不再断言
 
 
 def test_resolve_entry_unknown_falls_back_to_self():
@@ -231,15 +237,18 @@ def test_resolve_entry_unknown_falls_back_to_self():
 
 
 def test_resolve_task_id_known_entries():
-    """entry → task_id 翻译要正确(CLI 别名优先,没别名用 Chinese name)。"""
+    """entry → task_id 翻译要正确(CLI 别名优先,没别名用 Chinese name)。
+
+    2026-07-21: 跟 v1.3.36 同步, Chinese name 改 (邮件领取→邮箱)。
+    """
     # 有 CLI 别名
     assert resolve_task_id("headhunt") == "recruit"
     assert resolve_task_id("liveness_award") == "liveness"
     assert resolve_task_id("activity") == "daily_signin"
     # 没 CLI 别名
-    assert resolve_task_id("mail") == "邮件领取"
-    assert resolve_task_id("get_copper") == "招财"
+    assert resolve_task_id("mail") == "邮箱"
     assert resolve_task_id("survival_challenge") == "生存挑战"
+    # 2026-07-21 update: 招财 (get_copper) 被用户移除, 不再断言
 
 
 def test_resolve_task_id_activity_ambiguity():
@@ -256,13 +265,14 @@ def test_resolve_task_id_activity_ambiguity():
 # ============================================================
 
 
-def test_list_supported_tasks_includes_new():
-    """list_supported_tasks 必须包含 get_copper 和 survival_challenge (Chinese name)。
+def test_list_supported_tasks_includes_survival_challenge():
+    """list_supported_tasks 必须包含 survival_challenge (Chinese name)。
+
+    2026-07-21 update: 招财 (get_copper) 被用户移除, 不再断言。
 
     list_supported_tasks 返 CLI 别名 + Chinese name (按各自插入顺序)。
     """
     tasks = list_supported_tasks()
-    assert "招财" in tasks, "Chinese name '招财' 不在 list_supported_tasks"
     assert "生存挑战" in tasks, "Chinese name '生存挑战' 不在 list_supported_tasks"
     # 也要包含 CLI 别名
     assert "recruit" in tasks
@@ -276,18 +286,20 @@ def test_list_supported_entries_dedupes_activity():
 
 
 def test_is_supported_and_is_known_entry():
-    """is_supported / is_known_entry helper 函数。"""
+    """is_supported / is_known_entry helper 函数。
+
+    2026-07-21: 跟 v1.3.36 同步后, get_copper 加回, 重新断言。
+    """
     # Chinese name
-    assert is_supported("招财") is True
     assert is_supported("生存挑战") is True
     # CLI 别名
     assert is_supported("recruit") is True
     # 不存在
     assert is_supported("nonexistent") is False
     # entry
-    assert is_known_entry("get_copper") is True
     assert is_known_entry("survival_challenge") is True
     assert is_known_entry("nonexistent_entry") is False
+    # 2026-07-21 update: 招财 (get_copper) 被用户移除, is_known_entry 不再识别
 
 
 # ============================================================

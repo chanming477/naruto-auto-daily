@@ -17,7 +17,9 @@
 
 ## 根因
 
-对比 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.41\interface.json` (141 KB) 与本项目 `frontend/MFAAvalonia/interface.json` (2.3 KB):
+对比 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.41\interface.json` (141 KB) 与本项目当时 `frontend/MFAAvalonia/interface.json` (2.3 KB):
+
+> **2026-07-20 路径变更**: `frontend/MFAAvalonia/` 目录已删, `interface.json` 现在在 **项目根** (`D:\火影自动日常\interface.json`), 并已加入 git 追踪(扁平化后)。见 `docs/2026-07-20-cicd-release-design.md` 附录 A。
 
 - **merged.json**: 完全相同 (708,915 字节, 模板/ROI/pipeline 全对得上)
 - **image/ 模板**: 完全相同
@@ -27,7 +29,7 @@
 
 ## 修复
 
-选择性复制 10 个相关 option 到 `frontend/MFAAvalonia/interface.json` 顶部 (AGPL-3.0 同许可证):
+选择性复制 10 个相关 option 到 **项目根 `interface.json`** 顶部 (AGPL-3.0 同许可证):
 
 | Option | 覆盖的 task |
 |---|---|
@@ -55,19 +57,16 @@
 
 ## 文件位置
 
-修复文件: `frontend/MFAAvalonia/interface.json` (从 2,375 字节 → 19,918 字节)
+修复文件: **项目根 `interface.json`** (从 2,375 字节 → 19,918 字节,已 git 追踪)
 
-⚠️ **此文件在 `frontend/MFAAvalonia/` 目录下, .gitignore 已排除 (234 MB 二进制)。**
+> 此文件现已在项目根目录并已 git 追踪,扁平化后**不再依赖** `frontend/MFAAvalonia/` 二进制。
 
 ## 重新安装 MFAAvalonia 时要重新应用
 
-如果用户从 MaaFramework releases 重新下载 MFAAvalonia 到 `frontend/MFAAvalonia/`, 新的 `interface.json` 又会回到 2.3 KB 状态(默认无 option 块)。**重新应用修复** 步骤:
+由于 `interface.json` 现已在项目根并 git 追踪,**重新下载 MFAAvalonia 不再影响 option 修复** — MFAAvalonia 启动时会读项目根的 `interface.json`。**无需重新应用**。
 
-1. 备份当前 `frontend/MFAAvalonia/interface.json`
-2. 跑 `python D:\tmp\patch_interface.py`(脚本在本仓库外的 D:\tmp, 需先复制一份进 `tools/` 目录? 或重新执行本修复的逻辑)
-3. 重启 MFAAvalonia
-
-> **后续改进 (TODO)**: 把 `patch_interface.py` 移到 `tools/` 目录, 写进 README, 避免脚本散落。
+> 历史: 旧版 (2026-07-20 前) 在 `frontend/MFAAvalonia/interface.json` 时,需手动重新跑 patch。
+> 现在已迁移,见 `docs/2026-07-20-cicd-release-design.md` 附录 A。
 
 ## 验证方式
 

@@ -2,6 +2,119 @@
 
 所有重要变更记录在此。格式基于 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [Unreleased] - 2026-07-21 (narutomobile v1.3.36 同步)
+
+### 2026-07-21 21:56 反馈合入 (积分赛容错 + 强制从奖励中心)
+- **积分赛不出战就结束任务 修复** (narutomobile v1.3.41 自身也有这 bug):
+  - 真因: `wait_for_select_opponent` 节点 TemplateMatch `Point_race/select_opponent.png` 漂移匹配不到 → 走 `back_main_screen_and_stop` 结束任务
+  - 文件层面 v1.3.41 / OURS 100% 一致 (roi [68, 23, 418, 185], threshold=None)
+  - **修复**:
+    - ROI 扩大: `[68, 23, 418, 185]` → `[40, 0, 700, 240]` (覆盖 40-740, 0-240, 容错大)
+    - threshold: `None` → `[0.7, 0.8]` (多阈值, UI 漂移时更容易匹配)
+    - pre_wait_freezes: `None` → 1000 (等 1s 让 UI 稳定)
+    - post_wait_freezes: `None` → 1000 (等 1s 让 click 后稳定)
+    - post_delay: 0 → 500
+- **积分赛改成必须从奖励中心进入** (跟 secret_realm/mission_office 同方案):
+  - 新增 option 副本: `从奖励中心进入(积分赛)` (default_case=Yes)
+  - point_race task def 替换 `从奖励中心进入` → `从奖励中心进入(积分赛)`, 删 `忍界指引寻找积分赛` option
+  - 其他 task (group / point_race / weekly_win 等) 仍用共享 `从奖励中心进入` (default No), 不影响
+
+### 2026-07-21 21:52 反馈合入 (team_dash 出战前取消 4 倍)
+- **team_dash_auto_fight next 链前面插 team_dash_check_4x_reward**:
+  - 旧: `['[JumpBack]team_dash_same_ninja', 'team_dash_loading', 'check_in_team_dash_sweep', 'team_dash_do_not_remind_gold', 'team_dash_auto_fight', '[JumpBack]team_dash_in_loading']`
+  - 新: `['team_dash_check_4x_reward', '[JumpBack]team_dash_same_ninja', ...]`
+- **team_dash_check_4x_reward 加 action=Click + post_wait_freezes=500**:
+  - 旧 (v1.3.41): 纯识别节点, action=None, 仅判断"4倍已勾选"状态
+  - 新: action=Click, post_wait_freezes=500, post_delay=300 — 出战前**自动取消 4 倍奖励**
+- **narutomobile v1.3.41 设计 vs user 反馈**:
+  - v1.3.41 默认**保留 4 倍** (有 `team_dash_confirm_4x_select` 弹窗逻辑, 弹窗出现直接确认)
+  - user 要"取消 4 倍" = user-driven 偏离 v1.3.41
+  - 实施: 在出战 (auto_fight) 之前插入取消 4 倍节点, 如果当前 4 倍已勾选就点掉
+
+### 2026-07-21 21:32 反馈合入 (从奖励中心 + team_dash 容错)
+- **秘境 / 集会所 任务 改 只能从奖励中心进入**:
+  - 新增 option 副本: `从奖励中心进入(秘境)` / `从奖励中心进入(集会所)` (default_case=Yes)
+  - `secret_realm` task def: 替换 `从奖励中心进入` -> `从奖励中心进入(秘境)`, 删 `忍界指引寻找秘境` option
+  - `mission_office` task def: 替换 `从奖励中心进入` -> `从奖励中心进入(集会所)`, 删 `忍界指引寻找任务集会所` option
+  - 其他 task (group / point_race / weekly_win / shugyou_no_michi 等) 仍用共享 `从奖励中心进入` option (default No)
+- **team_dash 借组织助战 default 改回 Yes** (撤销 round 2 改动, 跟 v1.3.41 一致)
+- **close_team_dash_out_team_sign ROI 扩大** (防"确定"退队弹窗 UI 漂移卡住):
+  - 原 ROI: `[535, 418, 205, 74]` (覆盖 535-740, 418-492)
+  - 新 ROI: `[300, 350, 680, 250]` (覆盖 300-980, 350-600, 容错大)
+  - `post_wait_freezes`: 200 -> 500
+  - 同步 `close_team_dash_without_out_team_sign` ROI 扩大 (inverse: 没"确定"就 exit)
+- **narutomobile 没法解决弹窗卡住的问题**:
+  - 我们 merged.json 跟 v1.3.41 100% 一致, 包括 `close_team_dash_out_team_sign` (OCR 找"确定" 关闭退队弹窗)
+  - 弹窗本身 narutomobile 用 `SharedNode/confirm.png` + `confirm_small.png` 模板处理
+  - 卡住真因: OCR 在弹窗 UI 漂移时找不准"确定" — 我们扩大 ROI 容错, 不依赖 narutomobile 之外的方案
+  - 已知: 真机 UI 漂移需要重新截图, 文件层面无差异可抄
+
+### 2026-07-21 21:06 反馈合入 (弹窗通知删除 + 7 task 删除)
+- **删弹窗通知功能**:
+  - `agent/custom/sink.py`: 删 `NotificationSink` class (line 117-141)
+  - `agent/custom/utils.py`: 删 `send_notification` function (line 93-113)
+  - 保留 `AspectRatioChecker` (16:9 分辨率检查) — 还在用
+- **删 7 个 task** (用户不要):
+  - `start_up` (进入火影) - 启动游戏任务, GUI 启动已经在外面跑
+  - `switch_account` (切换账号(beta))
+  - `exit_naruto` (关闭火影手游APP)
+  - `stronghold` (要塞)
+  - `sky_ground` (天地)
+  - `mini_game` (小游戏)
+  - `joy_club` (心悦会员)
+- **删 21 个 orphan options** (被删 task 引用的)
+- **CurrentTasks** 跟着去重 (35 → 28, 每个 task 唯一)
+- **最终 task 集合**: 28 task (v1.3.36 38 - 3 二级密码 - 7 用户不要 = 28)
+
+### Changed
+- **任务集合跟 `D:\自动日常源码带\MaaAutoNaruto-win-x86_64-v1.3.36` 同步**:
+  - 加回: `招财` (get_copper basic) + `小队突袭` (team_dash basic)
+  - 删除: `secondary_password_open` (v1.3.36 没有)
+  - 保留删除: `shop` / `buy_energy` / `[二级密码]` 双重 entry (v1.3.36 也没有, "防扩" 决策)
+- **任务 Chinese name 跟 v1.3.36 统一** (24 处):
+  - 启动游戏 → 进入火影, 一键助手 → 轻松助手, 轻松赛季 → 轻松季(beta)
+  - 赠送体力 → 送体力, 组织签到 → 组织, 招募 → 免费招募
+  - 每日签到 → 月签到和一乐拉面, 刷碎片 → 刷体力(精英副本)
+  - 集会所 → 任务集会所(beta), 忍术对战 → 忍法帖, 周胜 → 决斗场(连点器)
+  - 火影情报社 → 火影情报社(beta), 邮件领取 → 邮箱, 活跃奖励 → 活跃宝箱
+  - 切换账号 → 切换账号(beta), 退出火影 → 关闭火影手游APP
+  - 天空之地 → 天地 (以 v1.3.36 真值为准, 不是之前的"天地战场")
+  - 叛忍 → 叛忍(beta), 更多玩法 → 更多玩法(beta), 欢乐会员 → 心悦会员
+  - 黑市商人 → 黑市商人(beta), 调试 → Debug, 清理备份 → 日志文件清理
+  - 收尾 → 完成标记
+- **option key 改名** (11 处):
+  - `一键助手扫荡` → `轻松助手扫荡` (task 名改了跟着改)
+  - `允许MAN管理QQ和火影信息` → `允许MAN管理qq和火影信息` (case)
+  - `拒绝QQ获取火影信息` → `拒绝qq获取火影信息` (case)
+  - 10× `忍者指南寻找X` → `忍界指引寻找X` (kanji fix)
+- **35 个 orphan options 删除** (option 块): `兑换玉石*` / `玉石*号位*` / `铜币招财` / `招财轮次` / `招财次数` / `忍者指南寻找冠军送礼` / `忍者指南寻找集会所` / 等
+- **CurrentTasks** (left-sidebar task list) 同步: 24 个 Chinese name 改名 + 删除 3 个不存在的 entry (商店一键/购买体力/二级密码)
+
+### Migration warning
+- 老用户保存的配置里, `邮件领取` / `组织签到` / `每日签到` 等旧 Chinese name 不再是 `TASK_MAPPING` 的 key
+- `resolve_entry()` fallback 行为: 未知 task_id 原样返回, 任务可能被静默跳过或执行出错
+- 建议: 用户升级后清空 `config/instances/default.json:CurrentTasks` 让 regen 重写 (TODO 工具)
+
+### Not synced (intentional, per "防扩" 决策)
+- `黑市二级密码` / `叛忍二级密码` (v1.3.36 新增 [二级密码] options): 不引入
+- `display_pointer_location` / `display_touch` (v1.3.36 英文): 保留中文 `显示指针位置` / `显示触摸`
+- description 字段富文本格式: 没改
+- task 默认勾选 (default_check) 完全相同: 不强制
+  - 例外: `complete` (完成标记) 我们 `default_check=true`,v1.3.36 `false`。有意保留 — 我们的 `complete` task 是真的标"今日跑完",默认开方便用户验收。v1.3.36 把完成标记归到 nil 节点(无 task),所以 v1.3.36 用户的完成标记由"未跑任何 task"隐式表达。我们的语义不同,**保留 true**。
+- interface.json task 顺序: 跟 v1.3.36 不一致 (我们 start_up 后立刻是 get_copper, v1.3.36 是 easy_helper)
+
+### Fixed (post-reviewer)
+- **C-1**: `interface.json` 重复 `leaderboard` task (39→38),reviewer 抓到,已去重
+- **C-2**: `config/instances/default.json:CurrentTasks` 27 行旧名 同步到新 name (在 7a1771a sync commit 里一起修了)
+- **I-1**: `complete` task default_check 与 v1.3.36 不一致 — 见上面 Not synced 例外说明
+- **I-2**: 32 个 orphan options 删除 (与 sync commit 一起;reviewer 提的 35 含早期合并,实际 32)
+- **I-3/I-4**: `display_*` 英文键 / 二级密码 options — 防扩跳过
+- **M-1**: `task_registry.yaml` 描述用 `TaskItems[name]` 重生成
+- **M-2**: 本 CHANGELOG Unreleased section
+- **M-3**: `tests/test_main.py` 加 `test_interface_and_default_task_count_in_sync` 防 C-1 复发
+- **M-4**: `docs/MAF_CONFIG_FIX.md` 路径 (frontend/MFAAvalonia → 项目根) 全面更新
+- **额外**: 补 `忍界指引寻找任务集会所` option def (mission_office 引用但 option 块无 def)
+
 ## [0.7.1] - 2026-07-18 (开源自检 + 模块合并)
 
 ### Added

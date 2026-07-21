@@ -117,16 +117,47 @@ def test_main_init_config_idempotent(tmp_path: Path, capsys: pytest.CaptureFixtu
 
 
 def test_main_list_tasks(capsys: pytest.CaptureFixture):
-    """--list-tasks 打印 TASK_MAPPING + 资源路径验证。"""
+    """--list-tasks 打印 TASK_MAPPING + 资源路径验证。
+
+    2026-07-21: 跟 v1.3.36 同步后, get_copper 加回, 重新断言。
+    2026-07-21 20:47: 招财 (get_copper) 被用户移除(需二级密码), 从断言列表删除。
+    2026-07-21: 加 count 断言 (防 C-1 重复 entry bug 复发)
+    """
     rc = main(["--list-tasks"])
     out = capsys.readouterr().out
     assert rc == 0
-    # 关键 24 个 entry 至少出现几个
-    for tid in ["mail", "activity", "liveness_award", "headhunt", "get_copper",
+    # 关键 7 个 entry 至少出现
+    for tid in ["mail", "activity", "liveness_award", "headhunt",
                 "survival_challenge", "naruto_club", "leaderboard"]:
         assert tid in out, f"--list-tasks 缺 {tid}"
+    # 防重复 entry (C-1 bug): leaderboard 应该只出现 2 次 (CLI + Chinese name)
+    # CLI aliases 在第一段, Chinese name 在第二段, 每次出现一次
+    assert out.count("leaderboard") >= 1, "leaderboard 完全缺失"
     # 资源路径验证
     assert "[OK] resource path valid" in out or "resource path" in out
+
+
+def test_interface_and_default_task_count_in_sync():
+    """防 C-1 bug 复发: interface.json 和 default.json:TaskItems 必须 entry 集合一致。
+
+    2026-07-21: 之前 sync v1.3.36 时, interface.json 有 39 个 task (含重复 排行榜),
+    default.json 有 38 个. 加此断言防止后续再次出现分歧。
+    """
+    import json
+    from pathlib import Path
+    iface = json.loads(Path(r"D:\火影自动日常\interface.json").read_text(encoding="utf-8"))
+    dj = json.loads(Path(r"D:\火影自动日常\config\instances\default.json").read_text(encoding="utf-8"))
+    iface_entries = [t["entry"] for t in iface.get("task", []) if isinstance(t, dict) and "entry" in t]
+    dj_entries = [t["entry"] for t in dj.get("TaskItems", []) if isinstance(t, dict) and "entry" in t]
+    # 1. interface.json 内部无重复
+    assert len(iface_entries) == len(set(iface_entries)), (
+        f"interface.json 有重复 entry: {[e for e in iface_entries if iface_entries.count(e) > 1]}"
+    )
+    # 2. 两文件 entry 集合一致
+    assert set(iface_entries) == set(dj_entries), (
+        f"entry 集合不一致. 仅 interface.json: {set(iface_entries) - set(dj_entries)}, "
+        f"仅 default.json: {set(dj_entries) - set(iface_entries)}"
+    )
 
 
 def test_main_check(tmp_path: Path, capsys: pytest.CaptureFixture, monkeypatch):

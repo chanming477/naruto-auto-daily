@@ -88,26 +88,3 @@ def click(context: Any, x: int, y: int) -> bool:
     except Exception as exc:  # noqa: BLE001
         _log.warning("click failed at ({}, {}): {}", x, y, exc)
         return False
-
-
-def send_notification(title: str, message: str) -> None:
-    """发送 Windows 桌面通知。
-
-    任务完成/异常时调用, 通知用户任务状态。
-    非 Windows 系统 / 未安装 notify-py 时静默跳过。
-
-    Args:
-        title: 通知标题
-        message: 通知正文
-    """
-    try:
-        from notifypy import Notify
-        n = Notify()
-        n.title = title
-        n.message = message
-        n.send()
-        _log.debug("Notification sent: {} - {}", title, message)
-    except ImportError:
-        _log.debug("notify-py not installed, skip notification")
-    except Exception as exc:  # noqa: BLE001
-        _log.warning("send_notification failed: {}", exc)

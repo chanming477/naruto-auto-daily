@@ -2,13 +2,14 @@
 # naruto-auto-daily · 任务注册表 (元数据,非真理源) — 自动生成 2026-07-21
 #
 # 真理源: ``config/instances/default.json`` 的 ``TaskItems`` 数组
+# (扁平化后路径,原 frontend/MFAAvalonia/config/instances/default.json)
 # 改任务入口请改 default.json, 改元数据 (enabled/display_order/category/description)
 # 请编辑本文件 + 跑 ``python tools/regen_task_registry.py --write`` 同步。
 #
 # 用 ``python tools/regen_task_registry.py --write`` 重生成本文件;
 # 不用 ``--write`` 只打印 diff, 不会写盘。
 #
-# P2-6 2026-07-18 旧 P0 自研调度层全删, 任务元数据统一由 MaaTaskEngine
+# P2-6 2026-07-18 已删 core.scheduler (含 _NoopTask), 任务元数据统一由 MaaTaskEngine
 # 走 default.json TaskItems 自动加载, 本文件只是元数据展示 + 命令行任务列表。
 #
 # 字段说明(按 task_id 为 key):
@@ -35,39 +36,19 @@ tasks:
 
   advanture:
     enabled: true
-    display_order: 0
+    display_order: 2
     category: 'uncategorized'
-    description: '冒险副本 (从 default.json TaskItems 加载)'
+    description: '不会打高级关卡,忍者不要特效太多的(包括大招文字)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
     config_options: {}
 
   asura_instance:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 3
     category: 'uncategorized'
-    description: '修罗副本 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  black_market_merchant:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '黑市商人 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  buy_energy:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '购买体力 (从 default.json TaskItems 加载)'
+    description: '忍者不要特效太多的'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -75,19 +56,19 @@ tasks:
 
   cleanup_maafw_bak_logs:
     enabled: true
-    display_order: 0
+    display_order: 5
     category: 'uncategorized'
-    description: '清理备份 (从 default.json TaskItems 加载)'
+    description: '清理多余的日志文件,节省空间;考虑到方便debug,不会删除MFA日志;可以使用MFA清理缓存功能代替'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
     config_options: {}
 
   complete:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 6
     category: 'uncategorized'
-    description: '收尾 (从 default.json TaskItems 加载)'
+    description: '用于标记任务已经完成,方便和auto_mas项目配合,https://github.com/AUTO-MAS-Project/AUTO-MAS'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -104,10 +85,10 @@ tasks:
     config_options: {}
 
   debug:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 8
     category: 'uncategorized'
-    description: '调试 (从 default.json TaskItems 加载)'
+    description: '用于调试，<b>日常使用请勿开启！</b>'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -115,19 +96,19 @@ tasks:
 
   easy_helper:
     enabled: true
-    display_order: 0
+    display_order: 9
     category: 'uncategorized'
-    description: '一键助手 (从 default.json TaskItems 加载)'
+    description: '轻松助手 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
     config_options: {}
 
   easy_season:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 10
     category: 'uncategorized'
-    description: '轻松赛季 (从 default.json TaskItems 加载)'
+    description: '轻松季(beta) (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -135,29 +116,9 @@ tasks:
 
   elite_instance:
     enabled: true
-    display_order: 0
+    display_order: 11
     category: 'uncategorized'
-    description: '精英副本 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  exit_naruto:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '退出火影 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  get_copper:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '招财 (从 default.json TaskItems 加载)'
+    description: '不是体力刷碎片的功能,这个用来开荒的,忍者不要特效太多的'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -165,9 +126,9 @@ tasks:
 
   give_energy:
     enabled: true
-    display_order: 0
+    display_order: 14
     category: 'uncategorized'
-    description: '赠送体力 (从 default.json TaskItems 加载)'
+    description: '送体力 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -175,9 +136,9 @@ tasks:
 
   group:
     enabled: true
-    display_order: 0
+    display_order: 15
     category: 'uncategorized'
-    description: '组织签到 (从 default.json TaskItems 加载)'
+    description: '包含祈福签到和领奖，追击晓组织领奖。'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -195,19 +156,9 @@ tasks:
 
   headhunt:
     enabled: true
-    display_order: 0
+    display_order: 17
     category: 'uncategorized'
-    description: '招募 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  joy_club:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '欢乐会员 (从 default.json TaskItems 加载)'
+    description: '免费招募 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -215,7 +166,7 @@ tasks:
 
   leaderboard:
     enabled: true
-    display_order: 0
+    display_order: 19
     category: 'uncategorized'
     description: '排行榜 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
@@ -235,9 +186,9 @@ tasks:
 
   liveness_award:
     enabled: true
-    display_order: 0
+    display_order: 21
     category: 'uncategorized'
-    description: '活跃奖励 (从 default.json TaskItems 加载)'
+    description: '活跃宝箱 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -245,19 +196,9 @@ tasks:
 
   mail:
     enabled: true
-    display_order: 2
-    category: 'daily'
-    description: '邮件领取(Phase 6 新增,需采集 mail_entry.png / one_key_claim.png / confirm_claim.png)'
-    estimated_time_sec: 20
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  mini_game:
-    enabled: true
-    display_order: 0
+    display_order: 22
     category: 'uncategorized'
-    description: '小游戏 (从 default.json TaskItems 加载)'
+    description: '邮箱 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -265,9 +206,9 @@ tasks:
 
   mission_office:
     enabled: true
-    display_order: 0
+    display_order: 24
     category: 'uncategorized'
-    description: '集会所 (从 default.json TaskItems 加载)'
+    description: '遇到忍者不足无法出发,这种情况不好安排超影刷新,会进入结束任务流程,建议忍者少的检查一下'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -284,10 +225,10 @@ tasks:
     config_options: {}
 
   more_gameplay:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 26
     category: 'uncategorized'
-    description: '更多玩法 (从 default.json TaskItems 加载)'
+    description: '需要已经适配的主题或者在决斗场页面开启任务;也可以开启从奖励中心进入;目前适配百忍,绝迹和大蛇丸'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -295,9 +236,9 @@ tasks:
 
   naruto_club:
     enabled: true
-    display_order: 0
+    display_order: 27
     category: 'uncategorized'
-    description: '火影情报社 (从 default.json TaskItems 加载)'
+    description: '该任务并不稳定,如遇卡顿可能需要人工接管'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -305,9 +246,9 @@ tasks:
 
   ninja_book:
     enabled: true
-    display_order: 0
+    display_order: 28
     category: 'uncategorized'
-    description: '忍术对战 (从 default.json TaskItems 加载)'
+    description: '微信忍法帖分享部分设备可能会出现无法退出的情况,这种情况不保证能正常处理由于社交软件版本多,设备延迟差异大.分享任务可能需要你调整选项到自己适合的配置,或者让拉起的社交软件是横版(平板版)并使用加速策略'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -315,19 +256,9 @@ tasks:
 
   point_race:
     enabled: true
-    display_order: 0
+    display_order: 29
     category: 'uncategorized'
-    description: '积分赛 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  rebel_ninja:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '叛忍 (从 default.json TaskItems 加载)'
+    description: '领取当日奖励,挑战逻辑是挑战战力比自己低的,并不保证取胜'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -345,7 +276,7 @@ tasks:
 
   rich_room:
     enabled: true
-    display_order: 0
+    display_order: 32
     category: 'uncategorized'
     description: '丰饶之间 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
@@ -353,21 +284,11 @@ tasks:
     max_retries: 1
     config_options: {}
 
-  secondary_password_open:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '二级密码 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
   secret_realm:
     enabled: true
-    display_order: 0
+    display_order: 33
     category: 'uncategorized'
-    description: '秘境 (从 default.json TaskItems 加载)'
+    description: '请在主页开始任务,连点器任务可能不兼容**雷电模拟器**'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -375,59 +296,19 @@ tasks:
 
   share:
     enabled: true
-    display_order: 0
+    display_order: 34
     category: 'uncategorized'
-    description: '每日分享 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  shop:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '商店一键 (从 default.json TaskItems 加载)'
+    description: '由于社交软件版本多,设备延迟差异大.分享任务可能需要你调整选项到自己适合的配置,或者让拉起的社交软件是横版(平板版)并使用加速策略'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
     config_options: {}
 
   shugyou_no_michi:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 35
     category: 'uncategorized'
-    description: '修行之路 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  sky_ground:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '天空之地 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  start_up:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '启动游戏 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
-  stronghold:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '要塞 (从 default.json TaskItems 加载)'
+    description: '推关无法处理自动战斗不起效,时间停止等bug'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -435,7 +316,7 @@ tasks:
 
   survival_challenge:
     enabled: true
-    display_order: 0
+    display_order: 39
     category: 'uncategorized'
     description: '生存挑战 (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
@@ -443,31 +324,21 @@ tasks:
     max_retries: 1
     config_options: {}
 
-  switch_account:
-    enabled: true
-    display_order: 0
-    category: 'uncategorized'
-    description: '切换账号 (从 default.json TaskItems 加载)'
-    estimated_time_sec: 30
-    retry_on_failure: true
-    max_retries: 1
-    config_options: {}
-
   team_dash:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 41
     category: 'uncategorized'
-    description: '小队突袭 (从 default.json TaskItems 加载)'
+    description: '组织里有人用和自己一样忍者时,建议关闭借组织助战'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
     config_options: {}
 
   use_energy:
-    enabled: true
-    display_order: 0
+    enabled: false
+    display_order: 42
     category: 'uncategorized'
-    description: '刷碎片 (从 default.json TaskItems 加载)'
+    description: '刷体力(精英副本) (从 default.json TaskItems 加载)'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1
@@ -485,9 +356,9 @@ tasks:
 
   weekly_win:
     enabled: true
-    display_order: 0
+    display_order: 44
     category: 'uncategorized'
-    description: '周胜 (从 default.json TaskItems 加载)'
+    description: '请在主页开始任务,请尽量不要滥用这个功能影响其他人游戏体验;该功能**不支持雷电模拟器**,与之有关的问题也不会被受理'
     estimated_time_sec: 30
     retry_on_failure: true
     max_retries: 1

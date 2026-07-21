@@ -15630,19 +15630,25 @@
   "wait_for_select_opponent": {
     "recognition": "TemplateMatch",
     "roi": [
-      68,
-      23,
-      418,
-      185
+      40,
+      0,
+      700,
+      240
     ],
     "template": "Point_race/select_opponent.png",
     "pre_delay": 0,
-    "post_delay": 0,
+    "post_delay": 500,
     "next": [
       "point_race_challenge",
       "back_main_screen_and_stop"
     ],
-    "focus": "[color:DeepSkyBlue]开始选择对手[/color]"
+    "focus": "[color:DeepSkyBlue]开始选择对手[/color]",
+    "threshold": [
+      0.7,
+      0.8
+    ],
+    "pre_wait_freezes": 1000,
+    "post_wait_freezes": 1000
   },
   "point_race_cross_server": {
     "recognition": "TemplateMatch",
@@ -28348,6 +28354,7 @@
     "post_wait_freezes": 300,
     "post_delay": 300,
     "next": [
+      "team_dash_check_4x_reward",
       "[JumpBack]team_dash_same_ninja",
       "team_dash_loading",
       "check_in_team_dash_sweep",
@@ -28743,17 +28750,17 @@
   "close_team_dash_out_team_sign": {
     "recognition": "OCR",
     "roi": [
-      535,
-      418,
-      205,
-      74
+      300,
+      350,
+      680,
+      250
     ],
     "expected": [
       "确定"
     ],
     "pre_delay": 0,
     "action": "Click",
-    "post_wait_freezes": 200,
+    "post_wait_freezes": 500,
     "post_delay": 0,
     "next": [
       "close_team_dash_without_out_team_sign",
@@ -28764,10 +28771,10 @@
   "close_team_dash_without_out_team_sign": {
     "recognition": "OCR",
     "roi": [
-      535,
-      418,
-      205,
-      74
+      300,
+      350,
+      680,
+      250
     ],
     "expected": [
       "确定"
@@ -28792,8 +28799,10 @@
     "method": 10001,
     "threshold": 0.9,
     "pre_delay": 0,
-    "post_delay": 0,
-    "focus": "[color:pink]勾选4倍奖励[/color]"
+    "post_delay": 300,
+    "focus": "[color:pink]勾选4倍奖励[/color]",
+    "action": "Click",
+    "post_wait_freezes": 500
   },
   "team_dash_check_not_4x_reward": {
     "recognition": "TemplateMatch",
