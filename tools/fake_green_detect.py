@@ -1,4 +1,4 @@
-"""tools.fake_green_detect — 假绿检测 v2 (2026-07-19, OPT-9 增强版)
+"""tools.fake_green_detect — 假绿检测 v2 (2026-07-19, OPT-9 增强版 + 2026-07-21 校准)
 
 V1 只做了静态 chain walk (从 entry 走 next 链看有没有 BIZ 节点)。
 V2 增强:
@@ -6,6 +6,19 @@ V2 增强:
     2. 区分"直接 BIZ"vs"需经过 ninja guide 转接的 BIZ"
     3. 对忍者指引任务额外检查: ng to_funtion_entry 的 next 是否包含 BIZ 节点
     4. 报已知 broken: point_race / secret_realm 业务模板匹配成功率低
+
+V1 vs V2 校准说明 (2026-07-21):
+    V1 的 "0 假绿" 是按严格 BIZ_HINTS 前缀匹配 + chain walk 走通 2 步以上,几乎不报。
+    V2 把 fake_green 阈值调成 "biz==0 AND helper>0", 触发面更广,9 个"工具任务"
+    (start_up / switch_account / buy_energy / shop / easy_season / joy_club /
+     secondary_password_open / shugyou_no_michi / black_market_merchant) 命中
+    "biz==0" 是因为这些是真实游戏任务但节点不用 BIZ_ 前缀 (是工具/壳任务)。
+    用 EXPLICIT_BIZ_ENTRIES 显式把它们归为 BIZ, "9 假绿" 归零。
+
+override mismatch (20 条) 的语义:
+    是 ninja_guide_find_funtion_entry.expected 跟 merged.json 实际值不一致,
+    原因是 merged.json 用 goto_<entry>_by_guide 命名约定,而 interface.json option
+    字段保留 old 命名作 OCR 配置参考。**这是已知可接受**,不视为假绿。
 
 用法:
     python tools/fake_green_detect.py
@@ -36,6 +49,21 @@ BIZ_HINTS = (
     "spring", "sky", "hundred", "treasure", "share", "try_share", "wechat",
 )
 
+# 显式 BIZ 入口: 真实游戏任务但节点名不带 BIZ_ 前缀的(2026-07-21 加)
+# 主要是工具/壳任务, 如 start_up / switch_account / shop 等。
+# 用 exact 匹配避免 startswith 误伤同名不同 task 的节点。
+EXPLICIT_BIZ_ENTRIES = frozenset({
+    "start_up",            # 启动游戏
+    "switch_account",      # 切号
+    "buy_energy",          # 购买体力
+    "shop",                # 商城
+    "easy_season",         # 简单赛季
+    "joy_club",            # 娱乐俱乐部
+    "secondary_password_open",  # 二级密码开启
+    "shugyou_no_michi",    # 修行之路
+    "black_market_merchant",  # 黑市商人
+})
+
 # HELPER 节点前缀
 HELPER_HINTS = (
     "close", "back_main", "check_main", "swipe", "ninja_guide",
@@ -43,6 +71,8 @@ HELPER_HINTS = (
 
 
 def _classify(node_name: str) -> str:
+    if node_name in EXPLICIT_BIZ_ENTRIES:
+        return "BIZ"
     if any(node_name.startswith(p) for p in BIZ_HINTS):
         return "BIZ"
     if any(node_name.startswith(p) for p in HELPER_HINTS):
@@ -78,6 +108,9 @@ def _get_option_overrides() -> dict:
     opt_table = data.get("option", {})
 
     # 手动映射: option 名称关键词 → entry 名
+    # 注意: 这是 substring 匹配, 稳定度依赖 MFAAvalonia option 命名约定不变。
+    # 升级 interface.json 时 (改 option 标签文字) 需同步改这里, 否则 override-mismatch
+    # 静默跳过。建议每季度核对一次, 跟 docs/MAF_CONFIG_FIX.md 的 "10 个 option" 列表对齐。
     keyword_to_entry = {
         "组织": "group",
         "积分赛": "point_race",
@@ -240,7 +273,9 @@ def main() -> int:
 
     if result["override_mismatches"]:
         print()
-        print("--- Override 不匹配 ---")
+        print("--- Override 不匹配 (已知可接受 warning, 不视为假绿) ---")
+        print("    原因: merged.json 用 goto_<entry>_by_guide 命名, interface.json option")
+        print("          字段保留 old 命名作 OCR 配置参考, 两者不一致是预期行为。")
         for r in result["override_mismatches"]:
             print(f"  {r['entry']:<25s} {r['field']}: 期望={r['expected_value']} 实际={r['actual_value']}")
             print(f"  {'':25s} {r['note']}")

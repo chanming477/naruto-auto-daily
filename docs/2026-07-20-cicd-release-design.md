@@ -144,3 +144,26 @@ mfaavalonia-version = "X.Y.Z"   # 改这里
 1. 从 MaaXYZ/MFAAvalonia releases 下对应版本
 2. 套我们的 3 个 config
 3. 跑测试 + bundle + 打包 + 上传 release
+
+## 附录 A · 2026-07-20 扁平化变更
+
+**变更**: `frontend/MFAAvalonia/` 整个目录已删（`d5e087e` 14项优化第 2.3 项），
+3 个 config 文件移到项目根。
+
+| 原路径 (本设计文档) | 新路径 (扁平化后) |
+|---|---|
+| `frontend/MFAAvalonia/interface.json` | `interface.json` |
+| `frontend/MFAAvalonia/appsettings.json` | `appsettings.json` |
+| `frontend/MFAAvalonia/config/instances/default.json` | `config/instances/default.json` |
+| `frontend/MFAAvalonia/python/` | `python/` |
+| `frontend/MFAAvalonia/agent/` | `agent/` |
+| `frontend/MFAAvalonia/debug/` | `debug/` |
+
+**为什么**: MFAAvalonia 扁平化后所有引用方 (CI / Python `Path(__file__).parent.parent` /
+启动脚本) 都已经迁移到新路径。本设计文档原始表格里的 `frontend/MFAAvalonia/...`
+是迁移前的快照，留作历史参考，实际代码以新路径为准。
+
+**注意**:
+- 本文档其它章节 (实施清单表、风险表等) 仍用旧路径表述,这是因为它们描述的是
+  CI workflow 在 MFAAvalonia 解压临时目录里的操作，不是项目根路径。
+- 部署到项目根的最终目录布局,见 `CONTRIBUTING.md` 1. 目录速查。

@@ -78,7 +78,8 @@ def test_main_help(capsys: pytest.CaptureFixture):
     assert exc_info.value.code == 0
     out = capsys.readouterr().out
     assert "usage:" in out.lower() or "naruto-auto-daily" in out
-    # 6 个保留命令都应在 help 里
+    # 7 个保留命令都应在 help 里 (2026-07-19 OPT-1+OPT-2 后保留: --gui / --init-config /
+    # --list-tasks / --check / --debug / --quiet / --version)
     for cmd in ["--gui", "--init-config", "--list-tasks", "--check",
                 "--debug", "--quiet", "--version"]:
         assert cmd in out, f"--help 输出缺 {cmd}"
@@ -129,11 +130,20 @@ def test_main_list_tasks(capsys: pytest.CaptureFixture):
 
 
 def test_main_check(tmp_path: Path, capsys: pytest.CaptureFixture, monkeypatch):
-    """--check 4 项检查全过 (Pydantic / 模板目录 / 任务注册表 / ADB WARN)。"""
-    # 重定向 PROJECT_ROOT 到 tmp_path (--check 读 config/task_registry.yaml)
+    """--check 4 项检查全过 (Pydantic / 模板目录 / 任务注册表 / ADB WARN)。
+
+    2026-07-21 R2 review I1 修后: step 3 同时读 default.json (真理源) +
+    task_registry.yaml (元数据)。测试需要两个文件都预填。
+    """
+    # 重定向 PROJECT_ROOT 到 tmp_path (--check 读 config/instances/default.json)
     monkeypatch.setattr("main.PROJECT_ROOT", tmp_path)
-    # 预填 task_registry.yaml, 让 [3/4] 检查过
-    (tmp_path / "config").mkdir(exist_ok=True)
+    # 预填 default.json (真理源, 至少 1 个 TaskItem)
+    (tmp_path / "config" / "instances").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "instances" / "default.json").write_text(
+        '{"TaskItems": [{"name": "mail", "entry": "mail"}]}',
+        encoding="utf-8",
+    )
+    # 预填 task_registry.yaml (元数据, 至少 1 个 enabled task)
     (tmp_path / "config" / "task_registry.yaml").write_text(
         "tasks:\n  mail:\n    enabled: true\n    display_order: 2\n    category: daily\n",
         encoding="utf-8",

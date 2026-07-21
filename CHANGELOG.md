@@ -24,31 +24,63 @@
 - **`core/base_task.py:pre_flight`** — 简化为 no-op(直接 return True)
   - 旧版委托 `CommonActions.ensure_game_in_foreground()`,新版由 MaaFramework merged.json pipeline 接管
   - docstring 明确说"前台守护已从 Python 移走,pipeline 接管" + 解释原因
-- **`recovery/recovery_manager.py`** — 3 个用 `self._common` 的 `recover_*` 方法加 None guard
-  - `recover_unknown` None → 返 `GameState.UNKNOWN`
-  - `recover_popup` None → 返 `False`
-  - `recover_loading_timeout` None → 返 `False`
-  - `recover_adb_error` 不依赖 common,本来就不用改
-  - `common_actions` 参数仍为 keyword-only 且 default `None`(向后兼容,无脚枪)
 - **`tasks/task_engine_maafw.py`** — `list_supported_tasks()` 改用 `list_supported_entries()`(避免同 entry 重复跑)
 - **`pyproject.toml`**: `packages =` 更新(移除 `logging_ext/` / `recognizer/` / `state/`,加入 `agent/`)
-- **`README.md` / `CONTRIBUTING.md` / `docs/operation_flows.md`**: 反映新的目录结构
+- **`README.md` / `CONTRIBUTING.md`**: 反映新的目录结构(注: docs/operation_flows.md 已在 0.7.1 之后清理时删)
 - **测试更新**:
   - `test_custom_actions.py` (5 个):适配 `_actions_core.go_into_entry_by_guide_run` 3-click 算法
   - `test_clean_logs.py` (2 个):硬编码路径改为 `Path(__file__).resolve().parent.parent`,`clean_logs` entry 缺失时 skip(留作回归保险)
   - `test_task_mapping.py` (1 个):任务计数从 `default.json` TaskItems 动态读取,不再 hardcode 21
   - `test_pipeline_overrides.py` (1 个):改为用 `monkeypatch` + `tmp_path` 测 fallback 行为(MFAAvalonia 清空 `ResourceOptionItems` 后 `_FALLBACK_YES_OPTIONS` 仍生效)
-  - `test_recovery_manager.py` (4 个新):验证 `common_actions=None` 时 3 个 recover_* 不 AttributeError
 
 ### Removed
 - **`logging_ext/`** 整个目录(2 个文件)
 - **`recognizer/`** 整个目录(2 个文件)
 - **`state/`** 整个目录(2 个文件)
 - **`schemes/`** 整个目录(只有 `daily.json`,已迁到 `config/schedule.json`)
+- **`recovery/`** 整个目录(同次 P2 清理删除,本段"Changed"中原提到的 `recovery/recovery_manager.py` 3 个 None-guard 修改在删除前未保留,故从 CHANGELOG 移除相关条目)
 
 ### 用户操作变更
 - 无破坏性变化 — 所有 CLI 命令(`--xxx-real` / `--maafw-task` / `--daily-all` / `--gui`)保持兼容
 - `--daily-all` 现在读 `config/schedule.json`(原 `schemes/daily.json`)
+
+## [0.7.2] - 2026-07-19 (代码质量 + MVP 标记)
+
+### Added
+- **`maafw_bridge/pipeline_overrides.py: v3 auto-sync`** — 8 个 entry override 从 frontend `default.json` 选中的 option case 自动加载,Python 端不再 hardcode
+- **`tools/fake_green_detect.py: V2`** — 除静态 chain walk 外,新增:
+  - 忍者指引 override 节点 expected / biz_next 一致性检查(20 条 warning,已知可接受)
+  - 工具任务(9 条:`start_up` / `switch_account` / `buy_energy` / `shop` / `easy_season` / `joy_club` / `secondary_password_open` / `shugyou_no_michi` / `black_market_merchant`)显式归类为 BIZ(避免误报假绿)
+  - 已知 broken 标注(`point_race` / `secret_realm` 业务模板匹配不稳定)
+
+### Changed
+- **3 轮 code-quality 重构 (OPT-1..OPT-10)**:
+  - Round 1 (`6fd19fe`): OPT-4/7/8/5/6 — 小型安全项
+  - Round 2 (`2c9de59`): OPT-1/2/3 — 高影响删除
+    - `main.py` 1383 → 297 行(-78%)
+    - 删 4 个 `core/` 死模块(`window_manager` / `screenshot_manager` / `base_task` / `state_machine`)
+    - 删 6 个 `--xxx-real` + `cmd_weekly_signin_real` + `--capture-test` / `--smoke-test` / `--list-windows` / `--activate-window` CLI flag
+    - 拆 `core/task_result.py`(从已删 `base_task.py` 抽出 `TaskStatus` / `TaskResult`)
+  - Round 3 (`bd977bc`): OPT-9/10 — 长期价值项
+    - `fake_green_detect.py` 静态分析工具
+    - `tools/audit_templates.py` 重写自 `validate_templates.py`(更准的孤儿/缺失检测)
+- **MVP 标记 (`e77af55`)** — 真活儿,不是空 tag:
+  - 加 `.github/workflows/test.yml` CI 跑 pytest
+  - 加 ISSUE/PR 模板
+  - `fake_green_detect.py` v2 实现 override-mismatch 检查
+- **`schedule.json` / `device_config.yaml` 删** (OPT-5) — 5 个 `test_config_manager.py` 引用 + 2 个 `test_task_mapping.py` schedule.json 测试同步删
+- **`pre_gui_smoke.py` / `cmd_check` step 1** 用 Pydantic `ConfigManager` 替换旧 `ConfigParser`
+
+### Removed
+- 20 个 `test_base_task.py` 死测试(`base_task.py` 已删)
+- `test_state_machine.py` 整个文件(`state_machine.py` 已删)
+- 3 个 schedule.json 测试(`schedule.json` 已删)
+- `tests/_mock_adb.py` (自包含 mock,无人 import)
+
+### Stats
+- 文件数: 9 → 8 测试文件
+- 测试函数: 129 → 117 (净 -12,-20 dead + 11 new CLI 测试)
+- 净代码行: -4115(纯删除重构,无功能变更)
 
 ## [Unreleased] - 2026-07-11 (前端整合 + UI 清理)
 

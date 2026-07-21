@@ -13,6 +13,5 @@ psutil==7.2.2
 pywin32==312 ; sys_platform == 'win32'
 opencv-python-headless==4.13.0.92
 maafw==5.10.4
-onnxruntime==1.27.0
 # notify-py==0.3.43 强依赖 loguru<=0.6.0, 跟 loguru==0.7.3 冲突
 # 用 `pip install --no-deps notify-py==0.3.43` 单独装 (运行时 loguru 0.7.3 API 兼容)

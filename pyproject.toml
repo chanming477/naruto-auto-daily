@@ -20,7 +20,8 @@ dependencies = [
     "pywin32==312 ; sys_platform == 'win32'",
     "opencv-python-headless==4.13.0.92",
     "maafw==5.10.4",
-    "onnxruntime==1.27.0",
+    # notify-py 0.3.43 强依赖 loguru<=0.6.0, 跟 loguru==0.7.3 冲突
+    # bundle_python.py 单独用 --no-deps 装 notify-py, 运行时 loguru 0.7.3 API 兼容
     "notify-py==0.3.43",
 ]
 
@@ -55,15 +56,10 @@ target-version = "py311"
 select = ["E", "F", "I", "W", "B", "UP"]
 
 # ============================================================
-# pytest 全局 addopts (2026-07-15 P1-7 修)
-# --ignore=frontend: frontend/MFAAvalonia/python/Lib/site-packages/
-#   colorama / numpy / etc. 跟 pytest collection 冲突, 跑 tests/ 时自动跳过。
-#   不用用户手动传 --ignore。
+# pytest 全局 addopts (2026-07-21 修: 删 --ignore=frontend,扁平化后无 frontend 目录)
 # ============================================================
 [tool.pytest.ini_options]
-addopts = [
-    "--ignore=frontend",
-]
+addopts = []
 
 # ============================================================
 # 项目自定义配置 (2026-07-20 CI/CD 加)

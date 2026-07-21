@@ -7,7 +7,8 @@
         1. ``resolve_entry(task_id)`` → narutomobile entry 名
         2. ``MaTaskerSingleton.run_task(entry)`` → job
         3. ``MaaEventSink.to_task_result(success=...)`` → ``core.task_result.TaskResult``
-        4. 失败时调 ``RecoveryManager.on_task_failed``
+        4. 失败时调 ``recovery_mgr.on_task_failed`` (P2-6 2026-07-18 删 RecoveryManager
+           后, ``recovery_mgr`` 仅为 ``Any`` 类型占位参数,保留向后兼容)
         5. 返回 TaskResult
 
     - ``MaaTaskEngine.run_daily(task_ids)``:

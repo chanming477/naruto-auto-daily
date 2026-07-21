@@ -18,9 +18,10 @@ from pathlib import Path
 def _find_project_root() -> Path:
     """从 __file__ 往上找含 ``maafw_bridge/`` 的目录。
 
-    支持两种部署:
-        - 源码 dev: ``D:\\火影自动日常\\agent\\main.py`` → 1 层 = project root
-        - 部署: ``D:\\火影自动日常\\agent\\main.py`` → 1 层 = project root
+    2026-07-20 扁平化后, ``agent/`` 始终在项目根, dev 和部署都是 1 层:
+        - 源码 dev: ``<project_root>/agent/main.py`` → parent = project root
+        - MFAAvalonia 部署: ``<project_root>/agent/main.py``(扁平化前曾考虑过把
+          agent/ 嵌进 MFAAvalonia 临时目录, 2026-07-20 d5e087e 后不会了)
 
     找不到时报错(让用户知道 agent/ 复制位置不对)。
     """

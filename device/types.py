@@ -6,7 +6,8 @@
     next_state  — 期望接下来进入的游戏状态 (str, 如 "home" / "popup"),None 表示无变化
 
 扩展字段:
-    payload     — 任意附带数据(目前主要用于 ``ADBClient.screenshot`` 承载 ndarray)。
+    payload     — 任意附带数据(目前主要用于 ``screenshot`` 场景承载 ndarray 拷贝,
+                  P2-1 2026-07-18 删 ADBClient 后由 agent/custom/action/base.py 接管)。
 
 V2 (2026-07-18): 删 GameState 枚举依赖 (state_machine/ 已删)。
 next_state 改为 Optional[str],保留向后兼容 (老调用方仍可传 None)。
@@ -35,7 +36,8 @@ class ActionResult:
         message: 人类可读的状态描述;失败时是错误原因。
             类型固定为 ``str``(契约);截图 ndarray 不放在这里,改用 ``payload``。
         next_state: 期望的状态机下一步 (str);``None`` 表示无变化。
-        payload: 任意附带数据(目前由 ``ADBClient.screenshot`` 承载 ``np.ndarray`` 拷贝)。
+        payload: 任意附带数据(目前由 ``screenshot`` 类操作承载 ``np.ndarray`` 拷贝,
+                  P2-1 2026-07-18 删 ADBClient 后由 agent/custom/action/base.py 接管)。
     """
 
     success: bool

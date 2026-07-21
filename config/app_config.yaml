@@ -50,7 +50,7 @@ adb:
   # 默认设备序列号(如 "127.0.0.1:16384" 或 "emulator-5554"),空 = 不指定
   # 2026-07-14: MuMu 12 实际端口 16384(原 7555 是旧版,MuMu Player 12 改 16384)
   #   雷电/Nox/BlueStacks 通常为 "emulator-5554" 或其自定端口
-  # 留空时,ADBClient.connect() 会执行 `adb devices` 自动选第一个 device
+  # 留空时,maafw_bridge.tasker 会执行 `adb devices` 自动选第一个 device
   default_serial: "127.0.0.1:16384"
   # 单条 adb 命令的超时(秒)
   command_timeout_sec: 10
@@ -58,7 +58,7 @@ adb:
   retry_count: 2
 
 # 优先级说明(P6 真实接入):
-#   ADBClient 解析 adb_path 的优先级:
+#   maafw_bridge.tasker 解析 adb_path 的优先级:
 #     1) 构造参数 adb_path= 显式覆盖(最高)
 #     2) config.app.adb.adb_path(本文件,常用于 MuMu 等非 PATH 路径)
 #     3) shutil.which('adb')(从系统 PATH 找)

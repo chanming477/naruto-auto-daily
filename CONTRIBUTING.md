@@ -12,16 +12,21 @@ naruto-auto-daily/
 ├── recognition/           # template_matcher + types
 ├── maafw_bridge/          # MaaFramework 桥接 (event_sink / tasker / resource / _actions_core)
 ├── agent/                 # MFAAvalonia Agent 自定义 action/recognition/sink
+│   └── custom/            # action/base.py + reco/base.py + sink.py + utils.py
 ├── tasks/                 # 业务 task (task_engine_maafw)
-├── tools/                 # dryrun / utility (audit_templates / find_and_tap / fake_green_detect / pre_gui_smoke)
+├── tools/                 # utility (audit_templates / fake_green_detect / pre_gui_smoke / bundle_python)
 ├── tests/                 # 单元测试
-├── frontend/MFAAvalonia/  # .NET 10 桌面客户端 (~235 MB, .gitignore)
+├── interface.json         # 任务编排 (task 块 + option 块),扁平化后直接在项目根
+├── appsettings.json       # 应用设置 (扁平化后直接在项目根)
+├── config/                # app_config.yaml + instances/default.json
 ├── resources/narutomobile/  # MaaFramework 资源包 (pipeline/merged.json + image/ + model/)
-├── config/                # YAML (app_config.yaml + task_registry.yaml)
 ├── logs/                  # 运行时日志
-├── docs/                  # 设计 spec
+├── docs/                  # 设计 spec + reviews/
 └── screenshots/           # 调试截图 (calibration/ + failures/)
 ```
+
+> **2026-07-20 扁平化变更**: 3 个 config 文件 (`interface.json` / `appsettings.json` /
+> `config/instances/default.json`) 移到项目根, 见 `docs/2026-07-20-cicd-release-design.md` 附录 A。
 
 ## 2. 新增一个 Task
 
@@ -30,28 +35,25 @@ naruto-auto-daily/
 
 新增流程:
 1. 在 `merged.json` 里写任务节点(参考现有 task 的命名/结构)
-2. 跑 `python tools/validate_templates.py` 检查模板无遗漏
-3. 跑 `python tools/generate_template_manifest.py` 同步 manifest
-4. 跑 `python -m pytest tests -q` 全绿
-5. 在 `frontend/MFAAvalonia/config/instances/default.json` 注册任务
-6. 真机跑一次确认
+2. 跑 `python tools/audit_templates.py` 检查模板无遗漏
+3. 跑 `python -m pytest tests -q` 全绿
+4. 在 `config/instances/default.json` 的 `TaskItems` 注册任务(扁平化后路径变更)
+5. 真机跑一次确认
 
 详见 `docs/standards/TASK_TEMPLATE.md`。
 
 ## 3. 新增 / 修改模板
 
-- 模板放 `resources/templates/actions/<task_dir>/<name>.png`
+- 模板放 `resources/narutomobile/image/<task_dir>/<name>.png`(扁平化后路径变更)
 - 同名模板按 `v3 → v4` 顺序追加在 fallback chain,**不要替换**
 - 单张 PNG 不要超过 5 KB(大概率是被压缩损坏)
-- 跑 `python tools/validate_templates.py` 检查缺失 / 孤儿
-- 跑 `python tools/generate_template_manifest.py` 更新 `manifest.json`
+- 跑 `python tools/audit_templates.py` 检查缺失 / 孤儿
 
 ## 4. 提 PR 流程
 
 1. 提交前跑 `python -m pytest tests -q` 必须通过
-2. 跑 `python tools/generate_template_manifest.py` 同步 manifest
-3. 跑 `python tools/validate_templates.py` 通过
-4. PR 描述包含:
+2. 跑 `python tools/audit_templates.py` 通过
+3. PR 描述包含:
    - 修改目的
    - 修改清单(逐条)
    - 测试截图(尤其 task 改动)

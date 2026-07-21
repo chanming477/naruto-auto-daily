@@ -1,10 +1,10 @@
 """maafw_bridge.pipeline_overrides — pipeline override 字典 (v3,2026-07-15 auto-sync)。
 
 **真理源** (single source of truth,2 个文件):
-    1. ``frontend/MFAAvalonia/interface.json`` 的 ``option`` 块 — 包含所有可选 option
-       的 cases,每个 case 有 ``pipeline_override`` 字典。
-    2. ``frontend/MFAAvalonia/config/instances/default.json`` 的 ``ResourceOptionItems``
-       — 当前 user 选中的 option 值 (``{"从奖励中心进入": "Yes"}`` 等)。
+    1. ``interface.json`` 的 ``option`` 块 — 包含所有可选 option 的 cases,
+       每个 case 有 ``pipeline_override`` 字典(扁平化后 interface.json 在项目根)。
+    2. ``config/instances/default.json`` 的 ``ResourceOptionItems`` — 当前 user
+       选中的 option 值 (``{"从奖励中心进入": "Yes"}`` 等)。
 
 **合并规则** (v3 auto-sync):
     1. **Frontend overrides** (auto-loaded):
@@ -14,7 +14,7 @@
        (group / shugyou_no_michi / mission_office / weekly_win / point_race /
        secret_realm / black_market_merchant / more_gameplay)。
     2. **Hardcoded overrides** (P1-3 保留,frontend 没覆盖的部分):
-       - ``give_energy`` ROI 修复 (1280x720 模拟器专用,frontend interface.json 无此 option)
+       - ``give_energy`` ROI 修复 (1280x720 模拟器专用,interface.json 无此 option)
        - ``stronghold`` 忍者指南 path (frontend "从奖励中心进入" 不覆盖要塞,因要塞本身
          就是组织玩法,走忍者指南找"组织"tab)
     3. **合并**: ``PIPELINE_OVERRIDES_BY_ENTRY = {**HARDCODED, **FRONTEND}`` —

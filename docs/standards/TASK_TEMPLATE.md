@@ -103,7 +103,7 @@ on_error=['verify_done'],  # 仅当 back_main_screen 也通过回主页 ROI 才 
 ## 7. 测试
 
 每个 task 必须有 `tests/test_<tid>_task.py`:
-- mock ADBClient 不接真模拟器
+- mock tasker 不接真模拟器
 - 校验 pipeline 节点结构
 - 校验 ROI 在合理范围
 - 校验 on_error 不指向 `verify_done` 静默成功

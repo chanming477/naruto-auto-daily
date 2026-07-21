@@ -1,0 +1,148 @@
+name: Doc coupling check
+
+# 目的: 防止"代码改了但 doc / config 没同步"的滞后(2026-07-20 review 主旋律)。
+# 扫 .md / .yaml / .yml / .toml / .json (排除 interface.json + merged.json) 里
+# 仍在引用已删模块 / 旧目录约定的关键字, 任何一处 fail。
+#
+# 触发: PR + push main (轻量级, ~5s 完成)
+#
+# 豁免: 命中行加 `# noqa: doc-coupling` 注释可跳过(逐行,不要整文件)。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  doc-coupling:
+    name: Scan docs/config for stale references
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install ripgrep
+        run: |
+          if ! command -v rg &> /dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ripgrep
+          fi
+          rg --version
+
+      # ---- 排除备份目录 (2026-07-20 清理前的快照,内容故意保留旧术语) ----
+      - name: Verify backup directories
+        shell: bash
+        run: |
+          # 备份目录存在但故意排除扫描 (rg glob 语法: *.bak.* / *.backup.*)
+          for d in frontend.bak.2026-07-20 resources/narutomobile.backup.2026-07-20; do
+            if [ -d "$d" ]; then
+              echo "OK  备份目录存在(将排除): $d"
+            fi
+          done
+
+      # ---- 主扫描: 已删模块 / 旧目录约定 ----
+      # noqa: doc-coupling 加在行尾可豁免该行(用于"故意保留历史引用"的情况)
+      - name: Scan for stale references
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          # 关键字 → 描述 (来自 docs/reviews/2026-07-20-last-week-review.md 跨 review 观察)
+          declare -A PATTERNS=(
+            ["RecoveryManager"]="已删 recovery/RecoveryManager (P2 清理 2026-07-18)"
+            ["RetryManager"]="已删 retry/RetryManager (P2 清理 2026-07-18)"
+            ["Recovery"]="已删 recovery/ (P2 清理, 注意: 'recovery' 也会命中 recovery 字符, 大写 R 限定)"
+            ["state_machine"]="已删 state_machine/ (P2 清理 2026-07-18)"
+            ["scheduler.py"]="已删 core/scheduler.py (P2 清理 2026-07-18)"
+            ["Scheduler"]="已删 Scheduler 类 (P2 清理 2026-07-18)"
+            ["core.scheduler"]="已删 core.scheduler 子模块"
+            ["_NoopTask"]="已删 _NoopTask (跟 Scheduler 一起 P2 清理)"
+            ["frontend/MFAAvalonia"]="已删 frontend/MFAAvalonia/ 目录 (扁平化 2026-07-20 d5e087e)"
+            ["MFAAvalonia/agent"]="扁平化后 agent/ 在项目根, 不在 MFAAvalonia/ 下"
+            ["adb_client"]="已删 device/adb_client.py (P2 清理 2026-07-18)"
+            ["ADBClient"]="已删 ADBClient 类 (P2 清理 2026-07-18)"
+            ["page_recognizer"]="已删 page_recognizer.py (OPT-1 2026-07-19)"
+            ["PageRecognizer"]="已删 PageRecognizer 类 (OPT-1 2026-07-19)"
+            ["pipeline_runner"]="已删 pipeline_runner.py (P2 清理 2026-07-18)"
+            ["confrim"]="拼错, 应是 confirm 系列 (e.g. confirm.png), 拼错的 confrim.png 已删"
+          )
+
+          # 扫描范围: .md / .yaml / .yml / .toml / .json
+          # 排除: interface.json + merged.json (合法引用)
+          # 排除: .github/ (CI 内部可能含历史引用)
+          # 排除: CHANGELOG.md (历史记录合法包含旧术语)
+          # 排除: docs/reviews/ (review 报告自身合法包含旧术语)
+          # 排除: docs/code-quality-optimization-plan.md (frozen 历史 plan, 2026-07-18 写)
+          # 排除: docs/MAF_CONFIG_FIX.md (frozen 历史 fix doc, interface.json 修复记录)
+          # 排除: docs/2026-07-20-cicd-release-design.md (frozen 设计 doc, 扁平化迁移的历史快照)
+          # 排除: *.bak.* / *.backup.* 备份目录 (2026-07-20 清理前快照,内容故意保留旧术语)
+          INCLUDE_GLOBS=(
+            "*.md"
+            "*.yaml"
+            "*.yml"
+            "*.toml"
+            "*.json"
+          )
+          EXCLUDE_PATTERNS=(
+            "interface.json"
+            "merged.json"
+            "CHANGELOG.md"
+            "docs/reviews/*"
+            "docs/code-quality-optimization-plan.md"
+            "docs/MAF_CONFIG_FIX.md"
+            "docs/2026-07-20-cicd-release-design.md"
+            "*.bak.*"
+            "*.backup.*"
+            ".github/*"
+          )
+
+          # 拼接 include
+          INCLUDE=$(printf -- " -g %s" "${INCLUDE_GLOBS[@]}")
+
+          # 拼接 exclude
+          EXCLUDE=""
+          for p in "${EXCLUDE_PATTERNS[@]}"; do
+            EXCLUDE="$EXCLUDE -g '!$p'"
+          done
+
+          FAILED=0
+          for pattern in "${!PATTERNS[@]}"; do
+            desc="${PATTERNS[$pattern]}"
+            # rg 找匹配, 排除 noqa: doc-coupling 行
+            # noqa 注释会被行尾 grep 过滤
+            HITS=$(rg --line-number --no-heading $INCLUDE $EXCLUDE \
+              --glob '!*.pyc' --glob '!node_modules' --glob '!__pycache__' \
+              --glob '!screenshots/*' --glob '!logs/*' --glob '!python/*' \
+              -F -- "$pattern" . 2>/dev/null \
+              | grep -v 'noqa: doc-coupling' || true)
+
+            if [ -n "$HITS" ]; then
+              echo ""
+              echo "❌ [$pattern] $desc"
+              echo "$HITS"
+              echo ""
+              FAILED=1
+            else
+              echo "✅ [$pattern] 干净"
+            fi
+          done
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo ""
+            echo "=========================================="
+            echo "FAIL: 上述命中需要修复 (改 doc / config 引用方) 或加 '# noqa: doc-coupling' 豁免"
+            echo "=========================================="
+            exit 1
+          fi
+
+          echo ""
+          echo "=========================================="
+          echo "PASS: 所有 doc / config 引用都跟代码同步"
+          echo "=========================================="

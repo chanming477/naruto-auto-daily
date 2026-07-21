@@ -83,7 +83,7 @@
 |---------|------|
 | 入口图标 | `headhunt.png` / `award_center_entry.png` |
 | 关闭按钮 | `x.png` / `green_masked_x.png` / `notice_x.png` |
-| 确认 / 领取 | `confrim.png` / `get.png` / `one_key_claim.png` |
+| 确认 / 领取 | `confirm.png` / `get.png` / `one_key_claim.png` |
 | 任务卡(未完成) | `xxx_ac_undone.png` / `xxx_undone.png` |
 | 任务卡(已完成) | `xxx_done.png` / `xxx_done_masked.png` |
 | 进度状态 | `xxx_wait.png` / `xxx_done.png` / `xxx_waiting.png` |

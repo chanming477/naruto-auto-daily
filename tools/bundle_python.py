@@ -5,13 +5,13 @@
 
 **做了什么**:
     1. 下载 python-build-standalone 的 embeddable Python (Windows x64, Python 3.12)
-    2. 解压到 ``python/`` (frontend/MFAAvalonia/python/ 会被 MFAAvalonia.exe 通过
-       ``interface.json`` 的 ``agent.child_exec = "python/python.exe"`` 引用)
-    3. pip install 本项目依赖 (maafw / loguru / numpy / Pillow / onnxruntime)
-    4. 复制 ``agent/`` 目录到 ``python/Lib/site-packages/agent/``
+    2. 解压到项目根 ``python/`` (扁平化后 MFAAvalonia.exe 通过 ``interface.json`` 的
+       ``agent.child_exec = "python/python.exe"`` 引用, cwd = 项目根)
+    3. pip install 本项目依赖 (maafw / loguru / numpy / Pillow)
+    4. ``agent/`` 已在项目根,不需要再复制 (MFAAvalonia 启动时 cwd=项目根)
 
 **预期结果**:
-    - ``frontend/MFAAvalonia/python/`` 目录约 75 MB
+    - ``python/`` 目录约 75 MB
     - MFAAvalonia.exe 启动时自动 spawn ``python/python.exe -u agent/main.py <socket_id>``
 
 **注意**:
@@ -75,7 +75,8 @@ def _read_deps_from_pyproject() -> list[str]:
         raise ValueError("无法从 pyproject.toml 解析 dependencies")
 
     # agent 模式需要的包名清单
-    AGENT_PKGS = {"maafw", "loguru", "numpy", "Pillow", "onnxruntime", "notify-py"}
+    # 注意: 2026-07-21 删 onnxruntime (recognition/ocr_matcher.py 已删, 无引用方)
+    AGENT_PKGS = {"maafw", "loguru", "numpy", "Pillow", "notify-py"}
 
     deps = []
     for line in deps_section.group(1).splitlines():
@@ -134,9 +135,9 @@ def _extract_and_flatten(tarball: Path, target: Path) -> None:
     """解压 tarball 到临时目录,把内层 ``python/`` 扁平化到 target/。
 
     为什么: MFAAvalonia.exe 读 ``interface.json`` 的
-    ``agent.child_exec = "python/python.exe"``,工作目录是
-    ``frontend/MFAAvalonia/``,所以期望 ``frontend/MFAAvalonia/python/python.exe``
-    在 TARGET 根 (而不是嵌套的 ``TARGET/python/python.exe``)。
+    ``agent.child_exec = "python/python.exe"``,工作目录是项目根 (扁平化后),
+    所以期望 ``<项目根>/python/python.exe`` 在 TARGET 根 (而不是嵌套的
+    ``TARGET/python/python.exe``)。
     """
     import tempfile
     print(f"解压到 {target} (扁平化内层 python/ 目录) ...")
@@ -192,34 +193,11 @@ def install_deps(pip: Path) -> None:
     print("[OK] 依赖安装完成")
 
 
-def copy_agent_source(project_root: Path, target: Path) -> None:
-    """复制 ``agent/`` 目录到 workdir 相对路径 (跟 MaaAutoNaruto / MFAAvalonia 一致)。
-
-    2026-07-15 P1-7 review C1 修: ``interface.json`` 的 ``agent.child_args``
-    是 ``["-u", "agent/main.py"]`` (文件路径,不是 ``-m`` module 形式),
-    所以 ``agent/`` 必须直接放在 workdir 下 (即 ``frontend/MFAAvalonia/agent/``),
-    而不是嵌套在 ``python/Lib/site-packages/agent/``。
-
-    Args:
-        project_root: 项目根 (含 agent/ 源)
-        target: python/ 捆绑目录 (``frontend/MFAAvalonia/python/``)
-    """
-    src = project_root / "agent"
-    # 关键: agent/ 跟 python/ 同级,在 MFAAvalonia workdir 下
-    # target = frontend/MFAAvalonia/python/, target.parent = frontend/MFAAvalonia/
-    dest = target.parent / "agent"
-    print(f"复制 {src} → {dest}")
-    if dest.exists():
-        shutil.rmtree(dest)
-    shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__"))
-    print(f"[OK] agent/ 已复制 ({dir_size(dest) / 1024:.0f} KB)")
-
-
 # ============================================================
 # Main
 # ============================================================
 def main() -> int:
-    parser = argparse.ArgumentParser(description="构建 Agent 模式 Python 捆绑 (frontend/MFAAvalonia/python/)")
+    parser = argparse.ArgumentParser(description="构建 Agent 模式 Python 捆绑 (项目根 python/)")
     parser.add_argument(
         "--force-redownload",
         action="store_true",
@@ -274,8 +252,9 @@ def main() -> int:
     print()
     print("=== 验证 ===")
     # 注意: maafw PyPI 包 import 名是 maa (不是 maafw)
+    # 2026-07-21 删 onnxruntime: recognition/ocr_matcher.py 已删, 无引用方
     verify_script = (
-        "import maa; import loguru; import numpy; import PIL; import onnxruntime; "
+        "import maa; import loguru; import numpy; import PIL; "
         "import agent.main; print('all imports OK')"
     )
     # 扁平化后 agent/ 在项目根, MFAAvalonia 启动时 cwd 也是项目根

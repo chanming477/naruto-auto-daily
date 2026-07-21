@@ -195,26 +195,36 @@ def cmd_check(project_root: Path, console_level: str | None = None) -> int:
             print(f"   WARN  缺少核心子目录: {missing} (不影响运行)")
 
     # ---- 3. 任务注册表校验 ----
+    # 2026-07-21 R2 review I1 修: 真理源是 default.json TaskItems (43),
+    # task_registry.yaml 47 个 task 里有 6 个是 legacy 标记 (enabled=false 留作历史)。
+    # 报"注册了 47 个"会误导用户(实际跑批只走 enabled=true 的 41 个)。
     print()
     print("[3/4] 任务注册表校验…")
     try:
-        import yaml as _yaml
+        import json as _json
 
-        registry_path = get_user_data_dir() / "config" / "task_registry.yaml"
-        if not registry_path.exists():
-            print(f"   FAIL  task_registry.yaml 不存在: {registry_path}")
-            issues.append("task_registry.yaml missing")
+        # 真理源: config/instances/default.json (扁平化后项目根)
+        default_json_path = PROJECT_ROOT / "config" / "instances" / "default.json"
+        if not default_json_path.is_file():
+            print(f"   FAIL  default.json 不存在: {default_json_path}")
+            issues.append("default.json missing")
         else:
-            data = _yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
-            tasks = data.get("tasks", {}) or {}
-            print(f"   PASS  注册了 {len(tasks)} 个任务")
-            for tid, entry in tasks.items():
-                enabled = entry.get("enabled", False)
-                order = entry.get("display_order", "?")
-                category = entry.get("category", "?")
-                has_class = bool(entry.get("task_class", ""))
-                marker = "" if has_class else " (no task_class, pipeline-only)"
-                print(f"      [OK] {tid:18s}  enabled={enabled} order={order} category={category}{marker}")
+            data = _json.loads(default_json_path.read_text(encoding="utf-8"))
+            items = data.get("TaskItems", [])
+            real_task_count = sum(1 for it in items if isinstance(it, dict))
+            print(f"   PASS  default.json 注册了 {real_task_count} 个 TaskItem (真理源, MaaTaskEngine 走这里)")
+
+        # 元数据: task_registry.yaml (辅助展示 + 旧 task 兼容)
+        import yaml as _yaml
+        registry_path = PROJECT_ROOT / "config" / "task_registry.yaml"
+        if registry_path.exists():
+            reg = _yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
+            tasks = reg.get("tasks", {}) or {}
+            enabled_count = sum(1 for t in tasks.values() if t.get("enabled"))
+            legacy_count = sum(1 for t in tasks.values() if not t.get("enabled"))
+            print(f"   PASS  task_registry.yaml 记录 {len(tasks)} 个 task (enabled={enabled_count}, legacy={legacy_count})")
+        else:
+            print(f"   WARN  task_registry.yaml 不存在 ({registry_path}), 不影响运行")
     except Exception as exc:  # noqa: BLE001
         print(f"   FAIL  任务注册表解析失败: {exc}")
         issues.append(f"registry: {exc}")

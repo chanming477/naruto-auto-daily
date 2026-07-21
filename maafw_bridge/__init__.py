@@ -7,10 +7,12 @@
     - task_mapping.py   我们 task_id ↔ narutomobile entry 名称映射
     - event_sink.py     MaaEventSink(ContextEventSink) — 接管 maafw 回调 → TaskResult
     - tasker.py         MaaFramework Tasker 单例(连接 ADB + 加载 resource + 启动)
+    - pipeline_overrides.py  pipeline override 字典 (hardcoded + frontend auto-sync)
+    - _actions_core.py  Agent / Direct API 模式共享的 action / reco / sink 核心逻辑
 
 不在本模块做的事:
     - GUI 显示(MFAAvalonia 桌面客户端负责)
-    - 任务元数据注册(task_registry.yaml, MaaFramework 走 entry 字符串)
+    - 任务元数据注册(default.json TaskItems, MaaFramework 走 entry 字符串)
     - 调度决策(由 tasks.task_engine_maafw.MaaTaskEngine 负责, P2-6 2026-07-18 core.scheduler 已删)
 """
 

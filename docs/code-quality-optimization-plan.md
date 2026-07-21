@@ -1,6 +1,12 @@
 # 代码质量优化方案
 
 > 2026-07-18 · 基于当前项目真实状态编写
+>
+> **2026-07-21 实施状态更新**: 本方案 OPT-1..OPT-10 全部完成 (Round 1/2/3 三个 commit)。
+> - 验证命令: `python tools/regen_task_registry.py --write` (regen 元数据)
+> - 详见 [CHANGELOG.md](../../CHANGELOG.md) [0.7.2] 段 (Round 1/2/3 + MVP 标记)
+> - 已知遗留 (留作 follow-up): OPT-3 "agent 文件去重" 实际走的是 d5e087e 的目录扁平化
+>   (整个 frontend/MFAAvalonia/ 删除, agent/ 升到项目根), 效果比本方案更彻底。
 
 ---
 

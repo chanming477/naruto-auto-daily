@@ -1,7 +1,8 @@
 """maafw_bridge.task_mapping — 我们 task_id ↔ narutomobile entry 映射 (auto-sync)。
 
 真理源 (single source of truth):
-    ``frontend/MFAAvalonia/config/instances/default.json`` 的 ``TaskItems`` 数组。
+    ``config/instances/default.json`` 的 ``TaskItems`` 数组
+    (扁平化后从 ``frontend/MFAAvalonia/config/instances/default.json`` 移到项目根)。
 
 该 JSON 同时被:
     1. **MFAAvalonia 前端** 渲染任务列表 / checkbox (双击启动时读)
@@ -10,7 +11,7 @@
 两边自动同步 — 改 ``default.json`` 一处,Python ``TASK_MAPPING`` / CLI / 测试全部生效。
 
 **加载策略** (defense in depth):
-    1. 优先读 ``frontend/MFAAvalonia/config/instances/default.json`` 的 ``TaskItems`` —
+    1. 优先读 ``config/instances/default.json`` 的 ``TaskItems`` —
        这是 MFAAvalonia GUI 实际渲染的列表,新加任务不需要改 Python 端。
     2. 读不到时 (文件不存在 / JSON 损坏) → fallback 到 ``_HARDCODED_FALLBACK`` —
        保证即使 frontend 文件丢了 Python 端仍能跑批。
