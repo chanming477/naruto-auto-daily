@@ -116,7 +116,7 @@
                       ▼
 ┌──────────────────────────────────────────────┐
 │      资源层 — MaaFramework pipeline           │
-│  merged.json（1564 节点）+ 870 张 PNG 模板     │
+│  merged.json（1564 节点）+ 871 张 PNG 模板     │
 │  + OCR 模型（DBNet + CRNN）                   │
 └─────────────────────┬────────────────────────┘
                       │ Python maafw_bridge
