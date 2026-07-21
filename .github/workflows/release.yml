@@ -76,10 +76,16 @@ jobs:
             // Manual override via workflow_dispatch input
             const manual = (context.payload.inputs && context.payload.inputs.version) || '';
 
-            // project version
+            // project version (from pyproject.toml — 可能和 git tag 不同步)
             const projectMatch = toml.match(/^version\s*=\s*"([^"]+)"/m);
             if (!projectMatch) throw new Error('Cannot parse project version from pyproject.toml');
             const projectVersion = manual || projectMatch[1];
+
+            // release version (from git tag, e.g. "v0.7.1" → "0.7.1")
+            // 用于 zip 文件名和 release 名,让产物版本与 tag 保持一致
+            const refName = context.ref.replace('refs/tags/', '');
+            const releaseVersion = refName.replace(/^v/i, '');
+            core.setOutput('release_version', releaseVersion);
 
             // maafw version (look for "maafw==X.Y.Z" or "maafw>=X.Y.Z" etc.)
             const maafwMatch = toml.match(/maafw\s*[=><~!]+\s*([\d.]+)/);
@@ -95,7 +101,7 @@ jobs:
             core.setOutput('project_version', projectVersion);
             core.setOutput('maafw_version', maafwVersion);
             core.setOutput('mfaavalonia_version', mfaVersion);
-            core.notice(`project=${projectVersion}, maafw=${maafwVersion}, mfaavalonia=${mfaVersion}`);
+            core.notice(`project=${projectVersion}, release=${releaseVersion}, maafw=${maafwVersion}, mfaavalonia=${mfaVersion}`);
 
       # --------------------------------------------------------------
       # 3. Setup Python 3.11 (build-time only, runtime Python is bundled)
@@ -264,7 +270,7 @@ jobs:
       - name: Pack release zip
         shell: pwsh
         run: |
-          $version = "${{ steps.version.outputs.project_version }}"
+          $version = "${{ steps.version.outputs.release_version }}"
           $zipName = "naruto-auto-daily-v$version.zip"
           Write-Host "Packing into $zipName ..."
           # Exclude: source control, CI config, tests, debug logs, large caches
@@ -298,12 +304,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: 'naruto-auto-daily v${{ steps.version.outputs.project_version }}'
+          name: 'naruto-auto-daily v${{ steps.version.outputs.release_version }}'
           draft: false
           prerelease: ${{ contains(github.ref_name, '-test') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
           generate_release_notes: true
           files: |
-            naruto-auto-daily-v${{ steps.version.outputs.project_version }}.zip
+            naruto-auto-daily-v${{ steps.version.outputs.release_version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -314,7 +320,7 @@ jobs:
         shell: pwsh
         if: always()
         run: |
-          $version = "${{ steps.version.outputs.project_version }}"
+          $version = "${{ steps.version.outputs.release_version }}"
           $zip = "naruto-auto-daily-v$version.zip"
           if (Test-Path $zip) {
             $size = (Get-Item $zip).Length
